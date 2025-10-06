@@ -28,9 +28,15 @@ export class StudentAttendanceService {
    */
   static async getStudentAttendanceRecords(userId: string): Promise<AttendanceRecord[]> {
     try {
-      console.log('🔍 StudentAttendanceService: Getting attendance records for user:', userId);
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
       
-      // Get all attendance records for this student with class and session details
+      if (!session) {
+        console.error('No active auth session - attendance records blocked by RLS');
+        return [];
+      }
+      
+      // Get all attendance records for this student with class and session details  
       const { data: attendanceRecords, error } = await supabase
         .from('attendance_records')
         .select(`
@@ -38,66 +44,133 @@ export class StudentAttendanceService {
           status,
           scanned_at,
           minutes_late,
-          class_sessions!inner(
-            id,
-            session_number,
-            date,
-            start_time,
-            end_time,
-            room_location,
-            class_instances!inner(
-              id,
-              classes!inner(
-                id,
-                code,
-                name,
-                professors!inner(
-                  users!inner(
-                    first_name,
-                    last_name
-                  )
-                )
-              )
-            )
-          )
+          session_id,
+          student_id
         `)
         .eq('student_id', userId)
-        .order('class_sessions.date', { ascending: false });
-
+        .order('created_at', { ascending: false });
+      
       if (error) {
-        console.error('❌ Error fetching attendance records:', error);
+        console.error('Error fetching attendance records:', error);
         throw new Error('Failed to fetch attendance records');
       }
+      
+      if (!attendanceRecords || attendanceRecords.length === 0) {
+        return [];
+      }
+      
+      // Get session details for all attendance records
+      const sessionIds = attendanceRecords.map(r => r.session_id);
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('class_sessions')
+        .select(`
+          id,
+          session_number,
+          date,
+          start_time,
+          end_time,
+          room_location,
+          class_instance_id
+        `)
+        .in('id', sessionIds);
+      
+      if (sessionsError) {
+        console.error('❌ Error fetching sessions:', sessionsError);
+        throw new Error('Failed to fetch sessions');
+      }
+      
+      // Get class instance details
+      const classInstanceIds = [...new Set(sessions?.map(s => s.class_instance_id) || [])];
+      const { data: classInstances, error: classInstancesError } = await supabase
+        .from('class_instances')
+        .select(`
+          id,
+          course_id,
+          professor_id
+        `)
+        .in('id', classInstanceIds);
+      
+      if (classInstancesError) {
+        console.error('❌ Error fetching class instances:', classInstancesError);
+        throw new Error('Failed to fetch class instances');
+      }
+      
+      // Get course details
+      const courseIds = [...new Set(classInstances?.map(ci => ci.course_id) || [])];
+      const { data: courses, error: coursesError } = await supabase
+        .from('courses')
+        .select('id, code, name')
+        .in('id', courseIds);
+      
+      if (coursesError) {
+        console.error('❌ Error fetching courses:', coursesError);
+        throw new Error('Failed to fetch courses');
+      }
+      
+      // Get professor details
+      const professorIds = [...new Set(classInstances?.map(ci => ci.professor_id) || [])];
+      const { data: professors, error: professorsError } = await supabase
+        .from('professors')
+        .select('user_id')
+        .in('user_id', professorIds);
+      
+      if (professorsError) {
+        console.error('❌ Error fetching professors:', professorsError);
+      }
+      
+      // Get user details for professors
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, first_name, last_name')
+        .in('id', professorIds);
+      
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+      }
 
-      console.log('🔍 StudentAttendanceService: Raw attendance records:', attendanceRecords);
+      // Create lookup maps for efficient data access
+      const sessionMap = new Map(sessions?.map(s => [s.id, s]) || []);
+      const classInstanceMap = new Map(classInstances?.map(ci => [ci.id, ci]) || []);
+      const courseMap = new Map(courses?.map(c => [c.id, c]) || []);
+      const userMap = new Map(users?.map(u => [u.id, u]) || []);
 
       // Transform the data to match the expected interface
-      const transformedRecords: AttendanceRecord[] = attendanceRecords.map(record => {
-        const session = record.class_sessions;
-        const classInstance = session.class_instances;
-        const classData = classInstance.classes;
-        const professor = classData.professors.users;
+      const transformedRecords: AttendanceRecord[] = attendanceRecords
+        .map((record) => {
+          const session = sessionMap.get(record.session_id);
+          if (!session) return null;
+          
+          const classInstance = classInstanceMap.get(session.class_instance_id);
+          if (!classInstance) return null;
+          
+          const course = courseMap.get(classInstance.course_id);
+          if (!course) return null;
+          
+          const professorUser = userMap.get(classInstance.professor_id);
+          const professorName = professorUser 
+            ? `${professorUser.first_name} ${professorUser.last_name}`
+            : 'Unknown Professor';
 
-        // Format time
-        const startTime = this.formatTime(session.start_time);
-        const endTime = this.formatTime(session.end_time);
-        const timeString = `${startTime} - ${endTime}`;
+          // Format time
+          const startTime = this.formatTime(session.start_time);
+          const endTime = this.formatTime(session.end_time);
+          const timeString = `${startTime} - ${endTime}`;
 
-        return {
-          id: record.id,
-          class_code: classData.code,
-          class_name: classData.name,
-          professor: `${professor.first_name} ${professor.last_name}`,
-          room: session.room_location || 'TBD',
-          date: session.date,
-          time: timeString,
-          status: record.status as 'present' | 'absent' | 'late' | 'excused',
-          scanned_at: record.scanned_at,
-          minutes_late: record.minutes_late
-        };
-      });
+          return {
+            id: record.id,
+            class_code: course.code,
+            class_name: course.name,
+            professor: professorName,
+            room: session.room_location || 'TBD',
+            date: session.date,
+            time: timeString,
+            status: record.status as 'present' | 'absent' | 'late' | 'excused',
+            scanned_at: record.scanned_at,
+            minutes_late: record.minutes_late
+          };
+        })
+        .filter((record): record is AttendanceRecord => record !== null);
 
-      console.log('🔍 StudentAttendanceService: Transformed records:', transformedRecords);
       return transformedRecords;
     } catch (error) {
       console.error('Error fetching student attendance records:', error);

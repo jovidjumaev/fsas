@@ -354,6 +354,29 @@ function ClassesPageContent() {
         return;
       }
       
+      // Validate date range
+      const firstDate = new Date(createForm.first_class_date);
+      const lastDate = new Date(createForm.last_class_date);
+      
+      // Check if last date is after first date
+      if (lastDate <= firstDate) {
+        alert('Last class date must be after the first class date. Please ensure your class runs for at least one week.');
+        return;
+      }
+      
+      // Check minimum duration (at least 7 days)
+      const daysDifference = Math.ceil((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysDifference < 7) {
+        alert(`Your class duration is only ${daysDifference} day(s). Please set a duration of at least 7 days (one week) to ensure proper session scheduling.`);
+        return;
+      }
+      
+      // Check if start time is before end time
+      if (createForm.start_time >= createForm.end_time) {
+        alert('End time must be after start time');
+        return;
+      }
+      
       const classData = {
         course_id: createForm.selected_course_id,
         professor_id: user.id,
@@ -1417,12 +1440,19 @@ function ClassesPageContent() {
                       <Input
                         type="date"
                         value={createForm.last_class_date}
+                        min={createForm.first_class_date ? new Date(new Date(createForm.first_class_date).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : undefined}
                         onChange={(e) => setCreateForm(prev => ({ ...prev, last_class_date: e.target.value }))}
                         className="bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600"
                         required
                       />
                     </div>
                   </div>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span>
+                      Class must run for at least 7 days (one week). The last class date must be at least one week after the first class date to ensure proper session scheduling.
+                    </span>
+                  </p>
 
                   {/* Schedule Preview */}
                   {createForm.days_of_week.length > 0 && createForm.start_time && createForm.end_time ? (

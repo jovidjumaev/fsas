@@ -18,6 +18,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import ProfessorHeader from '@/components/professor/professor-header';
+import ProfileEditModal from '@/components/profile/profile-edit-modal';
+import PasswordChangeModal from '@/components/profile/password-change-modal';
+import { supabase } from '@/lib/supabase';
 
 interface SessionData {
   id: string;
@@ -60,7 +63,7 @@ interface ClassOption {
 type TabType = 'today' | 'active' | 'upcoming' | 'completed' | 'all';
 
 function SessionsPageContent() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const searchParams = useSearchParams();
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [classes, setClasses] = useState<ClassOption[]>([]);
@@ -68,6 +71,9 @@ function SessionsPageContent() {
   const [activeTab, setActiveTab] = useState<TabType>('today');
   const [searchTerm, setSearchTerm] = useState('');
   const socketRef = useRef<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
 
   // Fetch sessions from API
   const fetchSessions = useCallback(async () => {
@@ -103,6 +109,299 @@ function SessionsPageContent() {
       setClasses([]);
     }
   }, [user]);
+
+  // Fetch user profile
+  const fetchUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      console.log('🔍 Fetching user profile for user ID:', user.id);
+      
+      const { data, error } = await supabase
+        .from('users' as any)
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        // Create a basic profile from user metadata
+        const fallbackProfile = {
+          first_name: user.user_metadata?.first_name || 'User',
+          last_name: user.user_metadata?.last_name || '',
+          email: user.email || '',
+          role: user.user_metadata?.role || 'professor',
+          phone: user.user_metadata?.phone || '',
+          office_location: user.user_metadata?.office_location || '',
+          title: user.user_metadata?.title || ''
+        };
+        
+        setUserProfile(fallbackProfile);
+        return;
+      }
+      
+      // Combine database data with auth metadata for complete profile
+      const completeProfile = {
+        ...(data as any || {}),
+        phone: user.user_metadata?.phone || '',
+        office_location: user.user_metadata?.office_location || '',
+        title: user.user_metadata?.title || ''
+      };
+      
+      console.log('✅ User profile fetched:', completeProfile);
+      setUserProfile(completeProfile);
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
+
+  // Handle profile save
+  const handleProfileSave = async (profileData: any) => {
+    if (!user) return;
+    
+    try {
+      // Check if names changed and handle name change tracking
+      const namesChanged = profileData.first_name !== userProfile?.first_name || profileData.last_name !== userProfile?.last_name;
+      
+      if (namesChanged) {
+        // Import and use the name change service
+        const { NameChangeService } = await import('@/lib/name-change-service');
+        
+        // Check if user can change their name
+        const nameChangeInfo = await NameChangeService.getNameChangeInfo(user.id);
+        
+        if (!nameChangeInfo.canChange) {
+          throw new Error('Name change limit reached for this month. Please try again next month.');
+        }
+        
+        // Record the name change
+        const nameChangeResult = await NameChangeService.changeName(
+          user.id,
+          userProfile?.first_name || '',
+          userProfile?.last_name || '',
+          profileData.first_name,
+          profileData.last_name,
+          profileData.nameChangeReason || 'Name change via profile edit'
+        );
+        
+        if (!nameChangeResult.success) {
+          throw new Error(nameChangeResult.message);
+        }
+      }
+      
+      // Separate data for users table (only basic fields that exist)
+      const usersTableData = {
+        first_name: profileData.first_name,
+        last_name: profileData.last_name,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Update the users table with only existing columns
+      const { error: usersError } = await supabase
+        .from('users' as any)
+        .update(usersTableData)
+        .eq('id', user.id);
+      
+      if (usersError) {
+        console.error('Error updating users table:', usersError);
+        throw new Error(`Failed to save profile: ${usersError.message}`);
+      }
+      
+      // Update local state
+      setUserProfile((prev: any) => ({ ...prev, ...profileData }));
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      throw error;
+    }
+  };
+
+  // Handle password change
+  const handlePasswordChange = async (currentPassword: string, newPassword: string) => {
+    try {
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Get user profile information for validation
+      const { data: profileData } = await supabase
+        .from('users')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single();
+
+      const { data: professorData } = await supabase
+        .from('professors')
+        .select('employee_id')
+        .eq('user_id', user.id)
+        .single();
+
+      // Import and use the password change service
+      const { PasswordChangeService } = await import('@/lib/password-change-service');
+      
+      const result = await PasswordChangeService.changePassword(
+        user.id,
+        user.email || '',
+        currentPassword,
+        newPassword,
+        {
+          firstName: profileData?.first_name || user.user_metadata?.first_name,
+          lastName: profileData?.last_name || user.user_metadata?.last_name,
+          employeeId: professorData?.employee_id
+        }
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || 'Password change failed');
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      throw error;
+    }
+  };
+
+  // Handle avatar upload
+  const handleAvatarUpload = async (file: File) => {
+    if (!user) {
+      console.error('No user found for avatar upload');
+      throw new Error('User not authenticated');
+    }
+    
+    try {
+      console.log('Starting avatar upload for user:', user.id);
+      
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error('Invalid file type. Please upload a JPEG, PNG, GIF, or WebP image.');
+      }
+      
+      // Validate file size (5MB limit)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        throw new Error('File size too large. Please upload an image smaller than 5MB.');
+      }
+      
+      // Create a unique filename
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      const fileName = `${user.id}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+      
+      console.log('Uploading file to path:', filePath);
+      
+      // Upload file to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+      
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw new Error(`Failed to upload file: ${uploadError.message}`);
+      }
+      
+      console.log('File uploaded successfully:', uploadData);
+      
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+      
+      console.log('Public URL generated:', publicUrl);
+      
+      // Update user profile with avatar URL
+      const { data: updateData, error: updateError } = await supabase
+        .from('users')
+        .update({ 
+          avatar_url: publicUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+        .select();
+      
+      if (updateError) {
+        console.error('Database update error:', updateError);
+        throw new Error(`Failed to update profile: ${updateError.message}`);
+      }
+      
+      console.log('Profile updated successfully:', updateData);
+      
+      // Update local state
+      setUserProfile((prev: any) => ({ ...prev, avatar_url: publicUrl }));
+      
+      console.log('Avatar upload completed successfully');
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      throw error;
+    }
+  };
+
+  // Handle avatar delete
+  const handleAvatarDelete = async () => {
+    if (!user) {
+      console.error('No user found for avatar deletion');
+      throw new Error('User not authenticated');
+    }
+    
+    try {
+      console.log('Starting avatar deletion for user:', user.id);
+      
+      // Get current avatar URL to extract file path
+      const currentAvatarUrl = userProfile?.avatar_url;
+      if (!currentAvatarUrl) {
+        throw new Error('No avatar to delete');
+      }
+      
+      // Extract file path from URL
+      const urlParts = currentAvatarUrl.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      const filePath = `avatars/${fileName}`;
+      
+      console.log('Deleting file from path:', filePath);
+      
+      // Delete file from Supabase Storage
+      const { error: deleteError } = await supabase.storage
+        .from('avatars')
+        .remove([filePath]);
+      
+      if (deleteError) {
+        console.error('Storage deletion error:', deleteError);
+        throw new Error(`Failed to delete file: ${deleteError.message}`);
+      }
+      
+      console.log('File deleted successfully from storage');
+      
+      // Update user profile to remove avatar URL
+      const { data: updateData, error: updateError } = await supabase
+        .from('users')
+        .update({ 
+          avatar_url: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+        .select();
+      
+      if (updateError) {
+        console.error('Database update error:', updateError);
+        throw new Error(`Failed to update profile: ${updateError.message}`);
+      }
+      
+      console.log('Profile updated successfully:', updateData);
+      
+      // Update local state
+      setUserProfile((prev: any) => ({ ...prev, avatar_url: null }));
+      
+      console.log('Avatar deletion completed successfully');
+    } catch (error) {
+      console.error('Error deleting avatar:', error);
+      throw error;
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   // Session management functions
   const activateSession = useCallback(async (sessionId: string, notes?: string) => {
@@ -140,6 +439,7 @@ function SessionsPageContent() {
   useEffect(() => {
     fetchSessions();
     fetchClasses();
+    fetchUserProfile();
   }, [fetchSessions, fetchClasses]);
 
   // Handle URL parameters for tab switching
@@ -344,12 +644,12 @@ function SessionsPageContent() {
       {/* Header */}
       <ProfessorHeader 
         currentPage="sessions"
-        userProfile={null}
-        onSignOut={() => {}}
-        onEditProfile={() => {}}
-        onChangePassword={() => {}}
-        onUploadAvatar={async () => {}}
-        onDeleteAvatar={async () => {}}
+        userProfile={userProfile}
+        onSignOut={handleSignOut}
+        onEditProfile={() => setShowProfileEdit(true)}
+        onChangePassword={() => setShowPasswordChange(true)}
+        onUploadAvatar={handleAvatarUpload}
+        onDeleteAvatar={handleAvatarDelete}
       />
 
       {/* Main Content */}
@@ -617,6 +917,22 @@ function SessionsPageContent() {
           </div>
         )}
       </main>
+
+      {/* Profile Edit Modal */}
+      <ProfileEditModal
+        isOpen={showProfileEdit}
+        onClose={() => setShowProfileEdit(false)}
+        user={user}
+        userProfile={userProfile}
+        onSave={handleProfileSave}
+      />
+
+      {/* Password Change Modal */}
+      <PasswordChangeModal
+        isOpen={showPasswordChange}
+        onClose={() => setShowPasswordChange(false)}
+        onChangePassword={handlePasswordChange}
+      />
     </div>
   );
 }

@@ -11,7 +11,7 @@ import { NotificationPanel } from '@/components/notifications/notification-panel
 import ProfileDropdown from '@/components/profile/profile-dropdown';
 import ProfileEditModal from '@/components/profile/profile-edit-modal';
 import PasswordChangeModal from '@/components/profile/password-change-modal';
-import { ClassCardOptimized } from '@/components/student/class-card-optimized';
+import { ClassCard } from '@/components/student/class-card';
 import { useStudentClasses } from '@/hooks/use-student-classes';
 import { supabase } from '@/lib/supabase';
 import { 
@@ -239,9 +239,14 @@ function StudentClassesContent() {
 
   // Filter classes based on search term and academic period
   const filteredClasses = classes.filter(cls => {
+    // Safety check - ensure class object exists
+    if (!cls || !cls.class_code || !cls.class_name) {
+      return false;
+    }
+    
     const matchesSearch = cls.class_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          cls.class_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         cls.professor.toLowerCase().includes(searchTerm.toLowerCase());
+                         (cls.professor || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesAcademicPeriod = academicPeriodFilter === 'all' || cls.academic_period === academicPeriodFilter;
     
@@ -482,7 +487,7 @@ function StudentClassesContent() {
         {/* Classes Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredClasses.map((classData) => (
-            <ClassCardOptimized key={classData.id} classData={classData} />
+            <ClassCard key={classData.id} classData={classData} />
           ))}
         </div>
 

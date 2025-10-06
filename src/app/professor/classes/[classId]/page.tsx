@@ -15,6 +15,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import ProfessorHeader from '@/components/professor/professor-header';
+import ProfileEditModal from '@/components/profile/profile-edit-modal';
+import PasswordChangeModal from '@/components/profile/password-change-modal';
+import { supabase } from '@/lib/supabase';
 
 interface ClassData {
   id: string;

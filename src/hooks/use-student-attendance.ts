@@ -27,6 +27,7 @@ export function useStudentAttendance(user: User | null): UseStudentAttendanceRet
     if (!user) {
       setIsLoading(false);
       setError('User not authenticated.');
+      setAttendanceRecords([]);
       return;
     }
 
@@ -34,8 +35,6 @@ export function useStudentAttendance(user: User | null): UseStudentAttendanceRet
     setError(null);
     
     try {
-      console.log('🔍 useStudentAttendance: Fetching attendance data for user:', user.id);
-      
       const [records, attendanceStats] = await Promise.all([
         StudentAttendanceService.getStudentAttendanceRecords(user.id),
         StudentAttendanceService.getStudentAttendanceStats(user.id)
@@ -43,10 +42,8 @@ export function useStudentAttendance(user: User | null): UseStudentAttendanceRet
       
       setAttendanceRecords(records);
       setStats(attendanceStats);
-      
-      console.log('🔍 useStudentAttendance: Data fetched successfully:', { records: records.length, stats: attendanceStats });
     } catch (err) {
-      console.error('Failed to fetch student attendance:', err);
+      console.error('Error fetching student attendance:', err);
       setError(err instanceof Error ? err.message : 'An unknown error occurred.');
       setAttendanceRecords([]);
       setStats({

@@ -55,6 +55,13 @@ function StudentScanContent() {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [flashlightOn, setFlashlightOn] = useState(false);
   const [scanHistory, setScanHistory] = useState<any[]>([]);
+  const [todayStats, setTodayStats] = useState({
+    scansToday: 0,
+    present: 0,
+    late: 0,
+    absent: 0
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { user, signOut } = useAuth();
@@ -246,6 +253,7 @@ function StudentScanContent() {
   useEffect(() => {
     fetchUserProfile();
     fetchScanHistory();
+    fetchTodayStats();
     
     // Check if QR code data is in URL parameters (from scanning)
     const qrDataParam = searchParams.get('data');
@@ -271,6 +279,43 @@ function StudentScanContent() {
     }
   }, [user, searchParams]);
 
+  const fetchTodayStats = async () => {
+    if (!user) return;
+    
+    try {
+      setStatsLoading(true);
+      
+      // Get student ID
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('student_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (studentError || !studentData) {
+        console.error('Student profile not found');
+        setStatsLoading(false);
+        return;
+      }
+
+      // Fetch today's stats from API
+      const response = await fetch(`/api/attendance/student/${studentData.student_id}/today-stats`);
+      const result = await response.json();
+
+      if (result.success) {
+        setTodayStats(result.stats);
+      } else {
+        console.error('Error fetching today\'s stats:', result.error);
+        // Keep default values (0s)
+      }
+      
+      setStatsLoading(false);
+    } catch (error) {
+      console.error('Error fetching today\'s stats:', error);
+      setStatsLoading(false);
+    }
+  };
+
   const fetchScanHistory = async () => {
     if (!user) return;
     
@@ -287,10 +332,25 @@ function StudentScanContent() {
         return;
       }
 
-      // Fetch real attendance history (simplified query)
+      // Fetch real attendance history with class details
       const { data: attendanceData, error: attendanceError } = await supabase
         .from('attendance_records')
-        .select('*')
+        .select(`
+          *,
+          class_sessions!inner(
+            id,
+            date,
+            start_time,
+            end_time,
+            room_location,
+            class_instance_id,
+            class_instances!inner(
+              courses(code, name),
+              professor_id,
+              users!professors_users_fkey(first_name, last_name)
+            )
+          )
+        `)
         .eq('student_id', studentData.student_id)
         .order('scanned_at', { ascending: false })
         .limit(10);
@@ -300,17 +360,26 @@ function StudentScanContent() {
         return;
       }
 
-      // Transform data for display (simplified)
-      const history = attendanceData?.map(record => ({
-        id: record.id,
-        class_code: 'Session', // Simplified for now
-        class_name: 'Class Session',
-        professor: 'Professor',
-        room: 'Classroom',
-        time: 'Class Time',
-        status: record.status,
-        scanned_at: record.scanned_at || record.created_at
-      })) || [];
+      // Transform data for display with real class information
+      const history = attendanceData?.map(record => {
+        const session = record.class_sessions;
+        const classInstance = session?.class_instances;
+        const course = classInstance?.courses;
+        const professor = classInstance?.users;
+        
+        return {
+          id: record.id,
+          class_code: course?.code || 'N/A',
+          class_name: course?.name || 'Unknown Class',
+          professor: professor ? `${professor.first_name} ${professor.last_name}` : 'Unknown Professor',
+          room: session?.room_location || 'TBD',
+          time: session?.start_time && session?.end_time 
+            ? `${session.start_time}-${session.end_time}` 
+            : 'TBD',
+          status: record.status,
+          scanned_at: record.scanned_at || record.created_at
+        };
+      }) || [];
 
       setScanHistory(history);
     } catch (error) {
@@ -403,8 +472,8 @@ function StudentScanContent() {
           classData: result.classData
         });
         
-        // Refresh scan history with real data
-        await fetchScanHistory();
+        // Refresh scan history and today's stats with real data
+        await Promise.all([fetchScanHistory(), fetchTodayStats()]);
       } else {
         setScanResult({
           success: false,
@@ -699,24 +768,30 @@ function StudentScanContent() {
             {/* Quick Stats */}
             <Card className="p-5 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Today's Stats</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Scans Today</span>
-                  <span className="text-lg font-bold text-slate-900 dark:text-white">3</span>
+              {statsLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-slate-500" />
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Present</span>
-                  <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">2</span>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600 dark:text-slate-400">Scans Today</span>
+                    <span className="text-lg font-bold text-slate-900 dark:text-white">{todayStats.scansToday}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600 dark:text-slate-400">Present</span>
+                    <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{todayStats.present}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600 dark:text-slate-400">Late</span>
+                    <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{todayStats.late}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600 dark:text-slate-400">Absent</span>
+                    <span className="text-lg font-bold text-red-600 dark:text-red-400">{todayStats.absent}</span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Late</span>
-                  <span className="text-lg font-bold text-amber-600 dark:text-amber-400">1</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Absent</span>
-                  <span className="text-lg font-bold text-red-600 dark:text-red-400">0</span>
-                </div>
-              </div>
+              )}
             </Card>
           </div>
         </div>

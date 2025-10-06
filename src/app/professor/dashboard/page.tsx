@@ -583,10 +583,10 @@ function ProfessorDashboardContent() {
   };
 
   const getAttendanceColor = (rate: number) => {
-    if (rate >= 90) return 'text-emerald-600';
-    if (rate >= 80) return 'text-blue-600';
-    if (rate >= 70) return 'text-amber-600';
-    return 'text-red-600';
+    if (rate >= 90) return 'text-emerald-600 dark:text-emerald-400';
+    if (rate >= 80) return 'text-blue-600 dark:text-blue-400';
+    if (rate >= 70) return 'text-amber-600 dark:text-amber-400';
+    return 'text-red-600 dark:text-red-400';
   };
 
   if (isLoading) {
@@ -628,10 +628,10 @@ function ProfessorDashboardContent() {
               </p>
             </div>
             <div className="flex items-center space-x-3">
-              <Link href="/professor/sessions/new">
+              <Link href="/professor/sessions">
                 <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200">
                   <QrCode className="w-5 h-5 mr-2" />
-                  Start Session
+                  View Sessions
                 </Button>
               </Link>
               <Link href="/professor/classes?create=true">
@@ -817,13 +817,13 @@ function ProfessorDashboardContent() {
                         {/* Right Side - Attendance and Action Button Stacked */}
                         <div className="flex flex-col gap-2">
                           {/* Attendance Badge */}
-                          <div className="flex items-center gap-2 px-3 py-2 min-w-[140px] bg-slate-800/50 dark:bg-slate-700/50 rounded-lg border border-slate-700 dark:border-slate-600">
+                          <div className="flex items-center gap-2 px-3 py-2 min-w-[140px] bg-white dark:bg-slate-700/50 rounded-lg border-2 border-slate-200 dark:border-slate-600 shadow-sm">
                             <BarChart3 className={`w-5 h-5 ${getAttendanceColor(classData.attendance_rate)}`} />
                             <div className="flex-1 text-center">
                               <p className={`text-xl font-bold leading-none ${getAttendanceColor(classData.attendance_rate)}`}>
                                 {classData.attendance_rate}%
                               </p>
-                              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Attendance</p>
+                              <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium">Attendance</p>
                             </div>
                           </div>
 
@@ -882,10 +882,10 @@ function ProfessorDashboardContent() {
                   <p className="text-slate-500 dark:text-slate-400 mb-4">
                     Start a session to begin tracking attendance
                   </p>
-                  <Link href="/professor/sessions/new">
+                  <Link href="/professor/sessions">
                     <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white">
                       <QrCode className="w-4 h-4 mr-2" />
-                      Start Session
+                      View Sessions
                   </Button>
                 </Link>
               </div>

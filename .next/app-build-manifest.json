@@ -1,9 +1,9 @@
 {
   "pages": {
-    "/professor/login/page": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/professor/login/page.js"
+      "static/chunks/app/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
@@ -11,25 +11,20 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
-    ],
     "/professor/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/professor/dashboard/page.js"
     ],
+    "/professor/sessions/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/professor/sessions/page.js"
+    ],
     "/professor/sessions/active/[sessionId]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/professor/sessions/active/[sessionId]/page.js"
-    ],
-    "/professor/register/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/professor/register/page.js"
     ],
     "/student/scan/page": [
       "static/chunks/webpack.js",
@@ -46,30 +41,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/student/dashboard/page.js"
     ],
-    "/professor/sessions/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/professor/sessions/page.js"
-    ],
     "/professor/classes/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/professor/classes/page.js"
     ],
-    "/professor/classes/[classId]/page": [
+    "/student/attendance/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/professor/classes/[classId]/page.js"
+      "static/chunks/app/student/attendance/page.js"
     ],
-    "/professor/sessions/[sessionId]/page": [
+    "/student/classes/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/professor/sessions/[sessionId]/page.js"
-    ],
-    "/student/register/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/student/register/page.js"
+      "static/chunks/app/student/classes/page.js"
     ],
     "/_not-found/page": [
       "static/chunks/webpack.js",

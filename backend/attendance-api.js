@@ -294,6 +294,84 @@ router.get('/api/attendance/student/:studentId', async (req, res) => {
 });
 
 /**
+ * Get today's scan statistics for a student
+ * GET /api/attendance/student/:studentId/today-stats
+ */
+router.get('/api/attendance/student/:studentId/today-stats', async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    console.log(`📊 Fetching today's stats for student ${studentId} on ${today}`);
+    
+    // First, get the student's user_id from the student_id (like "5002378")
+    const { data: studentRecord, error: studentError } = await supabase
+      .from('students')
+      .select('user_id')
+      .eq('student_id', studentId)
+      .single();
+    
+    if (studentError || !studentRecord) {
+      console.error('❌ Student record not found:', studentError);
+      return res.status(404).json({
+        success: false,
+        error: 'Student record not found',
+        details: studentError?.message
+      });
+    }
+    
+    console.log(`📊 Found student user_id: ${studentRecord.user_id}`);
+    
+    // Get today's attendance records using the user_id
+    const { data: todayRecords, error } = await supabase
+      .from('attendance_records')
+      .select('status, scanned_at, created_at')
+      .eq('student_id', studentRecord.user_id)
+      .gte('scanned_at', `${today}T00:00:00`)
+      .lt('scanned_at', `${today}T23:59:59`);
+    
+    if (error) {
+      console.error('❌ Error fetching today\'s stats:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch today\'s statistics',
+        details: error.message
+      });
+    }
+    
+    console.log(`📊 Found ${todayRecords?.length || 0} records for today`);
+    
+    // Calculate today's statistics
+    const scansToday = todayRecords?.length || 0;
+    const presentCount = todayRecords?.filter(r => r.status === 'present').length || 0;
+    const lateCount = todayRecords?.filter(r => r.status === 'late').length || 0;
+    const absentCount = todayRecords?.filter(r => r.status === 'absent').length || 0;
+    
+    console.log(`📊 Stats: Scans=${scansToday}, Present=${presentCount}, Late=${lateCount}, Absent=${absentCount}`);
+    
+    res.json({
+      success: true,
+      stats: {
+        scansToday,
+        present: presentCount,
+        late: lateCount,
+        absent: absentCount
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in /api/attendance/student/:studentId/today-stats:', error);
+    console.error('❌ Error stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      details: error.message
+    });
+  }
+});
+
+/**
  * Get attendance statistics for a student
  * GET /api/attendance/student/:studentId/stats
  */

@@ -30,27 +30,20 @@ router.get('/api/students/:studentId/classes', async (req, res) => {
           start_time,
           end_time,
           first_class_date,
-          last_class_date
-        ),
-        classes!inner(
-          code,
-          name,
-          description,
-          credits,
-          room_location,
-          schedule_info,
-          max_students
-        ),
-        academic_periods!inner(
-          name,
-          year,
-          semester
-        ),
-        professors!inner(
-          users!inner(
-            first_name,
-            last_name,
-            email
+          last_class_date,
+          course_id,
+          professor_id,
+          academic_period_id,
+          courses!inner(
+            code,
+            name,
+            description,
+            credits
+          ),
+          academic_periods!inner(
+            name,
+            year,
+            semester
           )
         )
       `)
@@ -100,8 +93,9 @@ router.get('/api/students/:studentId/classes', async (req, res) => {
     // Get attendance statistics for each class
     const classesWithStats = await Promise.all(
       enrollments.map(async (enrollment) => {
-        const classData = enrollment.classes;
         const classInstance = enrollment.class_instances || null;
+        const courseData = classInstance?.courses || null;
+        const academicPeriod = classInstance?.academic_periods || null;
         const sessions = sessionsByClassId[enrollment.class_instance_id] ? [sessionsByClassId[enrollment.class_instance_id]] : [];
         
         // Get attendance records for this student in this class
@@ -163,17 +157,15 @@ router.get('/api/students/:studentId/classes', async (req, res) => {
           } catch (_) {}
         }
 
-        // Use class instance data if available, otherwise fall back to class data
+        // Use class instance data if available, otherwise fall back
         let roomLocation = 'TBD';
         if (classInstance?.room_location) {
           roomLocation = classInstance.room_location;
         } else if (sessions && sessions.length > 0 && sessions[0].room_location) {
           roomLocation = sessions[0].room_location;
-        } else if (classData.room_location) {
-          roomLocation = classData.room_location;
         }
         
-                let scheduleInfo = `${enrollment.academic_periods.semester} ${enrollment.academic_periods.year}`;
+                let scheduleInfo = academicPeriod ? `${academicPeriod.semester} ${academicPeriod.year}` : 'TBD';
                 if (classInstance?.schedule_info) {
                   scheduleInfo = classInstance.schedule_info;
                 } else if (classInstance?.days_of_week && classInstance?.start_time && classInstance?.end_time) {
@@ -212,22 +204,27 @@ router.get('/api/students/:studentId/classes', async (req, res) => {
                   }
 
                   scheduleInfo = `${daysLabel} ${startHour12}:${startMin} ${startPeriod} - ${endHour12}:${endMin} ${endPeriod}`;
-                } else if (classData.schedule_info) {
-                  scheduleInfo = classData.schedule_info;
                 }
         
-        const maxStudents = classInstance?.max_students || classData.max_students;
+        const maxStudents = classInstance?.max_students || 30;
         const currentEnrollment = classInstance?.current_enrollment || 0;
+        
+        // Get professor info
+        const { data: professorUser } = await supabase
+          .from('users')
+          .select('first_name, last_name, email')
+          .eq('id', classInstance?.professor_id)
+          .single();
         
         return {
           id: enrollment.class_instance_id,
-          class_id: enrollment.class_id, // Add class_id for detailed view
-          class_code: classData.code,
-          class_name: classData.name,
-          description: classData.description,
-          credits: classData.credits,
-          professor: `${enrollment.professors.users.first_name} ${enrollment.professors.users.last_name}`,
-          professor_email: enrollment.professors.users.email,
+          class_id: classInstance?.id || enrollment.class_instance_id,
+          class_code: courseData?.code || 'N/A',
+          class_name: courseData?.name || 'Unknown Class',
+          description: courseData?.description || '',
+          credits: courseData?.credits || 0,
+          professor: professorUser ? `${professorUser.first_name} ${professorUser.last_name}` : 'Unknown Professor',
+          professor_email: professorUser?.email || '',
           room: roomLocation,
           schedule: scheduleInfo,
           // Structured scheduling fields for reliable client-side filtering
@@ -237,7 +234,7 @@ router.get('/api/students/:studentId/classes', async (req, res) => {
           first_class_date: classInstance?.first_class_date || null,
           last_class_date: classInstance?.last_class_date || null,
           meets_today: meetsToday,
-          academic_period: enrollment.academic_periods.name,
+          academic_period: academicPeriod?.name || 'Unknown Period',
           enrollment_date: enrollment.enrollment_date,
           attendance_rate: attendanceRate,
           total_sessions: totalSessionsWithAttendance,

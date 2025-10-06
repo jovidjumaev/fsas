@@ -93,6 +93,7 @@ function StudentAttendanceContent() {
     refreshData
   } = useStudentAttendance(user);
 
+
   // Dark mode setup
   useEffect(() => {
     const savedMode = localStorage.getItem('darkMode') === 'true';
@@ -338,111 +339,6 @@ function StudentAttendanceContent() {
 
   useEffect(() => {
     fetchUserProfile();
-    
-    // Mock attendance data
-    const mockRecords: AttendanceRecord[] = [
-      {
-        id: '1',
-        class_code: 'CSC-475',
-        class_name: 'Seminar in Computer Science',
-        professor: 'Dr. Sarah Johnson',
-        room: 'Room 101',
-        date: '2024-01-15',
-        time: '10:00 AM - 10:50 AM',
-        status: 'present',
-        scanned_at: '2024-01-15T10:15:00Z'
-      },
-      {
-        id: '2',
-        class_code: 'CSC-301',
-        class_name: 'Data Structures',
-        professor: 'Dr. Michael Chen',
-        room: 'Room 205',
-        date: '2024-01-15',
-        time: '2:00 PM - 2:50 PM',
-        status: 'present',
-        scanned_at: '2024-01-15T14:05:00Z'
-      },
-      {
-        id: '3',
-        class_code: 'MAT-201',
-        class_name: 'Calculus II',
-        professor: 'Dr. Emily Davis',
-        room: 'Room 301',
-        date: '2024-01-15',
-        time: '4:00 PM - 4:50 PM',
-        status: 'late',
-        scanned_at: '2024-01-15T16:10:00Z'
-      },
-      {
-        id: '4',
-        class_code: 'CSC-475',
-        class_name: 'Seminar in Computer Science',
-        professor: 'Dr. Sarah Johnson',
-        room: 'Room 101',
-        date: '2024-01-14',
-        time: '10:00 AM - 10:50 AM',
-        status: 'present',
-        scanned_at: '2024-01-14T10:12:00Z'
-      },
-      {
-        id: '5',
-        class_code: 'CSC-301',
-        class_name: 'Data Structures',
-        professor: 'Dr. Michael Chen',
-        room: 'Room 205',
-        date: '2024-01-14',
-        time: '2:00 PM - 2:50 PM',
-        status: 'present',
-        scanned_at: '2024-01-14T14:03:00Z'
-      },
-      {
-        id: '6',
-        class_code: 'MAT-201',
-        class_name: 'Calculus II',
-        professor: 'Dr. Emily Davis',
-        room: 'Room 301',
-        date: '2024-01-14',
-        time: '4:00 PM - 4:50 PM',
-        status: 'absent'
-      },
-      {
-        id: '7',
-        class_code: 'CSC-475',
-        class_name: 'Seminar in Computer Science',
-        professor: 'Dr. Sarah Johnson',
-        room: 'Room 101',
-        date: '2024-01-13',
-        time: '10:00 AM - 10:50 AM',
-        status: 'present',
-        scanned_at: '2024-01-13T10:08:00Z'
-      },
-      {
-        id: '8',
-        class_code: 'CSC-301',
-        class_name: 'Data Structures',
-        professor: 'Dr. Michael Chen',
-        room: 'Room 205',
-        date: '2024-01-13',
-        time: '2:00 PM - 2:50 PM',
-        status: 'present',
-        scanned_at: '2024-01-13T14:01:00Z'
-      },
-      {
-        id: '9',
-        class_code: 'MAT-201',
-        class_name: 'Calculus II',
-        professor: 'Dr. Emily Davis',
-        room: 'Room 301',
-        date: '2024-01-13',
-        time: '4:00 PM - 4:50 PM',
-        status: 'present',
-        scanned_at: '2024-01-13T16:02:00Z'
-      }
-    ];
-
-    // Use real data from the hook instead of mock data
-    // The hook will handle loading and error states
   }, [user]);
 
   // Update local state when real data changes
@@ -450,6 +346,7 @@ function StudentAttendanceContent() {
     if (realAttendanceRecords) {
       setAttendanceRecords(realAttendanceRecords);
     }
+    
     if (realStats) {
       setStats({
         ...realStats,
@@ -457,10 +354,11 @@ function StudentAttendanceContent() {
         longestStreak: 0  // TODO: Calculate longest streak from real data
       });
     }
+    
     if (dataLoading !== undefined) {
       setIsLoading(dataLoading);
     }
-  }, [realAttendanceRecords, realStats, dataLoading]);
+  }, [realAttendanceRecords, realStats, dataLoading, dataError]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -588,18 +486,6 @@ function StudentAttendanceContent() {
                 </span>
               </div>
 
-              {/* Refresh Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={refreshData}
-                disabled={dataLoading}
-                className="hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${dataLoading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-
               <NotificationPanel />
               <button
                 onClick={toggleDarkMode}
@@ -636,6 +522,27 @@ function StudentAttendanceContent() {
             Track your class attendance and performance
           </p>
         </div>
+
+        {/* Error Display */}
+        {dataError && (
+          <Card className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-red-900 dark:text-red-100">Error Loading Attendance</h3>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">{dataError}</p>
+                <Button 
+                  onClick={refreshData}
+                  size="sm"
+                  className="mt-2 bg-red-600 hover:bg-red-700 text-white"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
@@ -850,10 +757,25 @@ function StudentAttendanceContent() {
             </table>
           </div>
 
-          {filteredRecords.length === 0 && (
+          {filteredRecords.length === 0 && !dataLoading && (
             <div className="text-center py-12">
-              <AlertCircle className="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto mb-4" />
-              <p className="text-slate-600 dark:text-slate-400">No attendance records found</p>
+              <BarChart3 className="w-16 h-16 text-slate-400 dark:text-slate-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                No Attendance Records Yet
+              </h3>
+              <p className="text-slate-600 dark:text-slate-400 mb-4">
+                {searchTerm || statusFilter !== 'all' || classFilter !== 'all' 
+                  ? 'No records match your filters. Try adjusting your search criteria.'
+                  : 'You haven\'t attended any classes yet. Scan a QR code in class to mark your attendance!'}
+              </p>
+              {!searchTerm && statusFilter === 'all' && classFilter === 'all' && (
+                <Link href="/student/scan">
+                  <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                    <QrCode className="w-4 h-4 mr-2" />
+                    Scan QR Code
+                  </Button>
+                </Link>
+              )}
             </div>
           )}
         </Card>
