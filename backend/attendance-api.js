@@ -209,6 +209,38 @@ router.post('/api/attendance/scan', async (req, res) => {
       console.log('📡 Real-time attendance update emitted to session room and professor dashboard');
     }
     
+    // Create notification for the student
+    try {
+      const className = `${session.class_instances.courses.code} - ${session.class_instances.courses.name}`;
+      const statusText = isLate ? `late (${minutesLate} minutes)` : 'present';
+      
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: studentRecord.user_id,
+          type: 'attendance_recorded',
+          title: 'Attendance recorded successfully!',
+          message: `Your attendance has been recorded for ${className}. Status: ${statusText}.`,
+          priority: 'medium',
+          link: '/student/attendance',
+          session_id: sessionId,
+          metadata: {
+            className,
+            status: attendanceRecord.status,
+            minutesLate: minutesLate,
+            recordedAt: new Date().toISOString()
+          }
+        });
+      
+      if (notificationError) {
+        console.error('❌ Error creating attendance notification:', notificationError);
+      } else {
+        console.log('✅ Attendance notification created for student:', studentId);
+      }
+    } catch (notificationErr) {
+      console.error('❌ Error in attendance notification creation:', notificationErr);
+    }
+    
     res.json({
       success: true,
       message: `Attendance marked successfully! ${isLate ? `You are marked as late (${minutesLate} minutes after class start).` : 'You are present.'}`,

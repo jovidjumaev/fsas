@@ -323,19 +323,6 @@ export function NotificationPanel() {
                                 <span>Mark read</span>
                               </button>
                             )}
-                            {notification.link && (
-                              <Link
-                                href={notification.link}
-                                onClick={() => {
-                                  handleMarkAsRead(notification.id);
-                                  setIsOpen(false);
-                                }}
-                                className="flex items-center space-x-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                              >
-                                <ExternalLink className="w-3 h-3" />
-                                <span>View</span>
-                              </Link>
-                            )}
                             <button
                               onClick={() => handleDelete(notification.id)}
                               className="flex items-center space-x-1 text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors ml-auto"
@@ -352,18 +339,6 @@ export function NotificationPanel() {
               )}
             </div>
 
-            {/* Footer */}
-            {notifications.length > 0 && (
-              <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
-                <Link
-                  href="/student/notifications"
-                  onClick={() => setIsOpen(false)}
-                  className="block text-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
-                >
-                  View all notifications
-                </Link>
-              </div>
-            )}
           </div>
         </>
       )}

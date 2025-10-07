@@ -714,8 +714,11 @@ router.post('/api/enroll/self', async (req, res) => {
 // Unenroll student from class instance
 router.post('/api/class-instances/:instanceId/unenroll', async (req, res) => {
   try {
+    console.log('🔔 INSTANCE UNENROLLMENT ENDPOINT CALLED:', req.params.instanceId);
     const { instanceId } = req.params;
     const { student_id } = req.body;
+    
+    console.log('📝 Instance unenrollment request:', { instanceId, student_id });
     
     const { data, error } = await supabase
       .from('enrollments')
@@ -726,6 +729,64 @@ router.post('/api/class-instances/:instanceId/unenroll', async (req, res) => {
       .single();
     
     if (error) throw error;
+    
+    // Create notification for the unenrolled student
+    try {
+      console.log('🔔 Creating unenrollment notification for student:', student_id);
+      
+      // Get class and professor information for the notification
+      const { data: classInfo, error: classError } = await supabase
+        .from('class_instances')
+        .select(`
+          id,
+          class_code,
+          courses!inner(
+            code,
+            name
+          ),
+          professors!inner(
+            users!inner(
+              first_name,
+              last_name
+            )
+          )
+        `)
+        .eq('id', instanceId)
+        .single();
+      
+      if (!classError && classInfo) {
+        const className = `${classInfo.courses.code} - ${classInfo.courses.name}`;
+        const professorName = `${classInfo.professors.users.first_name} ${classInfo.professors.users.last_name}`;
+        
+        const notificationData = {
+          user_id: student_id,
+          type: 'system',
+          title: 'You\'ve been removed from a class',
+          message: `You have been removed from ${className} by Professor ${professorName}. Please contact your professor if you have any questions.`,
+          priority: 'medium',
+          link: `/student/classes`,
+          metadata: {
+            className,
+            professorName,
+            unenrollmentDate: new Date().toISOString(),
+            notificationType: 'class_unenrolled',
+            classInstanceId: instanceId
+          }
+        };
+        
+        const { error: notificationError } = await supabase
+          .from('notifications')
+          .insert(notificationData);
+        
+        if (notificationError) {
+          console.error('❌ Error creating unenrollment notification:', notificationError);
+        } else {
+          console.log('✅ Unenrollment notification created successfully');
+        }
+      }
+    } catch (notificationErr) {
+      console.error('❌ Error in unenrollment notification creation:', notificationErr);
+    }
     
     res.json({
       success: true,
@@ -1265,6 +1326,35 @@ router.post('/api/class-instances/:classInstanceId/enroll', async (req, res) => 
       });
     }
     
+    // Get class and professor information for notification
+    const { data: classInfo, error: classError } = await supabase
+      .from('class_instances')
+      .select(`
+        id,
+        class_code,
+        courses!inner(
+          code,
+          name
+        ),
+        professors!inner(
+          user_id,
+          users!inner(
+            first_name,
+            last_name
+          )
+        )
+      `)
+      .eq('id', classInstanceId)
+      .single();
+    
+    if (classError) {
+      console.error('❌ Error fetching class info:', classError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch class information'
+      });
+    }
+    
     // Enroll the student
     const { data: enrollment, error: enrollError } = await supabase
       .from('enrollments')
@@ -1277,6 +1367,39 @@ router.post('/api/class-instances/:classInstanceId/enroll', async (req, res) => 
       .single();
     
     if (enrollError) throw enrollError;
+    
+    // Create notification for the student
+    try {
+      const className = `${classInfo.courses.code} - ${classInfo.courses.name}`;
+      const professorName = `${classInfo.professors.users.first_name} ${classInfo.professors.users.last_name}`;
+      
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: student.user_id,
+          type: 'system', // Use 'system' type since 'class_enrolled' isn't available yet
+          title: 'You\'ve been enrolled in a new class!',
+          message: `You have been enrolled in ${className} by Professor ${professorName}. Check your dashboard to view class details.`,
+          priority: 'high',
+          link: `/student/classes/${classInstanceId}`,
+          // Remove class_id to avoid foreign key constraint issues
+          metadata: {
+            className,
+            professorName,
+            enrollmentDate: new Date().toISOString(),
+            notificationType: 'class_enrolled', // Store the intended type in metadata
+            classInstanceId: classInstanceId
+          }
+        });
+      
+      if (notificationError) {
+        console.error('❌ Error creating enrollment notification:', notificationError);
+      } else {
+        console.log('✅ Enrollment notification created for student:', student.users?.email);
+      }
+    } catch (notificationErr) {
+      console.error('❌ Error in notification creation:', notificationErr);
+    }
     
     console.log('✅ Student enrolled successfully:', student.users?.email);
     
@@ -1475,6 +1598,12 @@ router.post('/api/class-instances/:classInstanceId/bulk-enroll', async (req, res
           id,
           code,
           name
+        ),
+        professors!inner(
+          users!inner(
+            first_name,
+            last_name
+          )
         )
       `)
       .eq('id', classInstanceId)
@@ -1601,6 +1730,58 @@ router.post('/api/class-instances/:classInstanceId/bulk-enroll', async (req, res
 
     if (updateError) throw updateError;
 
+    // Create notifications for newly enrolled students
+    try {
+      const className = `${classInstance.courses.code} - ${classInstance.courses.name}`;
+      const professorName = `${classInstance.professors.users.first_name} ${classInstance.professors.users.last_name}`;
+      
+      // Get professor info for notifications
+      const { data: professorInfo, error: profError } = await supabase
+        .from('professors')
+        .select(`
+          user_id,
+          users!inner(
+            first_name,
+            last_name
+          )
+        `)
+        .eq('user_id', professor_id)
+        .single();
+      
+      if (!profError && professorInfo) {
+        const notificationsToCreate = [...newStudentIds, ...droppedStudentIds].map(studentId => ({
+          user_id: studentId,
+          type: 'system', // Use 'system' type since 'class_enrolled' isn't available yet
+          title: 'You\'ve been enrolled in a new class!',
+          message: `You have been enrolled in ${className} by Professor ${professorInfo.users.first_name} ${professorInfo.users.last_name}. Check your dashboard to view class details.`,
+          priority: 'high',
+          link: `/student/classes/${classInstanceId}`,
+          // Remove class_id to avoid foreign key constraint issues
+          metadata: {
+            className,
+            professorName: `${professorInfo.users.first_name} ${professorInfo.users.last_name}`,
+            enrollmentDate: new Date().toISOString(),
+            notificationType: 'class_enrolled', // Store the intended type in metadata
+            classInstanceId: classInstanceId
+          }
+        }));
+
+        if (notificationsToCreate.length > 0) {
+          const { error: notificationError } = await supabase
+            .from('notifications')
+            .insert(notificationsToCreate);
+          
+          if (notificationError) {
+            console.error('❌ Error creating bulk enrollment notifications:', notificationError);
+          } else {
+            console.log(`✅ Bulk enrollment notifications created for ${notificationsToCreate.length} students`);
+          }
+        }
+      }
+    } catch (notificationErr) {
+      console.error('❌ Error in bulk notification creation:', notificationErr);
+    }
+
     let message = `Successfully enrolled ${totalNewEnrollments} student${totalNewEnrollments !== 1 ? 's' : ''}`;
     if (newStudentIds.length > 0 && droppedStudentIds.length > 0) {
       message += ` (${newStudentIds.length} new, ${droppedStudentIds.length} re-enrolled)`;
@@ -1639,10 +1820,14 @@ router.post('/api/class-instances/:classInstanceId/bulk-enroll', async (req, res
 // Unenroll a student from a class instance
 router.post('/api/class-instances/:classInstanceId/unenroll', async (req, res) => {
   try {
+    console.log('🔔 UNENROLLMENT ENDPOINT CALLED:', req.params.classInstanceId);
     const { classInstanceId } = req.params;
     const { student_id, professor_id } = req.body;
     
+    console.log('📝 Unenrollment request:', { classInstanceId, student_id, professor_id });
+    
     if (!student_id || !professor_id) {
+      console.log('❌ Missing required fields');
       return res.status(400).json({
         success: false,
         error: 'Student ID and professor ID are required'
@@ -1657,6 +1842,64 @@ router.post('/api/class-instances/:classInstanceId/unenroll', async (req, res) =
       .eq('student_id', student_id);
     
     if (error) throw error;
+    
+    // Create notification for the unenrolled student
+    try {
+      console.log('🔔 Creating unenrollment notification for student:', student_id);
+      
+      // Get class and professor information for the notification
+      const { data: classInfo, error: classError } = await supabase
+        .from('class_instances')
+        .select(`
+          id,
+          class_code,
+          courses!inner(
+            code,
+            name
+          ),
+          professors!inner(
+            users!inner(
+              first_name,
+              last_name
+            )
+          )
+        `)
+        .eq('id', classInstanceId)
+        .single();
+      
+      if (!classError && classInfo) {
+        const className = `${classInfo.courses.code} - ${classInfo.courses.name}`;
+        const professorName = `${classInfo.professors.users.first_name} ${classInfo.professors.users.last_name}`;
+        
+        const notificationData = {
+          user_id: student_id,
+          type: 'system', // Use 'system' type since 'class_unenrolled' isn't available yet
+          title: 'You\'ve been removed from a class',
+          message: `You have been removed from ${className} by Professor ${professorName}. Please contact your professor if you have any questions.`,
+          priority: 'medium',
+          link: `/student/classes`,
+          metadata: {
+            className,
+            professorName,
+            unenrollmentDate: new Date().toISOString(),
+            notificationType: 'class_unenrolled', // Store the intended type in metadata
+            classInstanceId: classInstanceId
+          }
+        };
+        
+        const { error: notificationError } = await supabase
+          .from('notifications')
+          .insert(notificationData);
+        
+        if (notificationError) {
+          console.error('❌ Error creating unenrollment notification:', notificationError);
+        } else {
+          console.log('✅ Unenrollment notification created successfully');
+        }
+      }
+    } catch (notificationErr) {
+      console.error('❌ Error in unenrollment notification creation:', notificationErr);
+    }
     
     console.log('✅ Student unenrolled successfully:', student_id);
     

@@ -714,9 +714,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setUserRole(null);
+    console.log('🔐 AuthContext: Starting sign out process...');
+    try {
+      await supabase.auth.signOut();
+      console.log('🔐 AuthContext: Supabase sign out completed');
+      setUser(null);
+      setUserRole(null);
+      console.log('🔐 AuthContext: User state cleared');
+      
+      // Force navigation to login page
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error('🔐 AuthContext: Sign out error:', error);
+      // Even if there's an error, clear the local state
+      setUser(null);
+      setUserRole(null);
+      
+      // Force navigation to login page even on error
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
+    }
   };
 
   const resetPassword = async (email: string, role: 'student' | 'professor') => {

@@ -14,7 +14,10 @@ export type NotificationType =
   | 'grade_posted'
   | 'assignment_due'
   | 'announcement'
-  | 'system';
+  | 'system'
+  | 'class_enrolled'
+  | 'session_started'
+  | 'attendance_recorded';
 
 export type NotificationPriority = 'low' | 'medium' | 'high' | 'urgent';
 
@@ -331,7 +334,10 @@ export class NotificationService {
       grade_posted: '📝',
       assignment_due: '⏰',
       announcement: '📢',
-      system: '⚙️'
+      system: '⚙️',
+      class_enrolled: '🎓',
+      session_started: '🚀',
+      attendance_recorded: '✅'
     };
     return icons[type] || '📬';
   }
@@ -363,6 +369,164 @@ export class NotificationService {
     if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
     
     return date.toLocaleDateString();
+  }
+
+  // =====================================================
+  // STUDENT-SPECIFIC NOTIFICATION METHODS
+  // =====================================================
+
+  /**
+   * Notify student when they are enrolled in a class
+   */
+  static async notifyStudentEnrolled(
+    studentId: string,
+    classInstanceId: string,
+    className: string,
+    professorName: string
+  ): Promise<string | null> {
+    try {
+      const notificationId = await this.createNotification({
+        userId: studentId,
+        type: 'class_enrolled',
+        title: 'You\'ve been enrolled in a new class!',
+        message: `You have been enrolled in ${className} by Professor ${professorName}. Check your dashboard to view class details.`,
+        priority: 'high',
+        link: `/student/classes/${classInstanceId}`,
+        classId: classInstanceId,
+        metadata: {
+          className,
+          professorName,
+          enrollmentDate: new Date().toISOString()
+        }
+      });
+
+      console.log('✅ Student enrollment notification created:', notificationId);
+      return notificationId;
+    } catch (error) {
+      console.error('❌ Error creating enrollment notification:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Notify student when a session starts
+   */
+  static async notifySessionStarted(
+    studentId: string,
+    sessionId: string,
+    className: string,
+    sessionTime: string,
+    roomLocation?: string
+  ): Promise<string | null> {
+    try {
+      const roomText = roomLocation ? ` in ${roomLocation}` : '';
+      const notificationId = await this.createNotification({
+        userId: studentId,
+        type: 'session_started',
+        title: 'Class session has started!',
+        message: `${className} session has started at ${sessionTime}${roomText}. You can now scan the QR code to mark your attendance.`,
+        priority: 'urgent',
+        link: `/student/scan`,
+        sessionId,
+        metadata: {
+          className,
+          sessionTime,
+          roomLocation,
+          sessionStartDate: new Date().toISOString()
+        }
+      });
+
+      console.log('✅ Session start notification created:', notificationId);
+      return notificationId;
+    } catch (error) {
+      console.error('❌ Error creating session start notification:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Notify student when their attendance is successfully recorded
+   */
+  static async notifyAttendanceRecorded(
+    studentId: string,
+    sessionId: string,
+    className: string,
+    status: 'present' | 'late',
+    minutesLate?: number
+  ): Promise<string | null> {
+    try {
+      const statusText = status === 'late' ? `late (${minutesLate} minutes)` : 'present';
+      const notificationId = await this.createNotification({
+        userId: studentId,
+        type: 'attendance_recorded',
+        title: 'Attendance recorded successfully!',
+        message: `Your attendance has been recorded for ${className}. Status: ${statusText}.`,
+        priority: 'medium',
+        link: `/student/attendance`,
+        sessionId,
+        metadata: {
+          className,
+          status,
+          minutesLate: minutesLate || 0,
+          recordedAt: new Date().toISOString()
+        }
+      });
+
+      console.log('✅ Attendance recorded notification created:', notificationId);
+      return notificationId;
+    } catch (error) {
+      console.error('❌ Error creating attendance recorded notification:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Bulk notify multiple students when a session starts
+   */
+  static async bulkNotifySessionStarted(
+    studentIds: string[],
+    sessionId: string,
+    className: string,
+    sessionTime: string,
+    roomLocation?: string
+  ): Promise<number> {
+    let successCount = 0;
+    
+    try {
+      const notifications = studentIds.map(studentId => ({
+        user_id: studentId,
+        type: 'session_started' as NotificationType,
+        title: 'Class session has started!',
+        message: `${className} session has started at ${sessionTime}${roomLocation ? ` in ${roomLocation}` : ''}. You can now scan the QR code to mark your attendance.`,
+        priority: 'urgent' as NotificationPriority,
+        link: '/student/scan',
+        session_id: sessionId,
+        metadata: {
+          className,
+          sessionTime,
+          roomLocation,
+          sessionStartDate: new Date().toISOString()
+        }
+      }));
+
+      const { data, error } = await supabaseAdmin
+        .from('notifications')
+        .insert(notifications)
+        .select('id');
+
+      if (error) {
+        console.error('❌ Error bulk creating session notifications:', error);
+        return 0;
+      }
+
+      successCount = data?.length || 0;
+      console.log(`✅ Bulk session notifications created: ${successCount}/${studentIds.length}`);
+      
+    } catch (error) {
+      console.error('❌ Error in bulk session notification:', error);
+    }
+
+    return successCount;
   }
 }
 

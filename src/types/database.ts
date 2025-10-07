@@ -286,7 +286,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          type: 'attendance_reminder' | 'attendance_marked' | 'class_cancelled' | 'class_rescheduled' | 'grade_posted' | 'assignment_due' | 'announcement' | 'system'
+          type: 'attendance_reminder' | 'attendance_marked' | 'class_cancelled' | 'class_rescheduled' | 'grade_posted' | 'assignment_due' | 'announcement' | 'system' | 'class_enrolled' | 'session_started' | 'attendance_recorded'
           priority: 'low' | 'medium' | 'high' | 'urgent'
           title: string
           message: string
@@ -303,7 +303,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
-          type: 'attendance_reminder' | 'attendance_marked' | 'class_cancelled' | 'class_rescheduled' | 'grade_posted' | 'assignment_due' | 'announcement' | 'system'
+          type: 'attendance_reminder' | 'attendance_marked' | 'class_cancelled' | 'class_rescheduled' | 'grade_posted' | 'assignment_due' | 'announcement' | 'system' | 'class_enrolled' | 'session_started' | 'attendance_recorded'
           priority?: 'low' | 'medium' | 'high' | 'urgent'
           title: string
           message: string

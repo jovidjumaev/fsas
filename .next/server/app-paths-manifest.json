@@ -1,9 +1,11 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/student/dashboard/page": "app/student/dashboard/page.js",
   "/page": "app/page.js",
-  "/student/classes/page": "app/student/classes/page.js",
-  "/student/classes/[classId]/page": "app/student/classes/[classId]/page.js",
-  "/student/attendance/page": "app/student/attendance/page.js",
-  "/student/scan/page": "app/student/scan/page.js"
+  "/professor/dashboard/page": "app/professor/dashboard/page.js",
+  "/professor/login/page": "app/professor/login/page.js",
+  "/professor/classes/page": "app/professor/classes/page.js",
+  "/professor/sessions/page": "app/professor/sessions/page.js",
+  "/student/login/page": "app/student/login/page.js",
+  "/student/dashboard/page": "app/student/dashboard/page.js",
+  "/professor/classes/[classId]/page": "app/professor/classes/[classId]/page.js"
 }

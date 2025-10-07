@@ -529,6 +529,62 @@ app.post('/api/enrollments', async (req, res) => {
     
     if (error) throw error;
     
+    // Create notification for the enrolled student
+    try {
+      console.log('🔔 Creating enrollment notification for student:', student_id);
+      
+      // Get class and professor information for the notification
+      const { data: classInfo, error: classError } = await supabase
+        .from('classes')
+        .select(`
+          id,
+          code,
+          name,
+          professor_id,
+          professors!inner(
+            users!inner(
+              first_name,
+              last_name
+            )
+          )
+        `)
+        .eq('id', class_id)
+        .single();
+      
+      if (!classError && classInfo) {
+        const className = `${classInfo.code} - ${classInfo.name}`;
+        const professorName = `${classInfo.professors.users.first_name} ${classInfo.professors.users.last_name}`;
+        
+        const notificationData = {
+          user_id: student_id,
+          type: 'system', // Use 'system' type since 'class_enrolled' isn't available yet
+          title: 'You\'ve been enrolled in a new class!',
+          message: `You have been enrolled in ${className} by Professor ${professorName}. Check your dashboard to view class details.`,
+          priority: 'high',
+          link: `/student/classes/${class_id}`,
+          metadata: {
+            className,
+            professorName,
+            enrollmentDate: new Date().toISOString(),
+            notificationType: 'class_enrolled', // Store the intended type in metadata
+            classId: class_id
+          }
+        };
+        
+        const { error: notificationError } = await supabase
+          .from('notifications')
+          .insert(notificationData);
+        
+        if (notificationError) {
+          console.error('❌ Error creating enrollment notification:', notificationError);
+        } else {
+          console.log('✅ Enrollment notification created successfully');
+        }
+      }
+    } catch (notificationErr) {
+      console.error('❌ Error in enrollment notification creation:', notificationErr);
+    }
+    
     res.json({
       success: true,
       data: data[0],
@@ -680,6 +736,81 @@ app.get('/api/sessions/:sessionId/qr', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to generate QR code'
+    });
+  }
+});
+
+// Activate session (start attendance)
+app.post('/api/sessions/:sessionId/activate', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { notes } = req.body;
+    
+    console.log('🚀 Activating session:', sessionId);
+    console.log('🔍 Session activation endpoint called with sessionId:', sessionId);
+    
+    // Check if session exists and is scheduled
+    const { data: session, error: fetchError } = await supabase
+      .from('class_sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .eq('status', 'scheduled')
+      .single();
+    
+    if (fetchError || !session) {
+      return res.status(400).json({
+        success: false,
+        error: 'Session not found or already activated'
+      });
+    }
+    
+    // Generate initial QR code
+    const qrData = await QRCodeGenerator.generateSecureQR(sessionId);
+    
+    // Calculate session end time (1 hour from now)
+    const endTime = new Date(Date.now() + 60 * 60 * 1000);
+    
+    // Update session
+    const { data: updatedSession, error: updateError } = await supabase
+      .from('class_sessions')
+      .update({
+        status: 'active',
+        is_active: true,
+        qr_secret: qrData.secret,
+        qr_expires_at: qrData.expires_at,
+        notes: notes || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', sessionId)
+      .select()
+      .single();
+    
+    if (updateError) throw updateError;
+    
+    console.log('✅ Session updated successfully, now calling notification function...');
+    
+    // Notify students about session activation
+    console.log('🔔 Calling notifyStudentsSessionActivated...');
+    try {
+      await notifyStudentsSessionActivated(sessionId);
+      console.log('✅ notifyStudentsSessionActivated completed');
+    } catch (notificationError) {
+      console.error('❌ Error in notifyStudentsSessionActivated:', notificationError);
+    }
+    
+    console.log('✅ Session activated successfully:', sessionId);
+    
+    res.json({
+      success: true,
+      session: updatedSession,
+      qr_code: qrData
+    });
+    
+  } catch (error) {
+    console.error('❌ Error activating session:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });
@@ -1898,6 +2029,65 @@ app.post('/api/classes/:classId/enroll', async (req, res) => {
       });
     }
     
+    // Create notifications for enrolled students
+    try {
+      console.log('🔔 Creating enrollment notifications for', enrollmentResults.length, 'students');
+      
+      // Get class information for notifications
+      const { data: classInfo, error: classError } = await supabase
+        .from('classes')
+        .select(`
+          id,
+          code,
+          name,
+          professor_id,
+          professors!inner(
+            users!inner(
+              first_name,
+              last_name
+            )
+          )
+        `)
+        .eq('id', classId)
+        .single();
+      
+      if (!classError && classInfo) {
+        const className = `${classInfo.code} - ${classInfo.name}`;
+        const professorName = `${classInfo.professors.users.first_name} ${classInfo.professors.users.last_name}`;
+        
+        // Create notifications for each enrolled student
+        const notificationsToCreate = enrollmentResults.map(enrollment => ({
+          user_id: enrollment.student_id,
+          type: 'system', // Use 'system' type since 'class_enrolled' isn't available yet
+          title: 'You\'ve been enrolled in a new class!',
+          message: `You have been enrolled in ${className} by Professor ${professorName}. Check your dashboard to view class details.`,
+          priority: 'high',
+          link: `/student/classes/${classId}`,
+          metadata: {
+            className,
+            professorName,
+            enrollmentDate: new Date().toISOString(),
+            notificationType: 'class_enrolled', // Store the intended type in metadata
+            classId: classId
+          }
+        }));
+        
+        if (notificationsToCreate.length > 0) {
+          const { error: notificationError } = await supabase
+            .from('notifications')
+            .insert(notificationsToCreate);
+          
+          if (notificationError) {
+            console.error('❌ Error creating enrollment notifications:', notificationError);
+          } else {
+            console.log(`✅ Enrollment notifications created for ${notificationsToCreate.length} students`);
+          }
+        }
+      }
+    } catch (notificationErr) {
+      console.error('❌ Error in enrollment notification creation:', notificationErr);
+    }
+    
     res.json({
       success: true,
       message: `Successfully enrolled ${enrollmentResults.length} students`,
@@ -1915,8 +2105,11 @@ app.post('/api/classes/:classId/enroll', async (req, res) => {
 // Unenroll student from a class
 app.post('/api/classes/:classId/unenroll', async (req, res) => {
   try {
+    console.log('🔔 CLASS UNENROLLMENT ENDPOINT CALLED:', req.params.classId);
     const { classId } = req.params;
     const { student_id } = req.body;
+    
+    console.log('📝 Class unenrollment request:', { classId, student_id });
     
     if (!student_id) {
       return res.status(400).json({
@@ -1949,6 +2142,71 @@ app.post('/api/classes/:classId/unenroll', async (req, res) => {
         error: 'Enrollment not found or already inactive'
       });
     }
+    
+    // Create notification for the unenrolled student
+    try {
+      console.log('🔔 Creating unenrollment notification for student:', student_id);
+      
+      // Get class and professor information for the notification
+      console.log('🔍 Fetching class info for classId:', classId);
+      const { data: classInfo, error: classError } = await supabase
+        .from('classes')
+        .select(`
+          id,
+          code,
+          name,
+          professor_id,
+          professors!inner(
+            users!inner(
+              first_name,
+              last_name
+            )
+          )
+        `)
+        .eq('id', classId)
+        .single();
+      
+      if (classError) {
+        console.error('❌ Error fetching class info:', classError);
+        console.log('❌ Class ID:', classId);
+      } else {
+        console.log('✅ Class info fetched:', classInfo);
+      }
+      
+      if (!classError && classInfo) {
+        const className = `${classInfo.code} - ${classInfo.name}`;
+        const professorName = `${classInfo.professors.users.first_name} ${classInfo.professors.users.last_name}`;
+        
+        const notificationData = {
+          user_id: student_id,
+          type: 'system', // Use 'system' type since 'class_unenrolled' isn't available yet
+          title: 'You\'ve been removed from a class',
+          message: `You have been removed from ${className} by Professor ${professorName}. Please contact your professor if you have any questions.`,
+          priority: 'medium',
+          link: `/student/classes`,
+          metadata: {
+            className,
+            professorName,
+            unenrollmentDate: new Date().toISOString(),
+            notificationType: 'class_unenrolled', // Store the intended type in metadata
+            classId: classId
+          }
+        };
+        
+        const { error: notificationError } = await supabase
+          .from('notifications')
+          .insert(notificationData);
+        
+        if (notificationError) {
+          console.error('❌ Error creating unenrollment notification:', notificationError);
+        } else {
+          console.log('✅ Unenrollment notification created successfully');
+        }
+      }
+    } catch (notificationErr) {
+      console.error('❌ Error in unenrollment notification creation:', notificationErr);
+    }
+    
     res.json({
       success: true,
       message: 'Student successfully unenrolled',
@@ -1964,6 +2222,96 @@ app.post('/api/classes/:classId/unenroll', async (req, res) => {
 });
 
 // =====================================================
+// NOTIFICATION SYSTEM FUNCTIONS
+// =====================================================
+
+const notifyStudentsSessionActivated = async (sessionId) => {
+  try {
+    console.log('📢 Notifying students about session activation:', sessionId);
+    
+    // Get session details with class information
+    const { data: session, error: sessionError } = await supabase
+      .from('class_sessions')
+      .select(`
+        id,
+        date,
+        start_time,
+        room_location,
+        class_instance_id,
+        class_instances!inner(
+          courses!inner(
+            code,
+            name
+          )
+        )
+      `)
+      .eq('id', sessionId)
+      .single();
+    
+    if (sessionError || !session) {
+      console.error('❌ Error fetching session details:', sessionError);
+      return;
+    }
+    
+    // Get enrolled students for this class instance
+    const { data: enrollments, error: enrollmentError } = await supabase
+      .from('enrollments')
+      .select(`
+        student_id,
+        status
+      `)
+      .eq('class_instance_id', session.class_instance_id)
+      .eq('status', 'active');
+    
+    if (enrollmentError) {
+      console.error('❌ Error fetching enrollments:', enrollmentError);
+      return;
+    }
+    
+    if (!enrollments || enrollments.length === 0) {
+      console.log('📢 No enrolled students found for this class');
+      return;
+    }
+    
+    // Prepare notification data
+    const className = `${session.class_instances.courses.code} - ${session.class_instances.courses.name}`;
+    const sessionTime = `${session.date} at ${session.start_time}`;
+    const roomLocation = session.room_location;
+    
+    // Create notifications for each student
+    const notifications = enrollments.map(enrollment => ({
+      user_id: enrollment.student_id,
+      type: 'system',
+      title: 'Class session has started!',
+      message: `${className} session has started at ${sessionTime}${roomLocation ? ` in ${roomLocation}` : ''}. You can now scan the QR code to mark your attendance.`,
+      priority: 'urgent',
+      link: '/student/scan',
+      session_id: sessionId,
+      metadata: {
+        className,
+        sessionTime,
+        roomLocation,
+        sessionStartDate: new Date().toISOString(),
+        notificationType: 'session_started'
+      }
+    }));
+    
+    if (notifications.length > 0) {
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert(notifications);
+      
+      if (notificationError) {
+        console.error('❌ Error creating session notifications:', notificationError);
+      } else {
+        console.log(`📢 Session notifications sent to ${notifications.length} students`);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error notifying students:', error);
+  }
+};
+
 // NOTIFICATIONS API
 // =====================================================
 

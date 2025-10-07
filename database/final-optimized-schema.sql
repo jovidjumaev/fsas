@@ -497,7 +497,42 @@ ALTER TABLE enrollments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attendance_records ENABLE ROW LEVEL SECURITY;
 
 -- =====================================================
--- STEP 12: SAMPLE DATA
+-- STEP 12: NOTIFICATIONS TABLE
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL CHECK (type IN (
+        'attendance_reminder', 'attendance_marked', 'class_cancelled', 
+        'class_rescheduled', 'grade_posted', 'assignment_due', 
+        'announcement', 'system', 'class_enrolled', 'session_started', 
+        'attendance_recorded'
+    )),
+    priority VARCHAR(20) DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    link VARCHAR(500),
+    is_read BOOLEAN DEFAULT false,
+    read_at TIMESTAMP WITH TIME ZONE,
+    class_id UUID REFERENCES class_instances(id) ON DELETE CASCADE,
+    session_id UUID REFERENCES class_sessions(id) ON DELETE CASCADE,
+    metadata JSONB DEFAULT '{}',
+    expires_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for notifications
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
+CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
+CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_class_id ON notifications(class_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_session_id ON notifications(session_id);
+
+-- =====================================================
+-- STEP 13: SAMPLE DATA
 -- =====================================================
 
 -- Insert sample academic periods

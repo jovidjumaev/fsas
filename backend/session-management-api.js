@@ -937,32 +937,72 @@ const notifyStudentsSessionActivated = async (sessionId) => {
   try {
     console.log('📢 Notifying students about session activation:', sessionId);
     
-    // Get enrolled students for this session's class
+    // Get session details with class information
+    const { data: session, error: sessionError } = await supabase
+      .from('class_sessions')
+      .select(`
+        id,
+        date,
+        start_time,
+        room_location,
+        class_instance_id,
+        class_instances!inner(
+          id,
+          class_code,
+          courses!inner(
+            code,
+            name
+          )
+        )
+      `)
+      .eq('id', sessionId)
+      .single();
+    
+    if (sessionError || !session) {
+      console.error('❌ Error fetching session details:', sessionError);
+      return;
+    }
+    
+    // Get enrolled students for this class instance
     const { data: enrollments, error: enrollmentError } = await supabase
       .from('enrollments')
       .select(`
-        students!inner(
-          user_id,
-          users!inner(email, first_name, last_name)
-        )
+        student_id
       `)
-      .eq('class_id', (await supabase
-        .from('class_sessions')
-        .select('class_instance_id')
-        .eq('id', sessionId)
-        .single()
-      ).data.class_instance_id);
+      .eq('class_instance_id', session.class_instance_id)
+      .eq('status', 'active');
     
-    if (enrollmentError) throw enrollmentError;
+    if (enrollmentError) {
+      console.error('❌ Error fetching enrollments:', enrollmentError);
+      return;
+    }
+    
+    if (!enrollments || enrollments.length === 0) {
+      console.log('📢 No enrolled students found for this class');
+      return;
+    }
+    
+    // Prepare notification data
+    const className = `${session.class_instances.courses.code} - ${session.class_instances.courses.name}`;
+    const sessionTime = `${session.date} at ${session.start_time}`;
+    const roomLocation = session.room_location;
     
     // Create notifications for each student
     const notifications = enrollments.map(enrollment => ({
-      user_id: enrollment.students.user_id,
-      type: 'session_activated',
-      title: 'Class Session Started',
-      message: 'Your professor has started a new class session. Check in now!',
-      data: { session_id: sessionId },
-      is_read: false
+      user_id: enrollment.student_id,
+      type: 'system',
+      title: 'Class session has started!',
+      message: `${className} session has started at ${sessionTime}${roomLocation ? ` in ${roomLocation}` : ''}. You can now scan the QR code to mark your attendance.`,
+      priority: 'urgent',
+      link: '/student/scan',
+      metadata: {
+        className,
+        sessionTime,
+        roomLocation,
+        sessionStartDate: new Date().toISOString(),
+        notificationType: 'session_started',
+        sessionId: sessionId
+      }
     }));
     
     if (notifications.length > 0) {
@@ -970,9 +1010,11 @@ const notifyStudentsSessionActivated = async (sessionId) => {
         .from('notifications')
         .insert(notifications);
       
-      if (notificationError) throw notificationError;
-      
-      console.log(`📢 Sent notifications to ${notifications.length} students`);
+      if (notificationError) {
+        console.error('❌ Error creating session notifications:', notificationError);
+      } else {
+        console.log(`📢 Session notifications sent to ${notifications.length} students`);
+      }
     }
   } catch (error) {
     console.error('❌ Error notifying students:', error);
