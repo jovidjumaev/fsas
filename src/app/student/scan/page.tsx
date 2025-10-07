@@ -59,7 +59,8 @@ function StudentScanContent() {
     scansToday: 0,
     present: 0,
     late: 0,
-    absent: 0
+    absent: 0,
+    excused: 0
   });
   const [statsLoading, setStatsLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -353,7 +354,7 @@ function StudentScanContent() {
         `)
         .eq('student_id', studentData.student_id)
         .order('scanned_at', { ascending: false })
-        .limit(10);
+        .limit(20);
 
       if (attendanceError) {
         console.error('Error fetching attendance history:', attendanceError);
@@ -736,12 +737,12 @@ function StudentScanContent() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white">Recent Scans</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Last 5 scans</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Recent scans</p>
                 </div>
               </div>
 
               <div className="space-y-3">
-                {scanHistory.slice(0, 5).map((scan) => (
+                {scanHistory.slice(0, 10).map((scan) => (
                   <div
                     key={scan.id}
                     className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg"
@@ -789,6 +790,10 @@ function StudentScanContent() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-600 dark:text-slate-400">Absent</span>
                     <span className="text-lg font-bold text-red-600 dark:text-red-400">{todayStats.absent}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600 dark:text-slate-400">Excused</span>
+                    <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{todayStats.excused}</span>
                   </div>
                 </div>
               )}

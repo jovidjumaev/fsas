@@ -18,18 +18,22 @@ router.get('/api/students/:studentId/classes/:classId', async (req, res) => {
     
     console.log('🔍 Getting class details for student:', studentId, 'class:', classId);
     
-    // Get class details from classes table
+    // Get class details from class_instances table
     const { data: classData, error: classError } = await supabase
-      .from('classes')
+      .from('class_instances')
       .select(`
         id,
-        code,
-        name,
-        description,
-        credits,
+        class_code,
         room_location,
-        schedule_info,
         max_students,
+        current_enrollment,
+        courses!inner(
+          id,
+          code,
+          name,
+          description,
+          credits
+        ),
         professors!inner(
           users!inner(
             first_name,
@@ -59,7 +63,7 @@ router.get('/api/students/:studentId/classes/:classId', async (req, res) => {
       .from('enrollments')
       .select('class_instance_id')
       .eq('student_id', studentId)
-      .eq('class_id', classId)
+      .eq('class_instance_id', classId)
       .single();
     
     if (enrollmentError || !enrollment) {
@@ -187,7 +191,7 @@ router.get('/api/students/:studentId/classes/:classId', async (req, res) => {
         date: session.date,
         start_time: session.start_time,
         end_time: session.end_time,
-        room_location: session.room_location || classInstance.room_location,
+        room_location: session.room_location || classData.room_location,
         status: session.status,
         notes: session.notes,
         is_active: session.is_active,
@@ -224,24 +228,24 @@ router.get('/api/students/:studentId/classes/:classId', async (req, res) => {
       .from('enrollments')
       .select('enrollment_date, status')
       .eq('student_id', studentId)
-      .eq('class_id', classId)
+      .eq('class_instance_id', classId)
       .single();
     
     const response = {
       success: true,
       class: {
         id: classData.id,
-        class_code: classData.code,
-        class_name: classData.name,
-        description: classData.description,
-        credits: classData.credits,
+        class_code: classData.class_code,
+        class_name: classData.courses.name,
+        description: classData.courses.description,
+        credits: classData.courses.credits,
         professor: `${classData.professors.users.first_name} ${classData.professors.users.last_name}`,
         professor_email: classData.professors.users.email,
         room: actualRoom,
         schedule: actualSchedule,
         academic_period: classData.academic_periods.name,
         max_students: classData.max_students,
-        current_enrollment: 0, // This would need to be calculated
+        current_enrollment: classData.current_enrollment,
         enrollment_date: enrollmentInfo?.enrollment_date,
         enrollment_status: enrollmentInfo?.status
       },

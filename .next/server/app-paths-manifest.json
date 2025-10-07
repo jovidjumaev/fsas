@@ -1,9 +1,9 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
   "/student/dashboard/page": "app/student/dashboard/page.js",
-  "/student/scan/page": "app/student/scan/page.js",
-  "/student/attendance/page": "app/student/attendance/page.js",
-  "/student/classes/page": "app/student/classes/page.js",
   "/page": "app/page.js",
-  "/student/login/page": "app/student/login/page.js"
+  "/student/classes/page": "app/student/classes/page.js",
+  "/student/classes/[classId]/page": "app/student/classes/[classId]/page.js",
+  "/student/attendance/page": "app/student/attendance/page.js",
+  "/student/scan/page": "app/student/scan/page.js"
 }

@@ -45,7 +45,7 @@ class QRCodeGenerator {
 
       // Create a URL that students can scan directly
       // Use the computer's IP address instead of localhost for phone access
-      const baseUrl = 'http://10.102.42.149:3000'; // Force correct IP for local testing
+      const baseUrl = 'http://localhost:3000'; // Use localhost for local testing
       const qrUrl = `${baseUrl}/student/scan?data=${encodeURIComponent(JSON.stringify(qrData))}`;
 
       // Generate QR code image with the URL

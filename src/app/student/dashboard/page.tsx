@@ -80,6 +80,7 @@ function StudentDashboardContent() {
     setUserProfile
   } = useStudentDashboard(user);
 
+
   // Dark mode setup
   useEffect(() => {
     const savedMode = localStorage.getItem('darkMode') === 'true';
@@ -604,13 +605,9 @@ function StudentDashboardContent() {
                   todayClasses.map((classData) => (
                     <ClassCard
                       key={classData.id}
-                      id={classData.id}
-                      class_code={classData.class_code}
-                      class_name={classData.class_name}
-                      time={classData.time}
-                      room={classData.room}
-                      professor={classData.professor}
-                      status={classData.status}
+                      classData={classData}
+                      showAttendanceStatus={true}
+                      compact={true}
                     />
                   ))
                 ) : (

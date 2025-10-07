@@ -245,6 +245,22 @@ router.get('/api/attendance/student/:studentId', async (req, res) => {
     const { studentId } = req.params;
     const { sessionId, limit = 50 } = req.query;
     
+    // First, get the student's user_id from the student_id (like "5002378")
+    const { data: studentRecord, error: studentError } = await supabase
+      .from('students')
+      .select('user_id')
+      .eq('student_id', studentId)
+      .single();
+    
+    if (studentError || !studentRecord) {
+      console.error('❌ Student record not found:', studentError);
+      return res.status(404).json({
+        success: false,
+        error: 'Student record not found',
+        details: studentError?.message
+      });
+    }
+    
     let query = supabase
       .from('attendance_records')
       .select(`
@@ -261,8 +277,8 @@ router.get('/api/attendance/student/:studentId', async (req, res) => {
           )
         )
       `)
-      .eq('student_id', studentId)
-      .order('timestamp', { ascending: false })
+      .eq('student_id', studentRecord.user_id)
+      .order('scanned_at', { ascending: false })
       .limit(parseInt(limit));
     
     if (sessionId) {
@@ -347,8 +363,9 @@ router.get('/api/attendance/student/:studentId/today-stats', async (req, res) =>
     const presentCount = todayRecords?.filter(r => r.status === 'present').length || 0;
     const lateCount = todayRecords?.filter(r => r.status === 'late').length || 0;
     const absentCount = todayRecords?.filter(r => r.status === 'absent').length || 0;
+    const excusedCount = todayRecords?.filter(r => r.status === 'excused').length || 0;
     
-    console.log(`📊 Stats: Scans=${scansToday}, Present=${presentCount}, Late=${lateCount}, Absent=${absentCount}`);
+    console.log(`📊 Stats: Scans=${scansToday}, Present=${presentCount}, Late=${lateCount}, Absent=${absentCount}, Excused=${excusedCount}`);
     
     res.json({
       success: true,
@@ -356,7 +373,8 @@ router.get('/api/attendance/student/:studentId/today-stats', async (req, res) =>
         scansToday,
         present: presentCount,
         late: lateCount,
-        absent: absentCount
+        absent: absentCount,
+        excused: excusedCount
       }
     });
     

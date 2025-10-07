@@ -23,13 +23,16 @@ interface ClassData {
   attended_sessions?: number;
   max_students?: number;
   current_enrollment?: number;
+  hasAttendanceToday?: boolean;
 }
 
 interface ClassCardProps {
   classData: ClassData;
+  showAttendanceStatus?: boolean; // New prop to control attendance status display
+  compact?: boolean; // New prop for compact dashboard mode
 }
 
-export const ClassCard = React.memo<ClassCardProps>(({ classData }) => {
+export const ClassCard = React.memo<ClassCardProps>(({ classData, showAttendanceStatus = false, compact = false }) => {
   // Safety check
   if (!classData) {
     return null;
@@ -42,80 +45,185 @@ export const ClassCard = React.memo<ClassCardProps>(({ classData }) => {
     return 'text-red-600 dark:text-red-400';
   };
 
-  return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all duration-200 overflow-hidden">
-      {/* Class Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xl font-bold text-white mb-1">
+  // Format schedule to be more professional
+  const formatSchedule = (schedule: string): string => {
+    if (!schedule) return 'TBD';
+    
+    // Handle different schedule formats
+    if (schedule.includes('TuesdayThursday') || schedule.includes('Tue/Thu')) {
+      return schedule.replace(/TuesdayThursday|Tue\/Thu/g, 'Tue/Thu');
+    }
+    if (schedule.includes('MondayWednesdayFriday') || schedule.includes('Mon/Wed/Fri')) {
+      return schedule.replace(/MondayWednesdayFriday|Mon\/Wed\/Fri/g, 'Mon/Wed/Fri');
+    }
+    if (schedule.includes('MondayWednesday') || schedule.includes('Mon/Wed')) {
+      return schedule.replace(/MondayWednesday|Mon\/Wed/g, 'Mon/Wed');
+    }
+    if (schedule.includes('TuesdayThursday') || schedule.includes('Tue/Thu')) {
+      return schedule.replace(/TuesdayThursday|Tue\/Thu/g, 'Tue/Thu');
+    }
+    
+    // Handle individual days
+    const dayMappings: { [key: string]: string } = {
+      'Monday': 'Mon',
+      'Tuesday': 'Tue', 
+      'Wednesday': 'Wed',
+      'Thursday': 'Thu',
+      'Friday': 'Fri',
+      'Saturday': 'Sat',
+      'Sunday': 'Sun'
+    };
+    
+    let formattedSchedule = schedule;
+    Object.entries(dayMappings).forEach(([full, short]) => {
+      formattedSchedule = formattedSchedule.replace(new RegExp(full, 'g'), short);
+    });
+    
+    return formattedSchedule;
+  };
+
+  // Check if attendance has been taken for today using real data
+  const hasAttendanceToday = classData.hasAttendanceToday || false;
+  
+  // Compact version for dashboard
+  if (compact) {
+    return (
+      <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-md transition-all duration-200 p-3">
+        {/* Compact Header */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex-1">
+            <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">
               {classData.class_code || 'N/A'}
-            </h3>
-            <p className="text-blue-100 text-sm font-medium">
+            </h4>
+            <p className="text-xs text-slate-600 dark:text-slate-400 truncate">
               {classData.class_name || 'Unknown Class'}
             </p>
           </div>
-          {classData.credits && (
-            <div className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-lg">
-              <p className="text-xs text-white font-semibold">{classData.credits} Credits</p>
+
+          {/* Attendance Status */}
+          {showAttendanceStatus && (
+            <div className="flex items-center gap-1 ml-2">
+              {hasAttendanceToday ? (
+                <div className="flex items-center gap-1 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-xs text-green-700 dark:text-green-300 font-medium">Taken</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-full">
+                  <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                  <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">Pending</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Compact Info */}
+        <div className="space-y-1">
+          {/* Time */}
+          {classData.schedule && (
+            <div className="flex items-center gap-1.5 text-xs">
+              <Clock className="w-3 h-3 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+              <span className="text-slate-600 dark:text-slate-400">{formatSchedule(classData.schedule)}</span>
+            </div>
+          )}
+
+          {/* Room */}
+          {classData.room && (
+            <div className="flex items-center gap-1.5 text-xs">
+              <MapPin className="w-3 h-3 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+              <span className="text-slate-600 dark:text-slate-400">{classData.room}</span>
+            </div>
+          )}
+
+          {/* Professor */}
+          {classData.professor && (
+            <div className="flex items-center gap-1.5 text-xs">
+              <User className="w-3 h-3 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+              <span className="text-slate-600 dark:text-slate-400 truncate">{classData.professor}</span>
             </div>
           )}
         </div>
       </div>
+    );
+  }
+  
+  // Full version for classes page
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all duration-200 p-4">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <h4 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-1">
+            {classData.class_code || 'N/A'}
+          </h4>
+          <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
+            {classData.class_name || 'Unknown Class'}
+          </p>
+        </div>
+        
+        {/* Attendance Status - Only show if explicitly requested */}
+        {showAttendanceStatus && (
+          <div className="flex items-center gap-1 ml-2">
+            {hasAttendanceToday ? (
+              <div className="flex items-center gap-1 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-xs text-green-700 dark:text-green-300 font-medium">Taken</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-full">
+                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">Pending</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
-      {/* Class Body */}
-      <div className="p-4 space-y-3">
-        {/* Schedule Info */}
+      {/* Class Info */}
+      <div className="space-y-2">
+        {/* Schedule */}
         {classData.schedule && (
-          <div className="flex items-start gap-2 text-sm">
-            <Clock className="w-4 h-4 text-slate-500 dark:text-slate-400 mt-0.5 flex-shrink-0" />
-            <span className="text-slate-700 dark:text-slate-300 font-medium">{classData.schedule}</span>
+          <div className="flex items-center gap-2 text-sm">
+            <Clock className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+            <span className="text-slate-600 dark:text-slate-400 font-medium">
+              {formatSchedule(classData.schedule)}
+            </span>
           </div>
         )}
 
         {/* Room */}
         {classData.room && (
-          <div className="flex items-start gap-2 text-sm">
-            <MapPin className="w-4 h-4 text-slate-500 dark:text-slate-400 mt-0.5 flex-shrink-0" />
-            <span className="text-slate-700 dark:text-slate-300">{classData.room}</span>
+          <div className="flex items-center gap-2 text-sm">
+            <MapPin className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+            <span className="text-slate-600 dark:text-slate-400">{classData.room}</span>
           </div>
         )}
 
         {/* Professor */}
         {classData.professor && (
-          <div className="flex items-start gap-2 text-sm">
-            <User className="w-4 h-4 text-slate-500 dark:text-slate-400 mt-0.5 flex-shrink-0" />
-            <span className="text-slate-700 dark:text-slate-300">{classData.professor}</span>
+          <div className="flex items-center gap-2 text-sm">
+            <User className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+            <span className="text-slate-600 dark:text-slate-400 truncate">{classData.professor}</span>
           </div>
         )}
 
-        {/* Academic Period */}
-        {classData.academic_period && (
-          <div className="flex items-start gap-2 text-sm">
-            <Calendar className="w-4 h-4 text-slate-500 dark:text-slate-400 mt-0.5 flex-shrink-0" />
-            <span className="text-slate-600 dark:text-slate-400 text-xs">{classData.academic_period}</span>
-          </div>
-        )}
-
-        {/* Attendance Stats */}
-        <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Attendance</span>
-            <span className={`text-lg font-bold ${getAttendanceColor(classData.attendance_rate || 0)}`}>
-              {classData.attendance_rate || 0}%
+        {/* Attendance Rate */}
+        <div className="flex items-center gap-2 text-sm">
+          <BarChart3 className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+          <span className="text-slate-600 dark:text-slate-400">
+            Attendance: <span className={`font-medium ${getAttendanceColor(classData.attendance_rate)}`}>
+              {classData.attendance_rate}%
             </span>
-          </div>
-          <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
-            <span>{classData.attended_sessions || 0} / {classData.total_sessions || 0} sessions</span>
-            <span>{classData.current_enrollment || 0} / {classData.max_students || 0} students</span>
-          </div>
+          </span>
         </div>
+      </div>
 
-        {/* Action Button */}
-        <Link href="/student/scan" className="block mt-4">
-          <Button className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200">
-            <QrCode className="w-4 h-4 mr-2" />
-            Scan QR Code
+      {/* Action Button */}
+      <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
+        <Link href={`/student/classes/${classData.id}`}>
+          <Button variant="outline" size="sm" className="w-full hover:bg-slate-50 dark:hover:bg-slate-700">
+            View Details
           </Button>
         </Link>
       </div>

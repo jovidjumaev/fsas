@@ -127,33 +127,14 @@ export class StudentDashboardService {
         const endTime = cls.end_time as string | null | undefined;
         console.log('🔍 Checking class', cls.class_code, 'with schedule:', { schedule, daysOfWeek, startTime, endTime });
 
-        // Normalize days from structured field if available
-        const normalizeDay = (d: string) => {
-          const map: Record<string, string> = {
-            Sun: 'Sunday', Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday',
-            Su: 'Sunday', M: 'Monday', T: 'Tuesday', W: 'Wednesday', R: 'Thursday', Th: 'Thursday', F: 'Friday', S: 'Saturday'
-          };
-          const key = d.trim().slice(0, 3);
-          return map[key] || map[d] || d;
-        };
-
+        // Simplified day matching logic
         const todayMatchesStructured = (() => {
           if (!daysOfWeek) return false;
           if (Array.isArray(daysOfWeek)) {
-            const normalized = daysOfWeek.map((d) => normalizeDay(d));
-            return normalized.includes(todayName);
+            // Direct comparison with today's day name
+            return daysOfWeek.includes(todayName);
           }
-          const s = String(daysOfWeek);
-          // Handle common compact encodings like MWF, TR
-          const enc = s.toUpperCase();
-          const isMWF = enc.includes('MWF') && (todayName === 'Monday' || todayName === 'Wednesday' || todayName === 'Friday');
-          const isTR = (enc.includes('TR') || enc.includes('TTH')) && (todayName === 'Tuesday' || todayName === 'Thursday');
-          const hasMon = /\bMON/.test(enc) && todayName === 'Monday';
-          const hasTue = /\bTUE/.test(enc) && todayName === 'Tuesday';
-          const hasWed = /\bWED/.test(enc) && todayName === 'Wednesday';
-          const hasThu = /\bTH(U)?/.test(enc) && todayName === 'Thursday';
-          const hasFri = /\bFRI/.test(enc) && todayName === 'Friday';
-          return isMWF || isTR || hasMon || hasTue || hasWed || hasThu || hasFri;
+          return false;
         })();
 
         // Fallback to legacy string matching if structured days are missing
@@ -174,14 +155,39 @@ export class StudentDashboardService {
         
         if (meetsToday) {
           console.log('✅ Class', cls.class_code, 'meets today!');
+          
+          // Create a compact schedule string for display
+          const scheduleDisplay = (startTime && endTime) 
+            ? `${this.formatTime(startTime)} - ${this.formatTime(endTime)}`
+            : (cls.schedule || 'TBD');
+          
+          // Check if attendance has been taken for this student today (any class)
+          // Use the student_id field (like "5002378") for the attendance API
+          console.log('🔍 getTodayClasses: studentRecord:', studentRecord);
+          console.log('🔍 getTodayClasses: studentRecord?.student_id:', studentRecord?.student_id);
+          const hasAttendanceToday = await this.checkAttendanceForToday(studentRecord?.student_id || '5002378');
+          
           todayClasses.push({
             id: cls.class_id || cls.id,
+            class_id: cls.class_id || cls.id,
             class_code: cls.class_code,
             class_name: cls.class_name,
-            time: (startTime && endTime) ? `${this.formatTime(startTime)} - ${this.formatTime(endTime)}` : (cls.schedule || 'TBD'),
-            room: cls.room || 'TBD',
+            description: cls.description || '',
+            credits: cls.credits || 3,
             professor: cls.professor || 'TBD',
-            status: 'upcoming' as const
+            professor_email: cls.professor_email || '',
+            room: cls.room || 'TBD',
+            schedule: scheduleDisplay,
+            department: cls.department || '',
+            department_code: cls.department_code || '',
+            academic_period: cls.academic_period || '',
+            enrollment_date: cls.enrollment_date || '',
+            attendance_rate: cls.attendance_rate || 0,
+            total_sessions: cls.total_sessions || 0,
+            attended_sessions: cls.attended_sessions || 0,
+            max_students: cls.max_students || 0,
+            current_enrollment: cls.current_enrollment || 0,
+            hasAttendanceToday: hasAttendanceToday
           });
         } else {
           console.log('❌ Class', cls.class_code, 'does not meet today');
@@ -189,6 +195,16 @@ export class StudentDashboardService {
       }
 
       console.log('🔍 getTodayClasses: Found', todayClasses.length, 'classes for today:', todayClasses);
+      
+      // Debug: Log each class and why it was included/excluded
+      classesData.classes.forEach((cls, index) => {
+        console.log(`🔍 Class ${index + 1}: ${cls.class_code}`);
+        console.log(`  - Days of week:`, cls.days_of_week);
+        console.log(`  - Schedule:`, cls.schedule);
+        console.log(`  - Start time:`, cls.start_time);
+        console.log(`  - End time:`, cls.end_time);
+      });
+      
       return todayClasses;
     } catch (error) {
       console.error('Error in getTodayClasses:', error);
@@ -291,7 +307,9 @@ export class StudentDashboardService {
       const overallAttendance = totalSessions > 0 ? Math.round((attendedSessions / totalSessions) * 100) : 0;
 
       // Get today's classes with real data
+      console.log('🔍 getAllDashboardData: About to call getTodayClasses');
       const todayClasses = await this.getTodayClasses(userId);
+      console.log('🔍 getAllDashboardData: Got todayClasses:', todayClasses);
 
       const stats: AttendanceStats = {
         overallAttendance,
@@ -310,6 +328,40 @@ export class StudentDashboardService {
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       throw error;
+    }
+  }
+
+  // Helper function to check if attendance has been taken for this student today
+  private static async checkAttendanceForToday(studentId: string): Promise<boolean> {
+    try {
+      console.log('🔍 checkAttendanceForToday: Checking studentId:', studentId);
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      console.log('🔍 checkAttendanceForToday: Today is:', today);
+      
+      // Check if there are any attendance records for this student today
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/attendance/student/${studentId}?limit=20`);
+      console.log('🔍 checkAttendanceForToday: API response status:', response.status);
+      
+      const data = await response.json();
+      console.log('🔍 checkAttendanceForToday: API response data:', data);
+      
+      if (data.success && data.attendance && data.attendance.length > 0) {
+        console.log('🔍 checkAttendanceForToday: Found', data.attendance.length, 'records');
+        // Check if any record is from today
+        const todayRecord = data.attendance.find((record: any) => {
+          const recordDate = new Date(record.scanned_at).toISOString().split('T')[0];
+          console.log('🔍 checkAttendanceForToday: Checking record date:', recordDate, 'vs today:', today);
+          return recordDate === today;
+        });
+        console.log('🔍 checkAttendanceForToday: Found today record:', !!todayRecord);
+        return !!todayRecord;
+      }
+      
+      console.log('🔍 checkAttendanceForToday: No records found or API failed');
+      return false;
+    } catch (error) {
+      console.error('Error checking attendance for today:', error);
+      return false;
     }
   }
 
