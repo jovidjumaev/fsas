@@ -573,7 +573,7 @@ function ClassManagementPageContent() {
   // Session management functions
   const startSession = async (sessionId: string) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/sessions/${sessionId}/start`, {
+      const response = await fetch(`http://localhost:3001/api/sessions/${sessionId}/activate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
