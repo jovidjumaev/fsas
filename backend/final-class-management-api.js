@@ -482,7 +482,7 @@ router.get('/api/sessions/:sessionId/qr', async (req, res) => {
     const nonce = crypto.randomBytes(16).toString('hex');
     const qrCodeSecret = crypto.randomBytes(32).toString('hex');
     
-    const data = `${sessionId}-${timestamp}-${nonce}-${qrCodeSecret}`;
+    const data = `${sessionId}-${timestamp}-${nonce}`;
     const signature = crypto
       .createHmac('sha256', process.env.QR_SECRET || 'fsas_qr_secret_key_2024_secure')
       .update(data)
@@ -492,10 +492,17 @@ router.get('/api/sessions/:sessionId/qr', async (req, res) => {
       sessionId,
       timestamp,
       nonce,
-      signature
+      signature,
+      expiresAt: new Date(timestamp + (30 * 1000)).toISOString()
     };
 
-    const qrCodeImage = await QRCode.toDataURL(JSON.stringify(qrData), {
+    // Create a URL that students can scan directly
+    // Use the Vercel frontend URL for QR codes
+    const baseUrl = process.env.NEXT_PUBLIC_QR_BASE_URL || process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://fsas-frontend.vercel.app';
+    const qrUrl = `${baseUrl}/student/scan?data=${encodeURIComponent(JSON.stringify(qrData))}`;
+
+    // Generate QR code image with the URL
+    const qrCodeImage = await QRCode.toDataURL(qrUrl, {
       errorCorrectionLevel: 'M',
       margin: 1,
       color: {
