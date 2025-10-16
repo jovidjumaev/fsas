@@ -31,8 +31,13 @@ const app = express();
 const server = createServer(app);
 const io = new SocketIOServer(server, {
   cors: {
-    origin: process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000",
-    methods: ["GET", "POST"]
+    origin: [
+      "http://localhost:3000",
+      "https://fsas-frontend.vercel.app",
+      "https://fsas-frontend.vercel.app/"
+    ],
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -105,7 +110,11 @@ app.use(helmet({
   },
 }));
 app.use(cors({
-  origin: process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000",
+  origin: [
+    "http://localhost:3000",
+    "https://fsas-frontend.vercel.app",
+    "https://fsas-frontend.vercel.app/"
+  ],
   credentials: true
 }));
 
