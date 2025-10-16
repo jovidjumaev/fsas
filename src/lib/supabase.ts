@@ -3,7 +3,8 @@ import { Database } from '@/types/database';
 
 // Get environment variables with fallbacks
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zdtxqzpgggolbebrsymp.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkdHhxenBnZ2dvbGJlYnJzeW1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDQyOTEsImV4cCI6MjA3NDA4MDI5MX0.sKzlSmmYQAZ2czFVMZh5bNFk14SdXLvc_vCfi_pSq2Ik';
+// Temporarily hardcode the API key to test Vercel deployment
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkdHhxenBnZ2dvbGJlYnJzeW1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDQyOTEsImV4cCI6MjA3NDA4MDI5MX0.sKzlSmmYQAZ2czFVMZh5bNFk14SdXLvc_vCfi_pSq2Ik';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkdHhxenBnZ2dvbGJlYnJzeW1wIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODUwNDI5MSwiZXhwIjoyMDc0MDgwMjkxfQ.CURDVpLekSL0iOnSEurdVwzWKCi5ldQQcgEkR1g3hqU';
 
 // Debug environment variables
