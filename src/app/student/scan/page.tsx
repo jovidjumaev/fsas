@@ -300,7 +300,7 @@ function StudentScanContent() {
       }
 
       // Fetch today's stats from API
-      const response = await fetch(`/api/attendance/student/${studentData.student_id}/today-stats`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/attendance/student/${studentData.student_id}/today-stats`);
       const result = await response.json();
 
       if (result.success) {

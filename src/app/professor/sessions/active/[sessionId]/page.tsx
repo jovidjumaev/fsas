@@ -113,7 +113,7 @@ function ActiveSessionContent() {
 
   const fetchAttendanceRecords = async () => {
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/attendance`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/attendance`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
@@ -158,7 +158,7 @@ function ActiveSessionContent() {
     setIsLoading(true);
     try {
       // Fetch session details
-      const sessionResponse = await fetch(`/api/sessions/${sessionId}`);
+      const sessionResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}`);
       if (!sessionResponse.ok) throw new Error('Failed to fetch session');
       const sessionData = await sessionResponse.json();
       
@@ -171,7 +171,7 @@ function ActiveSessionContent() {
       // Fetch QR code if session is active
       let qrCodeData = null;
       if (session.status === 'active') {
-        const qrResponse = await fetch(`/api/sessions/${sessionId}/qr-code`);
+        const qrResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/qr-code`);
         if (qrResponse.ok) {
           qrCodeData = await qrResponse.json();
         }
@@ -367,7 +367,7 @@ function ActiveSessionContent() {
     if (!session || session.status !== 'active') return;
     
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/qr-code`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/qr-code`);
       if (response.ok) {
         const qrData = await response.json();
         if (qrData.success) {
@@ -389,7 +389,7 @@ function ActiveSessionContent() {
     setIsCompleting(true);
     setIsStopDialogOpen(false);
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/complete`, { method: 'POST' });
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/complete`, { method: 'POST' });
       if (!response.ok) throw new Error('Failed to complete session');
       await fetchSessionData(); // Refresh session data to reflect completion
       router.push('/professor/sessions?tab=completed'); // Redirect to sessions page with completed tab
@@ -465,7 +465,7 @@ function ActiveSessionContent() {
       console.log('Pausing session:', sessionId);
       
       // Call the backend API to pause the session
-      const response = await fetch(`/api/sessions/${sessionId}/pause`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/pause`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -500,7 +500,7 @@ function ActiveSessionContent() {
       console.log('Resuming session:', sessionId);
       
       // Call the backend API to resume the session
-      const response = await fetch(`/api/sessions/${sessionId}/resume`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/resume`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
