@@ -92,7 +92,7 @@ function SessionDetailsContent() {
     
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/sessions/${sessionId}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}`);
       if (!response.ok) throw new Error('Failed to fetch session details');
       
       const data = await response.json();
@@ -110,7 +110,7 @@ function SessionDetailsContent() {
     if (!sessionId) return;
     
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/attendance`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/attendance`);
       if (!response.ok) throw new Error('Failed to fetch attendance');
       
       const data = await response.json();
@@ -126,7 +126,7 @@ function SessionDetailsContent() {
     if (!session?.class_instance_id) return;
     
     try {
-      const response = await fetch(`/api/class-instances/${session.class_instance_id}/students`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/class-instances/${session.class_instance_id}/students`);
       if (!response.ok) throw new Error('Failed to fetch enrolled students');
       
       const data = await response.json();
@@ -143,7 +143,7 @@ function SessionDetailsContent() {
     
     setIsActionLoading(true);
     try {
-      const response = await fetch(`/api/sessions/${session.id}/activate`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${session.id}/activate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes }),
@@ -166,7 +166,7 @@ function SessionDetailsContent() {
     
     setIsActionLoading(true);
     try {
-      const response = await fetch(`/api/sessions/${session.id}/complete`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${session.id}/complete`, {
         method: 'POST',
       });
       
@@ -187,7 +187,7 @@ function SessionDetailsContent() {
     
     setIsActionLoading(true);
     try {
-      const response = await fetch(`/api/sessions/${session.id}/cancel`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${session.id}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes }),
@@ -226,7 +226,7 @@ function SessionDetailsContent() {
   // Update student attendance status
   const updateAttendanceStatus = async (studentId: string, newStatus: 'present' | 'late' | 'absent' | 'excused') => {
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/attendance/${studentId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/attendance/${studentId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

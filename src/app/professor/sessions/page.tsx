@@ -406,7 +406,7 @@ function SessionsPageContent() {
   // Session management functions
   const activateSession = useCallback(async (sessionId: string, notes?: string) => {
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/activate`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/activate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes }),
@@ -422,7 +422,7 @@ function SessionsPageContent() {
 
   const completeSession = useCallback(async (sessionId: string) => {
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/complete`, { method: 'POST' });
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/complete`, { method: 'POST' });
       if (!response.ok) throw new Error('Failed to complete session');
       await fetchSessions();
       
