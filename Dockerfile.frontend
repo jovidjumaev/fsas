@@ -1,0 +1,27 @@
+# Dockerfile for FSAS Frontend
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy all source code
+COPY . .
+
+# Build the frontend
+RUN npm run build:frontend
+
+# Expose port
+EXPOSE 3000
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Start the frontend server
+CMD ["npm", "run", "start:frontend"]
