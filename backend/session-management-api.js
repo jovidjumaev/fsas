@@ -914,7 +914,7 @@ const startQRCodeRotation = (sessionId) => {
     } catch (error) {
       console.error('❌ Error rotating QR code:', error);
     }
-  }, 30000); // 30 seconds - rotate QR codes every 30 seconds for security
+  }, 10000); // 10 seconds - rotate QR codes every 10 seconds for security
   
   activeRotations.set(sessionId, rotationInterval);
 };

@@ -493,7 +493,7 @@ router.get('/api/sessions/:sessionId/qr', async (req, res) => {
       timestamp,
       nonce,
       signature,
-      expiresAt: new Date(timestamp + (30 * 1000)).toISOString()
+      expiresAt: new Date(timestamp + (10 * 1000)).toISOString()
     };
 
     // Create a URL that students can scan directly
@@ -512,7 +512,7 @@ router.get('/api/sessions/:sessionId/qr', async (req, res) => {
       width: 256
     });
 
-    const expiresAt = new Date(timestamp + (30 * 1000)); // 30 seconds
+    const expiresAt = new Date(timestamp + (10 * 1000)); // 10 seconds
 
     // Update session with QR data
     await supabase

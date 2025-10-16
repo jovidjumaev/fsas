@@ -11,7 +11,7 @@ class QRCodeGenerator {
   }
   
   static get QR_EXPIRY_SECONDS() {
-    return 30; // 30 seconds - security feature to prevent cheating
+    return 10; // 10 seconds - security feature to prevent cheating
   }
 
   /**
@@ -123,11 +123,11 @@ class QRCodeGenerator {
         };
       }
 
-      // Check if QR code is within valid time window (30 seconds)
+      // Check if QR code is within valid time window (10 seconds)
       const currentTime = Date.now();
       const qrTimestamp = qrData.timestamp;
       
-      if (currentTime - qrTimestamp > 30000) {
+      if (currentTime - qrTimestamp > 10000) {
         return {
           isValid: false,
           error: 'QR code is too old'
@@ -163,12 +163,12 @@ class QRCodeGenerator {
   }
 
   /**
-   * Generate a simple rotating QR code (for 30-second intervals)
+   * Generate a simple rotating QR code (for 10-second intervals)
    * @param {string} sessionId - The session ID
    * @returns {Object} Simple QR data for rotation
    */
   static generateRotatingQR(sessionId) {
-    const timestamp = Math.floor(Date.now() / 30000) * 30000; // 30-second intervals
+    const timestamp = Math.floor(Date.now() / 10000) * 10000; // 10-second intervals
     const data = `${sessionId}:${timestamp}`;
     const secret = crypto.createHmac('sha256', this.QR_SECRET)
       .update(data)
@@ -176,7 +176,7 @@ class QRCodeGenerator {
     
     return {
       secret,
-      expires_at: new Date(timestamp + 30000).toISOString(),
+      expires_at: new Date(timestamp + 10000).toISOString(),
       data,
       sessionId,
       timestamp
