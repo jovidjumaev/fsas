@@ -106,7 +106,7 @@ function ProfessorDashboardContent() {
       fetchDashboardData();
       
       // Connect to WebSocket for real-time updates
-      const socket = io('http://156.143.88.239:3001');
+      const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
       
       // Join professor dashboard room
       socket.emit('join-professor-dashboard', user.id);
@@ -499,7 +499,7 @@ function ProfessorDashboardContent() {
 
   const startSession = async (sessionId: string) => {
     try {
-      const response = await fetch(`http://156.143.88.239:3001/api/sessions/${sessionId}/activate`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/activate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -529,10 +529,10 @@ function ProfessorDashboardContent() {
       }
 
       console.log('🔍 Fetching dashboard data for user:', user.id);
-      console.log('🔍 API URL:', `http://156.143.88.239:3001/api/professors/${user.id}/dashboard`);
+      console.log('🔍 API URL:', `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/dashboard`);
       
       // Fetch real dashboard data from API
-      const response = await fetch(`http://156.143.88.239:3001/api/professors/${user.id}/dashboard`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/dashboard`);
       
       console.log('🔍 Response status:', response.status);
       console.log('🔍 Response ok:', response.ok);

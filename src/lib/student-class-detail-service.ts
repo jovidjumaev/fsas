@@ -60,7 +60,7 @@ export class StudentClassDetailService {
     try {
       console.log('🔍 StudentClassDetailService: Getting class detail for user:', userId, 'class:', classInstanceId);
       
-      const response = await fetch(`http://156.143.88.239:3001/api/students/${userId}/classes/${classInstanceId}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/students/${userId}/classes/${classInstanceId}`);
       const result = await response.json();
 
       console.log('🔍 StudentClassDetailService: API response:', result);

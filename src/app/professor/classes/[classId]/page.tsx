@@ -180,7 +180,7 @@ function ClassManagementPageContent() {
     try {
       if (!user?.id) return;
       
-      const response = await fetch(`http://156.143.88.239:3001/api/professors/${user.id}/class-instances`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/class-instances`);
       if (!response.ok) throw new Error('Failed to fetch classes');
       
       const data = await response.json();
@@ -202,7 +202,7 @@ function ClassManagementPageContent() {
 
   const fetchStudents = async () => {
     try {
-      const response = await fetch(`http://156.143.88.239:3001/api/class-instances/${classId}/students`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/class-instances/${classId}/students`);
       if (response.ok) {
       const data = await response.json();
         setStudents(data.data || []);
@@ -215,7 +215,7 @@ function ClassManagementPageContent() {
   const fetchSessions = async () => {
     setIsLoadingSessions(true);
     try {
-      const response = await fetch(`http://156.143.88.239:3001/api/class-instances/${classId}/sessions`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/class-instances/${classId}/sessions`);
       if (response.ok) {
         const data = await response.json();
         setSessions(data.data || []);
@@ -231,7 +231,7 @@ function ClassManagementPageContent() {
   const fetchAnalytics = async () => {
     setIsLoadingAnalytics(true);
     try {
-      const response = await fetch(`http://156.143.88.239:3001/api/classes/${classId}/analytics`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/classes/${classId}/analytics`);
       if (response.ok) {
         const data = await response.json();
         setAnalyticsData(data.data);
@@ -248,7 +248,7 @@ function ClassManagementPageContent() {
     if (!classData || !user?.id) return;
     
     try {
-      const response = await fetch(`http://156.143.88.239:3001/api/class-instances/${classData.id}/pin`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/class-instances/${classData.id}/pin`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -271,7 +271,7 @@ function ClassManagementPageContent() {
     if (!newStudentEmail.trim()) return;
     
     try {
-      const response = await fetch(`http://156.143.88.239:3001/api/class-instances/${classId}/enroll`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/class-instances/${classId}/enroll`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -309,7 +309,7 @@ function ClassManagementPageContent() {
       `Are you sure you want to remove ${studentName} from this class? This action cannot be undone.`,
       async () => {
         try {
-          const response = await fetch(`http://156.143.88.239:3001/api/class-instances/${classId}/unenroll`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/class-instances/${classId}/unenroll`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -367,7 +367,7 @@ function ClassManagementPageContent() {
     if (!user?.id || !classData) return;
     
     try {
-      const response = await fetch(`http://156.143.88.239:3001/api/class-instances/${classData.id}/status`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/class-instances/${classData.id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -408,7 +408,7 @@ function ClassManagementPageContent() {
     setIsLoadingStudents(true);
     try {
       const offset = (page - 1) * studentsPerPage;
-      const response = await fetch(`http://156.143.88.239:3001/api/students/all?limit=${studentsPerPage}&offset=${offset}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/students/all?limit=${studentsPerPage}&offset=${offset}`);
       if (response.ok) {
         const data = await response.json();
         setAllStudents(data.data || []);
@@ -432,7 +432,7 @@ function ClassManagementPageContent() {
 
     setIsSearching(true);
     try {
-      const response = await fetch(`http://156.143.88.239:3001/api/students/search?q=${encodeURIComponent(query)}&limit=20`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/students/search?q=${encodeURIComponent(query)}&limit=20`);
       if (response.ok) {
         const data = await response.json();
         setSearchResults(data.data || []);
@@ -516,7 +516,7 @@ function ClassManagementPageContent() {
     try {
       if (!user?.id) return;
 
-      const response = await fetch(`http://156.143.88.239:3001/api/class-instances/${classId}/bulk-enroll`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/class-instances/${classId}/bulk-enroll`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -573,7 +573,7 @@ function ClassManagementPageContent() {
   // Session management functions
   const startSession = async (sessionId: string) => {
     try {
-      const response = await fetch(`http://156.143.88.239:3001/api/sessions/${sessionId}/activate`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/activate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -598,7 +598,7 @@ function ClassManagementPageContent() {
 
   const stopSession = async (sessionId: string) => {
     try {
-      const response = await fetch(`http://156.143.88.239:3001/api/sessions/${sessionId}/stop`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/stop`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -623,7 +623,7 @@ function ClassManagementPageContent() {
 
   const createNewSession = async () => {
     try {
-      const response = await fetch(`http://156.143.88.239:3001/api/class-instances/${classId}/sessions`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/class-instances/${classId}/sessions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

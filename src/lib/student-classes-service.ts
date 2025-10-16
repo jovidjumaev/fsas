@@ -60,7 +60,7 @@ export class StudentClassesService {
       }
 
       console.log('🔍 StudentClassesService: Fetching from API:', `/api/students/${studentId}/classes`);
-      const response = await fetch(`http://156.143.88.239:3001/api/students/${studentId}/classes`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/students/${studentId}/classes`);
       const result = await response.json();
 
       console.log('🔍 StudentClassesService: API response:', result);
@@ -87,7 +87,7 @@ export class StudentClassesService {
         throw new Error('Student profile not found');
       }
 
-      const response = await fetch(`http://156.143.88.239:3001/api/students/${studentId}/classes/stats`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/students/${studentId}/classes/stats`);
       const result = await response.json();
 
       if (!result.success) {

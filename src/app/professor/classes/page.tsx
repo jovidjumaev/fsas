@@ -232,9 +232,9 @@ function ClassesPageContent() {
       if (!user?.id) return;
       
       console.log('🔍 Fetching classes for user:', user.id);
-      console.log('🔍 API URL:', `http://156.143.88.239:3001/api/professors/${user.id}/classes`);
+      console.log('🔍 API URL:', `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/classes`);
       
-      const response = await fetch(`http://156.143.88.239:3001/api/professors/${user.id}/classes`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/classes`);
       
       console.log('🔍 Classes response status:', response.status);
       console.log('🔍 Classes response ok:', response.ok);
@@ -261,7 +261,7 @@ function ClassesPageContent() {
 
   const fetchAvailableCourses = async () => {
     try {
-      const response = await fetch('http://156.143.88.239:3001/api/courses');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/courses`);
       if (!response.ok) {
         throw new Error('Failed to fetch available courses');
       }
@@ -277,12 +277,12 @@ function ClassesPageContent() {
   const fetchAcademicPeriods = async () => {
     try {
       // First update the current period based on real time
-      await fetch('http://156.143.88.239:3001/api/academic-periods/update-current', {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/academic-periods/update-current`, {
         method: 'POST'
       });
       
       // Then fetch the updated periods
-      const response = await fetch('http://156.143.88.239:3001/api/academic-periods');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/academic-periods`);
       if (!response.ok) {
         throw new Error('Failed to fetch academic periods');
       }
@@ -402,7 +402,7 @@ function ClassesPageContent() {
         max_students: createForm.max_students
       };
       
-      const response = await fetch('http://156.143.88.239:3001/api/class-instances', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/class-instances`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -449,7 +449,7 @@ function ClassesPageContent() {
     try {
       if (!user?.id) return;
       
-      const response = await fetch(`http://156.143.88.239:3001/api/class-instances/${classId}/pin`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/class-instances/${classId}/pin`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -857,7 +857,7 @@ function ClassesPageContent() {
       cancelText: 'Cancel',
       onConfirm: async () => {
         try {
-          const response = await fetch(`http://156.143.88.239:3001/api/class-instances/${classId}`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/class-instances/${classId}`, {
             method: 'DELETE',
             headers: {
               'Content-Type': 'application/json',

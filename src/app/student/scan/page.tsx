@@ -453,7 +453,7 @@ function StudentScanContent() {
       }
 
       // Submit attendance scan
-      const response = await fetch('http://156.143.88.239:3001/api/attendance/scan', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/attendance/scan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

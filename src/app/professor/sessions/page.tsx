@@ -81,7 +81,7 @@ function SessionsPageContent() {
     
     setIsLoading(true);
     try {
-      const response = await fetch(`http://156.143.88.239:3001/api/professors/${user.id}/sessions`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/sessions`);
       if (!response.ok) throw new Error('Failed to fetch sessions');
       
       const data = await response.json();
@@ -99,7 +99,7 @@ function SessionsPageContent() {
     if (!user) return;
     
     try {
-      const response = await fetch(`http://156.143.88.239:3001/api/professors/${user.id}/class-instances`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/class-instances`);
       if (!response.ok) throw new Error('Failed to fetch classes');
       
       const data = await response.json();
@@ -479,7 +479,7 @@ function SessionsPageContent() {
     if (!user) return;
 
     // Connect to WebSocket
-    socketRef.current = io('http://156.143.88.239:3001');
+    socketRef.current = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
     
     socketRef.current.on('connect', () => {
       console.log('🔌 Connected to WebSocket for sessions updates');

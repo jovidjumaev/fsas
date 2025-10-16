@@ -1,0 +1,16 @@
+# Railway configuration for FSAS Backend
+# This file tells Railway how to deploy your backend
+
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "node backend/optimized-server.js"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+[env]
+NODE_ENV = "production"
+PORT = "3001"
