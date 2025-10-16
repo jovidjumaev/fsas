@@ -5,7 +5,7 @@ nixPkgs = ["nodejs", "npm"]
 cmds = ["npm ci"]
 
 [phases.build]
-cmds = ["npm run build:frontend"]
+cmds = ["npm run build:backend"]
 
 [start]
-cmd = "npm run start:frontend"
+cmd = "npm run start:backend"
