@@ -250,7 +250,7 @@ function ActiveSessionContent() {
   const startRealTimeUpdates = () => {
     // Set up WebSocket connection for real-time updates
     if (typeof window !== 'undefined') {
-      const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
+      const socket = io('http://156.143.88.239:3001');
       socketRef.current = socket; // Store socket reference
       
       socket.on('connect', () => {

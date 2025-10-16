@@ -37,7 +37,7 @@ export default function ResetPassword() {
 
   const validateResetToken = async () => {
     try {
-      const response = await fetch('/api/auth/validate-reset-token', {
+      const response = await fetch('http://156.143.88.239:3001/api/auth/validate-reset-token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

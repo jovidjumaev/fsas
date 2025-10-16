@@ -60,7 +60,7 @@ export class NotificationService {
     try {
       console.log('🔔 Fetching notifications for user:', userId);
       
-      const response = await fetch(`http://localhost:3001/api/notifications?user_id=${userId}&limit=${limit}`);
+      const response = await fetch(`http://156.143.88.239:3001/api/notifications?user_id=${userId}&limit=${limit}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -88,7 +88,7 @@ export class NotificationService {
     try {
       console.log('🔔 Fetching unread count for user:', userId);
       
-      const response = await fetch(`http://localhost:3001/api/notifications/unread-count?user_id=${userId}`);
+      const response = await fetch(`http://156.143.88.239:3001/api/notifications/unread-count?user_id=${userId}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -139,7 +139,7 @@ export class NotificationService {
    */
   static async markAsRead(notificationId: string): Promise<boolean> {
     try {
-      const response = await fetch(`http://localhost:3001/api/notifications/${notificationId}/read`, {
+      const response = await fetch(`http://156.143.88.239:3001/api/notifications/${notificationId}/read`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

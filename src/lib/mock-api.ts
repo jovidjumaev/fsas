@@ -1,6 +1,6 @@
 // Mock API service for testing without Supabase
 export class MockAPIService {
-  private static baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  private static baseURL = 'http://156.143.88.239:3001';
 
   static async request(endpoint: string, options: RequestInit = {}) {
     const url = `${this.baseURL}${endpoint}`;

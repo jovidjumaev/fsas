@@ -106,7 +106,7 @@ function ProfessorDashboardContent() {
       fetchDashboardData();
       
       // Connect to WebSocket for real-time updates
-      const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
+      const socket = io('http://156.143.88.239:3001');
       
       // Join professor dashboard room
       socket.emit('join-professor-dashboard', user.id);
@@ -499,7 +499,7 @@ function ProfessorDashboardContent() {
 
   const startSession = async (sessionId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/sessions/${sessionId}/activate`, {
+      const response = await fetch(`http://156.143.88.239:3001/api/sessions/${sessionId}/activate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -528,17 +528,28 @@ function ProfessorDashboardContent() {
         return;
       }
 
-      // Fetch real dashboard data from API
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/professors/${user.id}/dashboard`);
+      console.log('🔍 Fetching dashboard data for user:', user.id);
+      console.log('🔍 API URL:', `http://156.143.88.239:3001/api/professors/${user.id}/dashboard`);
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data');
-      }
+      // Fetch real dashboard data from API
+      const response = await fetch(`http://156.143.88.239:3001/api/professors/${user.id}/dashboard`);
+      
+      console.log('🔍 Response status:', response.status);
+      console.log('🔍 Response ok:', response.ok);
       
       const result = await response.json();
       
+      console.log('🔍 API Response:', result);
+      console.log('🔍 Response success:', result.success);
+      console.log('🔍 Response data:', result.data);
+      
       if (result.success) {
         const { stats, classes, activeSessions, todayClasses } = result.data;
+        
+        console.log('🔍 Stats:', stats);
+        console.log('🔍 Classes count:', classes.length);
+        console.log('🔍 Active sessions count:', activeSessions.length);
+        console.log('🔍 Today classes count:', todayClasses.length);
         
         setStats(stats);
         setMyClasses(classes);
@@ -549,7 +560,10 @@ function ProfessorDashboardContent() {
       }
       
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('❌ Error fetching dashboard data:', error);
+      console.error('❌ Error details:', error.message);
+      console.error('❌ Error stack:', error.stack);
+      
       // Fallback to empty data on error
       setStats({
         totalClasses: 0,

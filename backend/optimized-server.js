@@ -31,7 +31,7 @@ const app = express();
 const server = createServer(app);
 const io = new SocketIOServer(server, {
   cors: {
-    origin: process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000",
+    origin: process.env.NEXT_PUBLIC_FRONTEND_URL || "http://156.143.88.239:3000",
     methods: ["GET", "POST"]
   }
 });
@@ -105,7 +105,7 @@ app.use(helmet({
   },
 }));
 app.use(cors({
-  origin: process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000",
+  origin: process.env.NEXT_PUBLIC_FRONTEND_URL || "http://156.143.88.239:3000",
   credentials: true
 }));
 
@@ -966,7 +966,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
     // Send password reset email using Supabase Auth
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/reset-password?type=${role}`,
+      redirectTo: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://156.143.88.239:3000'}/reset-password?type=${role}`,
     });
 
     if (resetError) {

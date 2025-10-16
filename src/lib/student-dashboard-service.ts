@@ -107,7 +107,7 @@ export class StudentDashboardService {
       const apiStudentId = studentRecord?.id || userId;
 
       // Get the student's enrolled classes
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/students/${apiStudentId}/classes`);
+      const response = await fetch(`http://156.143.88.239:3001/api/students/${apiStudentId}/classes`);
       const classesData = await response.json();
       
       if (!classesData.success) {
@@ -288,7 +288,7 @@ export class StudentDashboardService {
       const apiStudentId = studentRecord?.id || userId;
 
       // Use the working student classes API to get real data
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/students/${apiStudentId}/classes`);
+      const response = await fetch(`http://156.143.88.239:3001/api/students/${apiStudentId}/classes`);
       const classesData = await response.json();
       
       if (!classesData.success) {
@@ -339,7 +339,7 @@ export class StudentDashboardService {
       console.log('🔍 checkAttendanceForToday: Today is:', today);
       
       // Check if there are any attendance records for this student today
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/attendance/student/${studentId}?limit=20`);
+      const response = await fetch(`http://156.143.88.239:3001/api/attendance/student/${studentId}?limit=20`);
       console.log('🔍 checkAttendanceForToday: API response status:', response.status);
       
       const data = await response.json();
