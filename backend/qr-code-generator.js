@@ -44,8 +44,8 @@ class QRCodeGenerator {
       };
 
       // Create a URL that students can scan directly
-      // Use the Vercel frontend URL for QR codes
-      const baseUrl = process.env.NEXT_PUBLIC_QR_BASE_URL || process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://fsas-frontend.vercel.app';
+      // Use the Vercel frontend URL for QR codes (hardcoded for reliability)
+      const baseUrl = 'https://fsas-frontend.vercel.app';
       const qrUrl = `${baseUrl}/student/scan?data=${encodeURIComponent(JSON.stringify(qrData))}`;
 
       // Generate QR code image with the URL
