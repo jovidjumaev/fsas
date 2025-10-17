@@ -97,12 +97,13 @@ router.post('/api/attendance/scan', async (req, res) => {
       .select('*')
       .eq('student_id', studentRecord.user_id)
       .eq('class_instance_id', session.class_instance_id)
+      .eq('status', 'active')  // Only allow active enrollments
       .single();
     
     if (enrollmentError || !enrollment) {
       return res.status(403).json({
         success: false,
-        error: 'You are not enrolled in this class'
+        error: 'You are not enrolled in this class or your enrollment is not active'
       });
     }
     
