@@ -217,14 +217,7 @@ export class StudentDashboardService {
     try {
       console.log('🔍 getRecentAttendance: Starting for user:', userId);
       
-      // Get student data to get the correct student ID
-      const studentData = await this.getStudentData(userId);
-      if (!studentData) {
-        throw new Error('Student data not found');
-      }
-
-      const studentId = studentData.student_id;
-
+      // Use userId directly (UUID) for attendance_records.student_id
       const { data: attendanceData, error: attendanceError } = await supabase
         .from('attendance_records')
         .select(`
@@ -236,7 +229,7 @@ export class StudentDashboardService {
             )
           )
         `)
-        .eq('student_id', studentId)
+        .eq('student_id', userId) // userId is the UUID that matches attendance_records.student_id
         .order('scanned_at', { ascending: false })
         .limit(limit);
 
@@ -264,15 +257,7 @@ export class StudentDashboardService {
     try {
       console.log('🔍 getAttendanceStats: Starting for user:', userId);
       
-      // Get student data to get the correct student ID
-      const studentData = await this.getStudentData(userId);
-      if (!studentData) {
-        throw new Error('Student data not found');
-      }
-
-      const studentId = studentData.student_id;
-
-      // Get all attendance records for this student
+      // Get all attendance records for this student using userId (UUID)
       const { data: attendanceRecords, error: attendanceError } = await supabase
         .from('attendance_records')
         .select(`
@@ -286,7 +271,7 @@ export class StudentDashboardService {
             )
           )
         `)
-        .eq('student_id', studentId)
+        .eq('student_id', userId) // userId is the UUID that matches attendance_records.student_id
         .order('scanned_at', { ascending: false });
 
       if (attendanceError) {
@@ -294,11 +279,11 @@ export class StudentDashboardService {
         throw attendanceError;
       }
 
-      // Get active enrollments to calculate total classes
+      // Get active enrollments using userId (UUID)
       const { data: enrollments, error: enrollmentError } = await supabase
         .from('enrollments')
         .select('class_instance_id')
-        .eq('student_id', studentId)
+        .eq('student_id', userId) // userId is the UUID that matches enrollments.student_id
         .eq('status', 'active');
 
       if (enrollmentError) {
