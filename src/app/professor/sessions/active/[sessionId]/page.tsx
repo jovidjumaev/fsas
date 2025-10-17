@@ -311,14 +311,14 @@ function ActiveSessionContent() {
     
     qrRefreshInterval.current = setInterval(async () => {
       await refreshQRCode();
-    }, 30000); // Refresh every 30 seconds
+    }, 10000); // Refresh every 10 seconds
 
     // Countdown timer
-    setQrRefreshCountdown(30);
+    setQrRefreshCountdown(10);
     countdownInterval.current = setInterval(() => {
       setQrRefreshCountdown(prev => {
         if (prev <= 1) {
-          return 30; // Reset countdown
+          return 10; // Reset countdown
         }
         return prev - 1;
       });
