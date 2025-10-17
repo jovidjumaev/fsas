@@ -13,6 +13,7 @@ import ProfileEditModal from '@/components/profile/profile-edit-modal';
 import PasswordChangeModal from '@/components/profile/password-change-modal';
 import { supabase } from '@/lib/supabase';
 import { useStudentAttendance } from '@/hooks/use-student-attendance';
+import { ExportUtils } from '@/lib/export-utils';
 import { 
   GraduationCap,
   QrCode, 
@@ -34,7 +35,9 @@ import {
   Download,
   Eye,
   ChevronDown,
-  RefreshCw
+  RefreshCw,
+  FileSpreadsheet,
+  FileText
 } from 'lucide-react';
 
 interface AttendanceRecord {
@@ -81,6 +84,7 @@ function StudentAttendanceContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [classFilter, setClassFilter] = useState<string>('all');
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const { user, signOut } = useAuth();
   const router = useRouter();
 
@@ -341,6 +345,21 @@ function StudentAttendanceContent() {
     fetchUserProfile();
   }, [user]);
 
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showExportMenu) {
+        const target = event.target as Element;
+        if (!target.closest('.export-menu-container')) {
+          setShowExportMenu(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showExportMenu]);
+
   // Update local state when real data changes
   useEffect(() => {
     if (realAttendanceRecords) {
@@ -401,6 +420,36 @@ function StudentAttendanceContent() {
   });
 
   const uniqueClasses = [...new Set(attendanceRecords.map(r => r.class_code))];
+
+  const handleExportToExcel = () => {
+    if (!user || !userProfile) return;
+    
+    const studentName = `${userProfile.first_name || 'Student'} ${userProfile.last_name || ''}`.trim();
+    const exportData = {
+      records: filteredRecords,
+      stats: stats,
+      studentName: studentName,
+      exportDate: new Date().toLocaleDateString()
+    };
+    
+    ExportUtils.exportToExcel(exportData);
+    setShowExportMenu(false);
+  };
+
+  const handleExportToCSV = () => {
+    if (!user || !userProfile) return;
+    
+    const studentName = `${userProfile.first_name || 'Student'} ${userProfile.last_name || ''}`.trim();
+    const exportData = {
+      records: filteredRecords,
+      stats: stats,
+      studentName: studentName,
+      exportDate: new Date().toLocaleDateString()
+    };
+    
+    ExportUtils.exportToCSV(exportData);
+    setShowExportMenu(false);
+  };
 
   if (isLoading) {
     return (
@@ -689,10 +738,38 @@ function StudentAttendanceContent() {
             </div>
 
             {/* Export Button */}
-            <Button variant="outline" className="border-slate-300 dark:border-slate-600">
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
+            <div className="relative export-menu-container">
+              <Button 
+                variant="outline" 
+                className="border-slate-300 dark:border-slate-600"
+                onClick={() => setShowExportMenu(!showExportMenu)}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+              
+              {showExportMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-50">
+                  <div className="py-1">
+                    <button
+                      onClick={handleExportToExcel}
+                      className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 mr-2" />
+                      Export to Excel
+                    </button>
+                    <button
+                      onClick={handleExportToCSV}
+                      className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Export to CSV
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </Card>
 
