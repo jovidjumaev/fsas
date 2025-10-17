@@ -249,12 +249,13 @@ export class StudentDashboardService {
         throw attendanceError;
       }
 
-      // Get active enrollments using userId (UUID)
+      // Get active enrollments using userId (UUID), filtering out null class_instance_id values
       const { data: enrollments, error: enrollmentError } = await supabase
         .from('enrollments')
         .select('class_instance_id')
         .eq('student_id', userId) // userId is the UUID that matches enrollments.student_id
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .not('class_instance_id', 'is', null); // Filter out enrollments with null class_instance_id
 
       if (enrollmentError) {
         console.error('Error fetching enrollments:', enrollmentError);
