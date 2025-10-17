@@ -1301,6 +1301,13 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
       const todayDayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
       const todayDate = today.toISOString().split('T')[0];
       
+      // Debug timezone information
+      console.log('🕐 Server Timezone Debug:');
+      console.log('  Server time:', today.toString());
+      console.log('  Server UTC:', today.toISOString());
+      console.log('  Server day of week:', todayDayOfWeek, '(' + today.toLocaleDateString('en-US', { weekday: 'long' }) + ')');
+      console.log('  Server date:', todayDate);
+      
       // Check if today is within the class period
       const firstClassDate = new Date(classInstance.first_class_date);
       const lastClassDate = new Date(classInstance.last_class_date);
