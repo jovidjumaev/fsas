@@ -7,7 +7,7 @@ export interface StudentData {
   student_number: string;
   enrollment_year: number;
   major: string;
-  graduation_year: number;
+  graduation_year: number | null;
   first_name: string;
   last_name: string;
   email: string;
@@ -48,10 +48,11 @@ export class StudentDashboardService {
         .select(`
           id,
           student_id,
-          student_number,
           enrollment_year,
           major,
-          graduation_year,
+          gpa,
+          graduation_date,
+          created_at,
           users!inner(
             first_name,
             last_name,
@@ -71,14 +72,14 @@ export class StudentDashboardService {
       return {
         id: data.id,
         student_id: data.student_id,
-        student_number: data.student_number,
+        student_number: data.student_id, // Use student_id as student_number
         enrollment_year: data.enrollment_year,
         major: data.major,
-        graduation_year: data.graduation_year,
+        graduation_year: data.graduation_date ? new Date(data.graduation_date).getFullYear() : null,
         first_name: data.users.first_name,
         last_name: data.users.last_name,
         email: data.users.email,
-          phone: '', // Phone field not available in users table
+        phone: '', // Phone field not available in users table
         is_active: data.users.is_active,
         account_created: data.users.created_at
       };
