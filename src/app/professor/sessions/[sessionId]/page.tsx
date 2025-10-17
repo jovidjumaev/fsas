@@ -438,16 +438,20 @@ function SessionDetailsContent() {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-6 py-8">
-        {/* Back Button */}
+        {/* Breadcrumb Navigation */}
         <div className="mb-6">
-          <Button 
-            variant="outline" 
-            onClick={() => router.push('/professor/sessions')}
-            className="hover:bg-slate-100 dark:hover:bg-slate-700"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Sessions
-          </Button>
+          <nav className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400">
+            <button 
+              onClick={() => router.push('/professor/sessions')}
+              className="hover:text-slate-900 dark:hover:text-white transition-colors"
+            >
+              Sessions
+            </button>
+            <span>/</span>
+            <span className="text-slate-900 dark:text-white font-medium">
+              {session?.class_instances?.courses?.code} - Session {session?.session_number}
+            </span>
+          </nav>
         </div>
 
         {/* Session Header */}
@@ -467,17 +471,21 @@ function SessionDetailsContent() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-                  {session.class_instances.courses.code} - {new Date(session.date).toLocaleDateString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric', 
-                    year: 'numeric' 
-                  })}
+                  {session.class_instances.courses.code} - Session {session.session_number}
                   {isManageMode && (
                     <span className="ml-3 px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-sm font-medium">
                       Manage Mode
                     </span>
                   )}
                 </h1>
+                <div className="text-lg text-slate-600 dark:text-slate-400 mb-2">
+                  {new Date(session.date).toLocaleDateString('en-US', { 
+                    weekday: 'long',
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })} • {session.start_time} - {session.end_time}
+                </div>
                 <div className="flex items-center space-x-4">
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${status.color}`}>
                     {session.status === 'active' && <div className="w-2 h-2 bg-current rounded-full mr-2 animate-pulse inline-block"></div>}
@@ -585,6 +593,12 @@ function SessionDetailsContent() {
                   <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Course</span>
                   <p className="text-lg font-semibold text-slate-900 dark:text-white">
                     {session.class_instances.courses.code} - {session.class_instances.courses.name}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Session</span>
+                  <p className="text-lg font-semibold text-slate-900 dark:text-white">
+                    Session {session.session_number} of {session.class_instances.courses.code}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
