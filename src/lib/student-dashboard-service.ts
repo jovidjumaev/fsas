@@ -28,8 +28,9 @@ export interface ClassSession {
 
 export interface AttendanceRecord {
   date: string;
-  status: 'present' | 'absent' | 'late';
+  status: 'present' | 'absent' | 'late' | 'excused';
   class_name: string;
+  scanned_at?: string;
 }
 
 export interface AttendanceStats {
@@ -55,7 +56,6 @@ export class StudentDashboardService {
             first_name,
             last_name,
             email,
-            phone,
             is_active,
             created_at
           )
@@ -78,7 +78,7 @@ export class StudentDashboardService {
         first_name: data.users.first_name,
         last_name: data.users.last_name,
         email: data.users.email,
-        phone: data.users.phone || '',
+          phone: '', // Phone field not available in users table
         is_active: data.users.is_active,
         account_created: data.users.created_at
       };
