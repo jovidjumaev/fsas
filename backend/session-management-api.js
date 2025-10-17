@@ -487,20 +487,31 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
     // VALIDATION: Check if session can be completed
     const now = new Date();
     const sessionEndTime = new Date(`${session.date}T${session.end_time}`);
+    const sessionStartTime = new Date(`${session.date}T${session.start_time}`);
     
-    // Prevent completion before session end time (with 5-minute grace period)
-    const gracePeriod = 5 * 60 * 1000; // 5 minutes in milliseconds
-    const earliestCompletionTime = new Date(sessionEndTime.getTime() - gracePeriod);
+    // Allow completion if:
+    // 1. Session has started (current time >= session start time)
+    // 2. OR if it's within 30 minutes of session start time (for early completion)
+    const earlyCompletionWindow = 30 * 60 * 1000; // 30 minutes in milliseconds
+    const earliestCompletionTime = new Date(sessionStartTime.getTime() - earlyCompletionWindow);
     
     if (now < earliestCompletionTime) {
-      const minutesRemaining = Math.round((sessionEndTime - now) / (1000 * 60));
-      console.log(`❌ Cannot complete session ${sessionId}: ${minutesRemaining} minutes remaining`);
+      const minutesUntilStart = Math.round((sessionStartTime - now) / (1000 * 60));
+      console.log(`❌ Cannot complete session ${sessionId}: ${minutesUntilStart} minutes until session starts`);
       
       return res.status(400).json({
         success: false,
-        error: `Session cannot be completed yet. ${minutesRemaining} minutes remaining until session end time.`,
-        minutesRemaining: minutesRemaining
+        error: `Session cannot be completed yet. Session starts in ${minutesUntilStart} minutes.`,
+        minutesUntilStart: minutesUntilStart
       });
+    }
+    
+    // Log completion timing for monitoring
+    const minutesRemaining = Math.round((sessionEndTime - now) / (1000 * 60));
+    if (minutesRemaining > 0) {
+      console.log(`⚠️ Session ${sessionId} completed ${minutesRemaining} minutes early (professor override)`);
+    } else {
+      console.log(`✅ Session ${sessionId} completed on time or after end time`);
     }
     
     // Check if session is in a valid state for completion

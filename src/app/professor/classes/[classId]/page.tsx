@@ -598,26 +598,47 @@ function ClassManagementPageContent() {
 
   const stopSession = async (sessionId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/stop`, {
+      // Get session details to check timing
+      const session = sessions.find(s => s.id === sessionId);
+      if (!session) {
+        throw new Error('Session not found');
+      }
+
+      // Check if session is being completed early
+      const now = new Date();
+      const sessionEndTime = new Date(`${session.date}T${session.end_time}`);
+      const minutesRemaining = Math.round((sessionEndTime.getTime() - now.getTime()) / (1000 * 60));
+
+      // Show confirmation dialog if completing early
+      if (minutesRemaining > 0) {
+        const confirmMessage = `Are you sure you want to end this session?\n\n` +
+          `Session: Session ${session.session_number}\n` +
+          `Scheduled End Time: ${session.end_time}\n` +
+          `Time Remaining: ${minutesRemaining} minutes\n\n` +
+          `This will mark all students who haven't scanned as absent.`;
+        
+        if (!confirm(confirmMessage)) {
+          return; // User cancelled
+        }
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/complete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          professor_id: user?.id
-        }),
       });
 
       if (response.ok) {
-        showNotification('success', 'Session stopped successfully');
+        showNotification('success', 'Session completed successfully');
         fetchSessions();
       } else {
         const errorData = await response.json();
-        showNotification('error', errorData.error || 'Failed to stop session');
+        showNotification('error', errorData.error || 'Failed to complete session');
       }
     } catch (error) {
-      console.error('Error stopping session:', error);
-      showNotification('error', 'Error stopping session');
+      console.error('Error completing session:', error);
+      showNotification('error', `Failed to complete session: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 

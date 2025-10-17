@@ -423,8 +423,37 @@ function SessionsPageContent() {
 
   const completeSession = useCallback(async (sessionId: string) => {
     try {
+      // Get session details to check timing
+      const session = sessions.find(s => s.id === sessionId);
+      if (!session) {
+        throw new Error('Session not found');
+      }
+
+      // Check if session is being completed early
+      const now = new Date();
+      const sessionEndTime = new Date(`${session.date}T${session.end_time}`);
+      const minutesRemaining = Math.round((sessionEndTime - now) / (1000 * 60));
+
+      // Show confirmation dialog if completing early
+      if (minutesRemaining > 0) {
+        const confirmMessage = `Are you sure you want to end this session?\n\n` +
+          `Session: ${session.class_name}\n` +
+          `Scheduled End Time: ${session.end_time}\n` +
+          `Time Remaining: ${minutesRemaining} minutes\n\n` +
+          `This will mark all students who haven't scanned as absent.`;
+        
+        if (!confirm(confirmMessage)) {
+          return; // User cancelled
+        }
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/complete`, { method: 'POST' });
-      if (!response.ok) throw new Error('Failed to complete session');
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to complete session');
+      }
+      
       await fetchSessions();
       
       // Automatically switch to completed tab to show the completed session
@@ -432,9 +461,9 @@ function SessionsPageContent() {
       console.log('✅ Session completed, switched to completed tab');
     } catch (error) {
       console.error('Error completing session:', error);
-      alert('Failed to complete session. Please try again.');
+      alert(`Failed to complete session: ${error.message}`);
     }
-  }, [fetchSessions]);
+  }, [fetchSessions, sessions]);
 
   // Load data on mount
   useEffect(() => {
