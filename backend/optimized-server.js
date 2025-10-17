@@ -1380,40 +1380,62 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
       const classCompletedSessions = completedSessions.filter(s => s.class_instance_id === instance.id);
       const isToday = isClassToday(instance);
       
-      // Calculate class-specific attendance rate (including live sessions)
-      let classAttendanceRate = 0;
-      const allClassSessions = [...classActiveSessions, ...classCompletedSessions];
-      
-      if (allClassSessions.length > 0) {
-        const { data: classAttendanceData } = await supabase
-          .from('attendance_records')
-          .select('status')
-          .in('session_id', allClassSessions.map(s => s.id));
-        
-        if (classAttendanceData && classAttendanceData.length > 0) {
-          const attendedCount = classAttendanceData.filter(a => 
-            ['present', 'late', 'excused'].includes(a.status)
-          ).length;
-          classAttendanceRate = Math.round((attendedCount / classAttendanceData.length) * 100);
-        }
-      }
-      
-      // Find today's session if this is a today class
+      // Find today's session if this is a today class (any status)
       const todayDate = easternTime.toISOString().split('T')[0];
       const todaySession = isToday ? allSessions.find(s => 
         s.class_instance_id === instance.id && 
-        s.date === todayDate &&
-        s.status === 'scheduled'
+        s.date === todayDate
       ) : null;
+      
+      // Calculate today-specific attendance rate if session exists, otherwise overall class rate
+      let classAttendanceRate = 0;
+      let todayAttendanceRate = 0;
+      
+      if (todaySession) {
+        // Calculate today's specific attendance
+        const { data: todayAttendanceData } = await supabase
+          .from('attendance_records')
+          .select('status')
+          .eq('session_id', todaySession.id);
+        
+        if (todayAttendanceData && todayAttendanceData.length > 0) {
+          const attendedCount = todayAttendanceData.filter(a => 
+            ['present', 'late', 'excused'].includes(a.status)
+          ).length;
+          todayAttendanceRate = instance.current_enrollment > 0 ? 
+            Math.round((attendedCount / instance.current_enrollment) * 100) : 0;
+        }
+        classAttendanceRate = todayAttendanceRate; // Use today's rate for today's classes
+      } else {
+        // Calculate overall class attendance rate for non-today classes
+        const allClassSessions = [...classActiveSessions, ...classCompletedSessions];
+        
+        if (allClassSessions.length > 0) {
+          const { data: classAttendanceData } = await supabase
+            .from('attendance_records')
+            .select('status')
+            .in('session_id', allClassSessions.map(s => s.id));
+          
+          if (classAttendanceData && classAttendanceData.length > 0) {
+            const attendedCount = classAttendanceData.filter(a => 
+              ['present', 'late', 'excused'].includes(a.status)
+            ).length;
+            classAttendanceRate = Math.round((attendedCount / classAttendanceData.length) * 100);
+          }
+        }
+      }
       
       const activeSession = classActiveSessions.length > 0 ? classActiveSessions[0] : null;
       
-      // Determine status based on session state and time
+      // Determine status based on actual session state, not time
       let status = 'upcoming';
       if (classActiveSessions.length > 0) {
         status = 'active';
+      } else if (todaySession) {
+        // Use actual session status
+        status = todaySession.status;
       } else if (isToday) {
-        // Check if today's session time has passed
+        // No session exists for today, check if time has passed
         const now = new Date();
         const todaySessionTime = new Date(`${todayDate}T${instance.start_time}`);
         const sessionEndTime = new Date(`${todayDate}T${instance.end_time}`);
@@ -1421,7 +1443,6 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
         if (now > sessionEndTime) {
           status = 'completed';
         } else if (now > todaySessionTime) {
-          // Session time has started but no active session
           status = 'completed';
         }
       }
