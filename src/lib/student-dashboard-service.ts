@@ -117,6 +117,7 @@ export class StudentDashboardService {
             start_time,
             end_time,
             room_location,
+            professor_id,
             courses(code, name)
           )
         `)
@@ -130,6 +131,29 @@ export class StudentDashboardService {
       }
 
       console.log('🔍 getTodayClasses: Got enrollments:', enrollments.length);
+
+      // Get all professor IDs
+      const professorIds = [...new Set(enrollments.map(e => e.class_instances.professor_id).filter(Boolean))];
+      console.log('🔍 getTodayClasses: Professor IDs found:', professorIds.length);
+
+      // Get professor information
+      const { data: professors, error: professorsError } = await supabase
+        .from('users')
+        .select('id, first_name, last_name, email, role')
+        .in('id', professorIds);
+
+      if (professorsError) {
+        console.error('Error fetching professors:', professorsError);
+        return [];
+      }
+
+      console.log('🔍 getTodayClasses: Professors loaded:', professors.length);
+
+      // Create professor lookup map
+      const professorMap: { [key: string]: any } = {};
+      professors.forEach(prof => {
+        professorMap[prof.id] = prof;
+      });
 
       // Filter classes that actually meet today
       const todayClasses: ClassSession[] = [];
@@ -153,13 +177,18 @@ export class StudentDashboardService {
         if (meetsToday) {
           console.log('✅ Class', classInstance.courses.code, 'meets today!');
           
+          const professor = professorMap[classInstance.professor_id];
+          const professorName = professor ? 
+            `${professor.first_name} ${professor.last_name}` : 
+            'TBD';
+          
           todayClasses.push({
             id: classInstance.id,
             class_code: classInstance.courses.code,
             class_name: classInstance.courses.name,
             time: `${startTime || 'TBD'} - ${endTime || 'TBD'}`,
             room: classInstance.room_location || 'TBD',
-            professor: 'TBD', // TODO: Get professor name
+            professor: professorName,
             status: 'upcoming' as const
           });
         } else {
@@ -169,7 +198,7 @@ export class StudentDashboardService {
 
       console.log('🔍 getTodayClasses: Found', todayClasses.length, 'classes for today');
       todayClasses.forEach(cls => {
-        console.log('🔍 getTodayClasses: Class found:', cls.class_code, cls.class_name);
+        console.log('🔍 getTodayClasses: Class found:', cls.class_code, cls.class_name, 'Professor:', cls.professor);
       });
       
       return todayClasses;
