@@ -1170,14 +1170,16 @@ function ClassesPageContent() {
                         Sessions
                       </p>
                     </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                        {classData.active_sessions || 0}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                        Active
-                      </p>
-                    </div>
+                    {classData.active_sessions > 0 && (
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                          {classData.active_sessions}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                          Active
+                        </p>
+                      </div>
+                    )}
                     <div className="text-center">
                       <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                         {classData.capacity_percentage || 0}%
