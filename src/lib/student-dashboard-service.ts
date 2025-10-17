@@ -102,96 +102,66 @@ export class StudentDashboardService {
       
       console.log('🔍 getTodayClasses: Today is', todayName, todayString);
 
-      // Resolve the correct student identifier for the API (enrollments.student_id)
-      const studentRecord = await this.getStudentData(userId);
-      // Use students.id (UUID) expected by enrollments.student_id FK
-      const apiStudentId = studentRecord?.id || userId;
+      // Get enrollments for this student, filtering out null class_instance_id values
+      const { data: enrollments, error: enrollmentError } = await supabase
+        .from('enrollments')
+        .select(`
+          class_instance_id,
+          class_instances!inner(
+            id,
+            days_of_week,
+            first_class_date,
+            last_class_date,
+            start_time,
+            end_time,
+            room_location,
+            courses(code, name)
+          )
+        `)
+        .eq('student_id', userId)
+        .eq('status', 'active')
+        .not('class_instance_id', 'is', null); // Filter out null class_instance_id values
 
-      // Get the student's enrolled classes
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/students/${apiStudentId}/classes`);
-      const classesData = await response.json();
-      
-      if (!classesData.success) {
-        console.error('Failed to fetch student classes for today classes');
+      if (enrollmentError) {
+        console.error('Error fetching enrollments:', enrollmentError);
         return [];
       }
 
-      console.log('🔍 getTodayClasses: Got classes data:', classesData);
+      console.log('🔍 getTodayClasses: Got enrollments:', enrollments.length);
 
       // Filter classes that actually meet today
       const todayClasses: ClassSession[] = [];
       
-      for (const cls of classesData.classes) {
-        const schedule = cls.schedule || '';
-        const daysOfWeek = cls.days_of_week as string[] | string | null | undefined;
-        const startTime = cls.start_time as string | null | undefined;
-        const endTime = cls.end_time as string | null | undefined;
-        console.log('🔍 Checking class', cls.class_code, 'with schedule:', { schedule, daysOfWeek, startTime, endTime });
+      for (const enrollment of enrollments) {
+        const classInstance = enrollment.class_instances;
+        const daysOfWeek = classInstance.days_of_week;
+        const firstClassDate = classInstance.first_class_date;
+        const lastClassDate = classInstance.last_class_date;
+        const startTime = classInstance.start_time;
+        const endTime = classInstance.end_time;
+        
+        console.log('🔍 Checking class', classInstance.courses.code, 'with schedule:', { daysOfWeek, firstClassDate, lastClassDate });
 
-        // Simplified day matching logic
-        const todayMatchesStructured = (() => {
-          if (!daysOfWeek) return false;
-          if (Array.isArray(daysOfWeek)) {
-            // Direct comparison with today's day name
-            return daysOfWeek.includes(todayName);
-          }
-          return false;
-        })();
-
-        // Fallback to legacy string matching if structured days are missing
-        const todayMatchesLegacy = (() => {
-          let meets = false;
-          if (schedule.includes('Mon/Wed') && (todayName === 'Monday' || todayName === 'Wednesday')) meets = true;
-          else if ((schedule.includes('TTh') || schedule.includes('Tue/Thu') || schedule.includes('Tue & Thu')) && (todayName === 'Tuesday' || todayName === 'Thursday')) meets = true;
-          else if (schedule.includes('MWF') && (todayName === 'Monday' || todayName === 'Wednesday' || todayName === 'Friday')) meets = true;
-          else if (schedule.includes('Mon') && todayName === 'Monday') meets = true;
-          else if (schedule.includes('Tue') && todayName === 'Tuesday') meets = true;
-          else if (schedule.includes('Wed') && todayName === 'Wednesday') meets = true;
-          else if (schedule.includes('Thu') && todayName === 'Thursday') meets = true;
-          else if (schedule.includes('Fri') && todayName === 'Friday') meets = true;
-          return meets;
-        })();
-
-        const meetsToday = todayMatchesStructured || todayMatchesLegacy;
+        // Check if today is within the class period and matches the schedule
+        const withinPeriod = todayString >= firstClassDate && todayString <= lastClassDate;
+        const matchesSchedule = Array.isArray(daysOfWeek) && daysOfWeek.includes(todayName);
+        
+        const meetsToday = withinPeriod && matchesSchedule;
         
         if (meetsToday) {
-          console.log('✅ Class', cls.class_code, 'meets today!');
-          
-          // Create a compact schedule string for display
-          const scheduleDisplay = (startTime && endTime) 
-            ? `${this.formatTime(startTime)} - ${this.formatTime(endTime)}`
-            : (cls.schedule || 'TBD');
-          
-          // Check if attendance has been taken for this student today (any class)
-          // Use the student_id field (like "5002378") for the attendance API
-          console.log('🔍 getTodayClasses: studentRecord:', studentRecord);
-          console.log('🔍 getTodayClasses: studentRecord?.student_id:', studentRecord?.student_id);
-          const hasAttendanceToday = await this.checkAttendanceForToday(studentRecord?.student_id || '5002378');
+          console.log('✅ Class', classInstance.courses.code, 'meets today!');
           
           todayClasses.push({
-            id: cls.class_id || cls.id,
-            class_id: cls.class_id || cls.id,
-            class_code: cls.class_code,
-            class_name: cls.class_name,
-            description: cls.description || '',
-            credits: cls.credits || 3,
-            professor: cls.professor || 'TBD',
-            professor_email: cls.professor_email || '',
-            room: cls.room || 'TBD',
-            schedule: scheduleDisplay,
-            department: cls.department || '',
-            department_code: cls.department_code || '',
-            academic_period: cls.academic_period || '',
-            enrollment_date: cls.enrollment_date || '',
-            attendance_rate: cls.attendance_rate || 0,
-            total_sessions: cls.total_sessions || 0,
-            attended_sessions: cls.attended_sessions || 0,
-            max_students: cls.max_students || 0,
-            current_enrollment: cls.current_enrollment || 0,
-            hasAttendanceToday: hasAttendanceToday
+            id: classInstance.id,
+            class_code: classInstance.courses.code,
+            class_name: classInstance.courses.name,
+            time: `${startTime || 'TBD'} - ${endTime || 'TBD'}`,
+            room: classInstance.room_location || 'TBD',
+            professor: 'TBD', // TODO: Get professor name
+            status: 'upcoming' as const
           });
         } else {
-          console.log('❌ Class', cls.class_code, 'does not meet today');
+          console.log('❌ Class', classInstance.courses.code, 'does not meet today');
         }
       }
 
