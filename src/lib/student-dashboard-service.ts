@@ -136,11 +136,13 @@ export class StudentDashboardService {
       const professorIds = [...new Set(enrollments.map(e => e.class_instances.professor_id).filter(Boolean))];
       console.log('🔍 getTodayClasses: Professor IDs found:', professorIds.length);
 
-      // Get professor information
+      // Get professor information with cache busting
+      const timestamp = Date.now();
       const { data: professors, error: professorsError } = await supabase
         .from('users')
         .select('id, first_name, last_name, email, role')
-        .in('id', professorIds);
+        .in('id', professorIds)
+        .gte('created_at', '2020-01-01'); // Add filter to bust cache
 
       if (professorsError) {
         console.error('Error fetching professors:', professorsError);
