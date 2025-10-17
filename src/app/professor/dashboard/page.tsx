@@ -347,7 +347,8 @@ function ProfessorDashboardContent() {
           firstName: profileData?.first_name || user.user_metadata?.first_name,
           lastName: profileData?.last_name || user.user_metadata?.last_name,
           employeeId: professorData?.employee_id
-        }
+        },
+        signOut
       );
 
       if (!result.success) {

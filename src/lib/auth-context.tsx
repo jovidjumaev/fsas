@@ -715,6 +715,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     console.log('🔐 AuthContext: Starting sign out process...');
+    
+    // Store the current user role before clearing it
+    const currentUserRole = userRole;
+    
     try {
       await supabase.auth.signOut();
       console.log('🔐 AuthContext: Supabase sign out completed');
@@ -722,9 +726,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserRole(null);
       console.log('🔐 AuthContext: User state cleared');
       
-      // Force navigation to login page
+      // Redirect to appropriate login page based on user role
       if (typeof window !== 'undefined') {
-        window.location.href = '/';
+        if (currentUserRole === 'student') {
+          console.log('🔐 AuthContext: Redirecting to student login page');
+          window.location.href = '/student/login';
+        } else if (currentUserRole === 'professor') {
+          console.log('🔐 AuthContext: Redirecting to professor login page');
+          window.location.href = '/professor/login';
+        } else {
+          console.log('🔐 AuthContext: No role detected, redirecting to main page');
+          window.location.href = '/';
+        }
       }
     } catch (error) {
       console.error('🔐 AuthContext: Sign out error:', error);
@@ -732,9 +745,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setUserRole(null);
       
-      // Force navigation to login page even on error
+      // Force navigation to appropriate login page even on error
       if (typeof window !== 'undefined') {
-        window.location.href = '/';
+        if (currentUserRole === 'student') {
+          console.log('🔐 AuthContext: Error occurred, redirecting to student login page');
+          window.location.href = '/student/login';
+        } else if (currentUserRole === 'professor') {
+          console.log('🔐 AuthContext: Error occurred, redirecting to professor login page');
+          window.location.href = '/professor/login';
+        } else {
+          console.log('🔐 AuthContext: Error occurred, no role detected, redirecting to main page');
+          window.location.href = '/';
+        }
       }
     }
   };

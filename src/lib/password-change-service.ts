@@ -224,7 +224,8 @@ export class PasswordChangeService {
       lastName?: string;
       studentNumber?: string;
       employeeId?: string;
-    }
+    },
+    signOutCallback?: () => Promise<void>
   ): Promise<PasswordChangeResult> {
     try {
       console.log('🔐 ===== PASSWORD CHANGE START =====');
@@ -314,7 +315,13 @@ export class PasswordChangeService {
       // 8. Sign out the user to force re-authentication with new password
       console.log('🔍 Step 8: Signing out user to force re-authentication...');
       try {
-        await supabase.auth.signOut();
+        if (signOutCallback) {
+          console.log('✅ Using provided signOut callback');
+          await signOutCallback();
+        } else {
+          console.log('⚠️ No signOut callback provided, using direct Supabase signOut');
+          await supabase.auth.signOut();
+        }
         console.log('✅ User signed out successfully');
       } catch (signOutError) {
         console.warn('⚠️ Warning: Could not sign out user, but password was updated');
