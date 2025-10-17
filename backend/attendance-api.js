@@ -372,12 +372,28 @@ router.get('/api/attendance/student/:studentId/today-stats', async (req, res) =>
     console.log(`📊 Found student user_id: ${studentRecord.user_id}`);
     
     // Get today's attendance records using the user_id
+    // Filter out test records by requiring valid session ID, device fingerprint, and realistic data
     const { data: todayRecords, error } = await supabase
       .from('attendance_records')
-      .select('status, scanned_at, created_at')
+      .select(`
+        status, 
+        scanned_at, 
+        created_at, 
+        session_id, 
+        device_fingerprint, 
+        ip_address,
+        class_sessions!inner(
+          date
+        )
+      `)
       .eq('student_id', studentRecord.user_id)
       .gte('scanned_at', `${today}T00:00:00`)
-      .lt('scanned_at', `${today}T23:59:59`);
+      .lt('scanned_at', `${today}T23:59:59`)
+      .not('session_id', 'is', null)  // Exclude records without session ID
+      .not('device_fingerprint', 'is', null)  // Exclude records without device fingerprint (test data)
+      .neq('device_fingerprint', 'test')  // Exclude records with "test" device fingerprint
+      .not('ip_address', 'in', '(127.0.0.1,::1)')  // Exclude localhost IP addresses
+      .lte('class_sessions.date', today);  // Exclude records with future session dates
     
     if (error) {
       console.error('❌ Error fetching today\'s stats:', error);
@@ -389,7 +405,17 @@ router.get('/api/attendance/student/:studentId/today-stats', async (req, res) =>
       });
     }
     
-    console.log(`📊 Found ${todayRecords?.length || 0} records for today`);
+    console.log(`📊 Found ${todayRecords?.length || 0} valid records for today (excluding test data)`);
+    
+    // Log the filtered records for debugging
+    if (todayRecords && todayRecords.length > 0) {
+      console.log('📊 Valid records found:');
+      todayRecords.forEach((record, index) => {
+        console.log(`   ${index + 1}. ${record.scanned_at} - ${record.status} (Session: ${record.session_id}, Device: ${record.device_fingerprint?.substring(0, 20)}...)`);
+      });
+    } else {
+      console.log('📊 No valid records found for today');
+    }
     
     // Calculate today's statistics
     const scansToday = todayRecords?.length || 0;
