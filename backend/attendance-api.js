@@ -142,7 +142,7 @@ router.post('/api/attendance/scan', async (req, res) => {
         student_id: studentRecord.user_id,
         scanned_at: currentTime.toISOString(),
         status: isLate ? 'late' : 'present',
-        minutes_late: isLate ? minutesLate : 0,
+        minutes_late: minutesLate, // Store actual calculated value (can be negative for early arrivals)
         device_fingerprint: req.headers['user-agent'] || 'unknown',
         ip_address: req.ip || req.connection.remoteAddress
       })
