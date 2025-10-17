@@ -1038,7 +1038,7 @@ function ClassesPageContent() {
                             {classData.status === 'active' ? 'Active' : 
                              classData.status === 'completed' ? 'Completed' : 'Inactive'}
                           </span>
-                          {classData.active_sessions && classData.active_sessions > 0 && (
+                          {classData.active_sessions > 0 && (
                             <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-400 animate-pulse">
                               Live Session
                             </span>
@@ -1170,16 +1170,14 @@ function ClassesPageContent() {
                         Sessions
                       </p>
                     </div>
-                    {classData.active_sessions > 0 && (
-                      <div className="text-center">
-                        <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                          {classData.active_sessions}
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                          Active
-                        </p>
-                      </div>
-                    )}
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                        {classData.active_sessions || 0}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                        Active
+                      </p>
+                    </div>
                     <div className="text-center">
                       <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                         {classData.capacity_percentage || 0}%
