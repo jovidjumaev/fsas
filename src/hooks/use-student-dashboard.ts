@@ -63,6 +63,9 @@ export function useStudentDashboard(user: User | null): UseStudentDashboardRetur
 
       const dashboardData = await StudentDashboardService.getAllDashboardData(user.id);
       console.log('🔍 useStudentDashboard: Got dashboard data:', dashboardData);
+      console.log('🔍 useStudentDashboard: Stats from service:', dashboardData.stats);
+      console.log('🔍 useStudentDashboard: ClassesToday from service:', dashboardData.stats.classesToday);
+      console.log('🔍 useStudentDashboard: TodayClasses array length:', dashboardData.todayClasses.length);
 
       // Set student data with fallback
       if (dashboardData.studentData) {
@@ -86,11 +89,14 @@ export function useStudentDashboard(user: User | null): UseStudentDashboardRetur
       }
 
       setTodayClasses(dashboardData.todayClasses);
+      console.log('🔍 useStudentDashboard: Setting stats to:', dashboardData.stats);
+      console.log('🔍 useStudentDashboard: Setting classesToday to:', dashboardData.stats.classesToday);
       setStats(dashboardData.stats);
       setLastUpdated(new Date());
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      console.log('🔍 useStudentDashboard: ERROR - Resetting stats to default values');
       // Set empty data on error
       setTodayClasses([]);
       setStats({
