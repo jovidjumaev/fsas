@@ -101,6 +101,8 @@ export class StudentDashboardService {
       const todayName = dayNames[dayOfWeek];
       
       console.log('🔍 getTodayClasses: Today is', todayName, todayString);
+      console.log('🔍 getTodayClasses: Current time:', today.toISOString());
+      console.log('🔍 getTodayClasses: Day of week:', dayOfWeek);
 
       // Get enrollments for this student, filtering out null class_instance_id values
       const { data: enrollments, error: enrollmentError } = await supabase
@@ -165,15 +167,9 @@ export class StudentDashboardService {
         }
       }
 
-      console.log('🔍 getTodayClasses: Found', todayClasses.length, 'classes for today:', todayClasses);
-      
-      // Debug: Log each class and why it was included/excluded
-      classesData.classes.forEach((cls, index) => {
-        console.log(`🔍 Class ${index + 1}: ${cls.class_code}`);
-        console.log(`  - Days of week:`, cls.days_of_week);
-        console.log(`  - Schedule:`, cls.schedule);
-        console.log(`  - Start time:`, cls.start_time);
-        console.log(`  - End time:`, cls.end_time);
+      console.log('🔍 getTodayClasses: Found', todayClasses.length, 'classes for today');
+      todayClasses.forEach(cls => {
+        console.log('🔍 getTodayClasses: Class found:', cls.class_code, cls.class_name);
       });
       
       return todayClasses;
