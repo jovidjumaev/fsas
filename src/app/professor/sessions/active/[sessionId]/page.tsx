@@ -70,7 +70,7 @@ function ActiveSessionContent() {
   const [showStudentList, setShowStudentList] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState(0);
-  const [qrRefreshCountdown, setQrRefreshCountdown] = useState(30);
+  const [qrRefreshCountdown, setQrRefreshCountdown] = useState(10);
   const [lastScanTime, setLastScanTime] = useState<Date | null>(null);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -376,7 +376,7 @@ function ActiveSessionContent() {
             qr_code: qrData.qr_code,
             qr_code_expires_at: qrData.expires_at
           } : null);
-          setQrRefreshCountdown(30);
+          setQrRefreshCountdown(10);
         }
       }
     } catch (error) {
