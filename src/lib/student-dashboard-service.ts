@@ -214,15 +214,29 @@ export class StudentDashboardService {
 
   static async getRecentAttendance(userId: string, limit: number = 6): Promise<AttendanceRecord[]> {
     try {
+      console.log('🔍 getRecentAttendance: Starting for user:', userId);
+      
+      // Get student data to get the correct student ID
+      const studentData = await this.getStudentData(userId);
+      if (!studentData) {
+        throw new Error('Student data not found');
+      }
+
+      const studentId = studentData.student_id;
+
       const { data: attendanceData, error: attendanceError } = await supabase
         .from('attendance_records')
         .select(`
-          date,
-          status,
-          class_sessions!inner(class_name)
+          *,
+          class_sessions!inner(
+            date,
+            class_instances!inner(
+              courses(code, name)
+            )
+          )
         `)
-        .eq('student_id', userId)
-        .order('date', { ascending: false })
+        .eq('student_id', studentId)
+        .order('scanned_at', { ascending: false })
         .limit(limit);
 
       if (attendanceError) {
@@ -230,11 +244,15 @@ export class StudentDashboardService {
         return [];
       }
 
-      return attendanceData.map(record => ({
-        date: record.date,
-        status: record.status as 'present' | 'absent' | 'late',
-        class_name: record.class_sessions.class_name
+      const recentAttendance = attendanceData.map(record => ({
+        date: record.class_sessions.date,
+        status: record.status as 'present' | 'absent' | 'late' | 'excused',
+        class_name: record.class_sessions.class_instances.courses.name,
+        scanned_at: record.scanned_at
       }));
+
+      console.log('🔍 getRecentAttendance: Found', recentAttendance.length, 'records');
+      return recentAttendance;
     } catch (error) {
       console.error('Error in getRecentAttendance:', error);
       return [];
@@ -243,33 +261,78 @@ export class StudentDashboardService {
 
   static async getAttendanceStats(userId: string): Promise<AttendanceStats> {
     try {
-      // Get today's classes count
-      const todayClasses = await this.getTodayClasses(userId);
+      console.log('🔍 getAttendanceStats: Starting for user:', userId);
       
-      // Get overall stats from database function
-      const { data: statsData, error: statsError } = await supabase
-        .rpc('get_student_attendance_stats', { student_id_param: userId });
-
-      if (statsError) {
-        console.error('Error fetching stats:', statsError);
-        return {
-          overallAttendance: 0,
-          totalClasses: 0,
-          classesToday: todayClasses.length,
-          attendanceStreak: 0
-        };
+      // Get student data to get the correct student ID
+      const studentData = await this.getStudentData(userId);
+      if (!studentData) {
+        throw new Error('Student data not found');
       }
 
-      const stats = statsData[0] || {};
+      const studentId = studentData.student_id;
+
+      // Get all attendance records for this student
+      const { data: attendanceRecords, error: attendanceError } = await supabase
+        .from('attendance_records')
+        .select(`
+          *,
+          class_sessions!inner(
+            date,
+            status,
+            class_instance_id,
+            class_instances!inner(
+              courses(code, name)
+            )
+          )
+        `)
+        .eq('student_id', studentId)
+        .order('scanned_at', { ascending: false });
+
+      if (attendanceError) {
+        console.error('Error fetching attendance records:', attendanceError);
+        throw attendanceError;
+      }
+
+      // Get active enrollments to calculate total classes
+      const { data: enrollments, error: enrollmentError } = await supabase
+        .from('enrollments')
+        .select('class_instance_id')
+        .eq('student_id', studentId)
+        .eq('status', 'active');
+
+      if (enrollmentError) {
+        console.error('Error fetching enrollments:', enrollmentError);
+        throw enrollmentError;
+      }
+
+      // Get today's classes
+      const todayClasses = await this.getTodayClasses(userId);
+
+      // Calculate overall attendance
+      const totalRecords = attendanceRecords.length;
+      const presentCount = attendanceRecords.filter(r => r.status === 'present').length;
+      const lateCount = attendanceRecords.filter(r => r.status === 'late').length;
+      const absentCount = attendanceRecords.filter(r => r.status === 'absent').length;
+      const excusedCount = attendanceRecords.filter(r => r.status === 'excused').length;
       
-      return {
-        overallAttendance: Math.round(stats.overall_attendance || 0),
-        totalClasses: stats.total_classes || 0,
+      const overallAttendance = totalRecords > 0 
+        ? Math.round(((presentCount + lateCount + excusedCount) / totalRecords) * 100)
+        : 0;
+
+      // Calculate attendance streak
+      const attendanceStreak = this.calculateAttendanceStreak(attendanceRecords);
+
+      const stats: AttendanceStats = {
+        overallAttendance,
+        totalClasses: enrollments.length,
         classesToday: todayClasses.length,
-        attendanceStreak: stats.attendance_streak || 0
+        attendanceStreak
       };
+
+      console.log('🔍 getAttendanceStats: Calculated stats:', stats);
+      return stats;
     } catch (error) {
-      console.error('Error in getAttendanceStats:', error);
+      console.error('Error calculating attendance stats:', error);
       return {
         overallAttendance: 0,
         totalClasses: 0,
@@ -279,50 +342,66 @@ export class StudentDashboardService {
     }
   }
 
+  // Calculate attendance streak (consecutive days with attendance)
+  private static calculateAttendanceStreak(attendanceRecords: any[]): number {
+    if (attendanceRecords.length === 0) return 0;
+
+    // Group records by date
+    const recordsByDate = new Map<string, any[]>();
+    attendanceRecords.forEach(record => {
+      const date = record.class_sessions.date;
+      if (!recordsByDate.has(date)) {
+        recordsByDate.set(date, []);
+      }
+      recordsByDate.get(date)!.push(record);
+    });
+
+    // Sort dates in descending order
+    const sortedDates = Array.from(recordsByDate.keys()).sort((a, b) => b.localeCompare(a));
+
+    let streak = 0;
+    const today = new Date().toISOString().split('T')[0];
+
+    for (const date of sortedDates) {
+      const dayRecords = recordsByDate.get(date)!;
+      const hasAttendance = dayRecords.some(record => 
+        ['present', 'late', 'excused'].includes(record.status)
+      );
+
+      if (hasAttendance) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
   static async getAllDashboardData(userId: string) {
     try {
       console.log('🔍 getAllDashboardData: Starting for user:', userId);
       
-      // Resolve the correct student identifier for the API (enrollments.student_id)
-      const studentRecord = await this.getStudentData(userId);
-      const apiStudentId = studentRecord?.id || userId;
-
-      // Use the working student classes API to get real data
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/students/${apiStudentId}/classes`);
-      const classesData = await response.json();
-      
-      if (!classesData.success) {
-        throw new Error('Failed to fetch student classes');
+      // Get student data
+      const studentData = await this.getStudentData(userId);
+      if (!studentData) {
+        throw new Error('Student data not found');
       }
 
-      console.log('🔍 getAllDashboardData: Got classes data:', classesData);
-
-      // Get student data from the classes response
-      const studentData = await this.getStudentData(userId);
-      
-      // Calculate real stats from classes data
-      const totalClasses = classesData.classes.length;
-      const totalSessions = classesData.classes.reduce((sum: number, cls: any) => sum + cls.total_sessions, 0);
-      const attendedSessions = classesData.classes.reduce((sum: number, cls: any) => sum + cls.attended_sessions, 0);
-      const overallAttendance = totalSessions > 0 ? Math.round((attendedSessions / totalSessions) * 100) : 0;
-
-      // Get today's classes with real data
-      console.log('🔍 getAllDashboardData: About to call getTodayClasses');
+      // Get today's classes
       const todayClasses = await this.getTodayClasses(userId);
-      console.log('🔍 getAllDashboardData: Got todayClasses:', todayClasses);
+      
+      // Get recent attendance records
+      const recentAttendance = await this.getRecentAttendance(userId, 10);
+      
+      // Calculate comprehensive stats
+      const stats = await this.getAttendanceStats(userId);
 
-      const stats: AttendanceStats = {
-        overallAttendance,
-        totalClasses,
-        classesToday: todayClasses.length,
-        attendanceStreak: 0 // TODO: Calculate actual streak
-      };
-
-      console.log('🔍 getAllDashboardData: Returning real data with stats:', stats);
+      console.log('🔍 getAllDashboardData: Returning comprehensive data with stats:', stats);
       return {
         studentData,
         todayClasses,
-        recentAttendance: [], // TODO: Get recent attendance
+        recentAttendance,
         stats
       };
     } catch (error) {

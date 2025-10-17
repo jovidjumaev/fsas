@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
 import { StudentDashboardService, StudentData, ClassSession, AttendanceRecord, AttendanceStats } from '@/lib/student-dashboard-service';
 
@@ -16,6 +16,10 @@ interface UseStudentDashboardReturn {
   // Actions
   refreshData: () => Promise<void>;
   setUserProfile: (profile: any) => void;
+  
+  // Real-time features
+  isRealTimeEnabled: boolean;
+  lastUpdated: Date | null;
 }
 
 export function useStudentDashboard(user: User | null): UseStudentDashboardReturn {
@@ -30,6 +34,11 @@ export function useStudentDashboard(user: User | null): UseStudentDashboardRetur
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [isRealTimeEnabled, setIsRealTimeEnabled] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isRefreshingRef = useRef(false);
 
   const fetchData = useCallback(async () => {
     console.log('🔍 useStudentDashboard: fetchData called, user:', user);
@@ -41,8 +50,14 @@ export function useStudentDashboard(user: User | null): UseStudentDashboardRetur
       return;
     }
 
+    if (isRefreshingRef.current) {
+      console.log('🔍 useStudentDashboard: Already refreshing, skipping');
+      return;
+    }
+
     try {
       console.log('🔍 useStudentDashboard: Starting to fetch dashboard data for user:', user.id);
+      isRefreshingRef.current = true;
       setIsLoading(true);
       setStatsLoading(true);
 
@@ -72,6 +87,7 @@ export function useStudentDashboard(user: User | null): UseStudentDashboardRetur
 
       setTodayClasses(dashboardData.todayClasses);
       setStats(dashboardData.stats);
+      setLastUpdated(new Date());
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -86,6 +102,7 @@ export function useStudentDashboard(user: User | null): UseStudentDashboardRetur
     } finally {
       setIsLoading(false);
       setStatsLoading(false);
+      isRefreshingRef.current = false;
     }
   }, [user]);
 
@@ -93,9 +110,52 @@ export function useStudentDashboard(user: User | null): UseStudentDashboardRetur
     await fetchData();
   }, [fetchData]);
 
+  // Real-time refresh functionality
+  const startRealTimeRefresh = useCallback(() => {
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+    }
+
+    // Refresh every 30 seconds for real-time updates
+    refreshIntervalRef.current = setInterval(() => {
+      if (isRealTimeEnabled && user && !isRefreshingRef.current) {
+        console.log('🔄 Real-time refresh triggered');
+        fetchData();
+      }
+    }, 30000); // 30 seconds
+  }, [isRealTimeEnabled, user, fetchData]);
+
+  const stopRealTimeRefresh = useCallback(() => {
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+      refreshIntervalRef.current = null;
+    }
+  }, []);
+
+  // Initial data fetch
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Real-time refresh management
+  useEffect(() => {
+    if (isRealTimeEnabled && user) {
+      startRealTimeRefresh();
+    } else {
+      stopRealTimeRefresh();
+    }
+
+    return () => {
+      stopRealTimeRefresh();
+    };
+  }, [isRealTimeEnabled, user, startRealTimeRefresh, stopRealTimeRefresh]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopRealTimeRefresh();
+    };
+  }, [stopRealTimeRefresh]);
 
   return {
     studentData,
@@ -105,6 +165,8 @@ export function useStudentDashboard(user: User | null): UseStudentDashboardRetur
     isLoading,
     statsLoading,
     refreshData,
-    setUserProfile
+    setUserProfile,
+    isRealTimeEnabled,
+    lastUpdated
   };
 }
