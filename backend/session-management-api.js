@@ -371,6 +371,22 @@ async function completeSessionAutomatically(sessionId) {
       return;
     }
     
+    // VALIDATION: Check if session should actually be completed based on time
+    const now = new Date();
+    const sessionEndTime = new Date(`${session.date}T${session.end_time}`);
+    
+    // Only auto-complete if session end time has passed (with 1-minute grace period)
+    const gracePeriod = 1 * 60 * 1000; // 1 minute in milliseconds
+    const earliestCompletionTime = new Date(sessionEndTime.getTime() + gracePeriod);
+    
+    if (now < earliestCompletionTime) {
+      const minutesRemaining = Math.round((sessionEndTime - now) / (1000 * 60));
+      console.log(`⏰ Auto-completion skipped for session ${sessionId}: ${minutesRemaining} minutes remaining`);
+      return;
+    }
+    
+    console.log(`✅ Auto-completion validation passed for session ${sessionId}`);
+    
     // Stop QR code rotation
     stopQRCodeRotation(sessionId);
     
@@ -452,17 +468,55 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
     
     console.log('🏁 Completing session:', sessionId);
     
-    // Stop QR code rotation
-    stopQRCodeRotation(sessionId);
-    
-    // Get session details to find class instance
+    // Get session details with validation
     const { data: session, error: sessionError } = await supabase
       .from('class_sessions')
-      .select('class_instance_id')
+      .select(`
+        id,
+        date,
+        start_time,
+        end_time,
+        status,
+        class_instance_id
+      `)
       .eq('id', sessionId)
       .single();
     
     if (sessionError) throw sessionError;
+    
+    // VALIDATION: Check if session can be completed
+    const now = new Date();
+    const sessionEndTime = new Date(`${session.date}T${session.end_time}`);
+    
+    // Prevent completion before session end time (with 5-minute grace period)
+    const gracePeriod = 5 * 60 * 1000; // 5 minutes in milliseconds
+    const earliestCompletionTime = new Date(sessionEndTime.getTime() - gracePeriod);
+    
+    if (now < earliestCompletionTime) {
+      const minutesRemaining = Math.round((sessionEndTime - now) / (1000 * 60));
+      console.log(`❌ Cannot complete session ${sessionId}: ${minutesRemaining} minutes remaining`);
+      
+      return res.status(400).json({
+        success: false,
+        error: `Session cannot be completed yet. ${minutesRemaining} minutes remaining until session end time.`,
+        minutesRemaining: minutesRemaining
+      });
+    }
+    
+    // Check if session is in a valid state for completion
+    if (session.status !== 'active' && session.status !== 'scheduled') {
+      console.log(`❌ Cannot complete session ${sessionId}: Invalid status '${session.status}'`);
+      
+      return res.status(400).json({
+        success: false,
+        error: `Session cannot be completed. Current status: ${session.status}`
+      });
+    }
+    
+    console.log(`✅ Session ${sessionId} validation passed. Completing session...`);
+    
+    // Stop QR code rotation
+    stopQRCodeRotation(sessionId);
     
     // Get all enrolled students for this class
     const { data: enrolledStudents, error: enrollmentError } = await supabase
