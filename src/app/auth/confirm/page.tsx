@@ -28,10 +28,13 @@ function EmailConfirmContent() {
         }
 
         console.log('🔐 Email confirmation page loaded with params:', { token, type });
+        console.log('🔐 Full URL:', window.location.href);
+        console.log('🔐 Search params:', Object.fromEntries(searchParams.entries()));
 
         // Check if we have a token in the URL
         if (!token) {
           console.error('❌ No confirmation token found in URL');
+          console.log('🔐 Available search params:', Array.from(searchParams.keys()));
           setStatus('error');
           setMessage('Invalid confirmation link. Please try registering again.');
           return;
@@ -65,6 +68,11 @@ function EmailConfirmContent() {
 
         if (error) {
           console.error('❌ Email confirmation error:', error);
+          console.log('🔐 Error details:', {
+            message: error.message,
+            status: error.status,
+            code: error.code
+          });
           
           if (error.message.includes('expired') || error.message.includes('invalid')) {
             setStatus('expired');
