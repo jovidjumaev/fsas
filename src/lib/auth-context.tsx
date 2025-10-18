@@ -833,10 +833,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updatePassword = async (token: string, password: string, type: 'student' | 'professor') => {
+  const verifyOtp = async (otpCode: string) => {
+    try {
+      console.log('🔐 AuthContext: ===== VERIFY OTP =====');
+      console.log('🔐 AuthContext: OTP Code:', otpCode);
+      
+      // Verify the OTP token
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: otpCode,
+        type: 'email'
+      });
+
+      if (error) {
+        console.error('🔐 AuthContext: OTP verification error:', error);
+        return { success: false, error: 'Invalid or expired verification code. Please try again.' };
+      }
+
+      console.log('✅ AuthContext: OTP verified successfully');
+      return { success: true, data };
+    } catch (error) {
+      console.error('🔐 AuthContext: OTP verification error:', error);
+      return { success: false, error: 'An unexpected error occurred. Please try again.' };
+    }
+  };
+
+  const updatePassword = async (otpCode: string, password: string, type: 'student' | 'professor') => {
     try {
       console.log('🔐 AuthContext: ===== UPDATE PASSWORD =====');
-      console.log('🔐 AuthContext: Token exists:', !!token, 'Type:', type);
+      console.log('🔐 AuthContext: OTP Code:', otpCode, 'Type:', type);
       
       // Validate password
       if (password.length < 6) {
@@ -844,15 +868,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // For OTP password reset, we need to verify the OTP token first
-      // The token from the URL is actually an OTP token
       const { data, error } = await supabase.auth.verifyOtp({
-        token_hash: token,
+        token_hash: otpCode,
         type: 'email'
       });
 
       if (error) {
-        console.error('🔐 AuthContext: Token verification error:', error);
-        return { success: false, error: 'Invalid or expired reset token. Please request a new password reset.' };
+        console.error('🔐 AuthContext: OTP verification error:', error);
+        return { success: false, error: 'Invalid or expired verification code. Please try again.' };
       }
 
       // Now update the password
@@ -881,6 +904,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signOut,
     resetPassword,
+    verifyOtp,
     updatePassword,
   };
 

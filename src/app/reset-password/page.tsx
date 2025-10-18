@@ -12,12 +12,14 @@ import { useAuth } from '@/lib/auth-context';
 function ResetPasswordForm() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(true);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
   const [validationError, setValidationError] = useState('');
   const [selectedType, setSelectedType] = useState<'student' | 'professor' | null>(null);
+  const [otpVerified, setOtpVerified] = useState(false);
   
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -61,7 +63,33 @@ function ResetPasswordForm() {
   }
   
   const type = searchParams.get('type');
-  const { updatePassword } = useAuth();
+  const { verifyOtp, updatePassword } = useAuth();
+
+  // OTP verification function
+  const handleVerifyOtp = async () => {
+    if (!otpCode || otpCode.length !== 6) {
+      setError('Please enter a valid 6-digit code');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const result = await verifyOtp(otpCode);
+      
+      if (result.success) {
+        setOtpVerified(true);
+        setError('');
+      } else {
+        setError(result.error || 'Invalid OTP code. Please try again.');
+      }
+    } catch (err) {
+      setError('An error occurred while verifying the code. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   // Add error boundary for debugging
   if (typeof window !== 'undefined') {
@@ -137,6 +165,14 @@ function ResetPasswordForm() {
         }
         
         setValidationError(errorMessage);
+        setIsValidating(false);
+        return;
+      }
+
+      // For OTP flow, we don't need a token - just check for valid type
+      if (!token && type && (type === 'student' || type === 'professor')) {
+        console.log('🔐 ResetPassword: OTP flow detected - no token needed');
+        setSelectedType(type);
         setIsValidating(false);
         return;
       }
@@ -227,11 +263,11 @@ function ResetPasswordForm() {
       }
 
       // Call password update function from auth context
-      if (!token) {
-        setError('Invalid reset token');
+      if (!otpCode) {
+        setError('Invalid verification code');
         return;
       }
-      const result = await updatePassword(token, password, (type || selectedType) as 'student' | 'professor');
+      const result = await updatePassword(otpCode, password, (type || selectedType) as 'student' | 'professor');
 
       if (result.success) {
         setIsSuccess(true);
@@ -384,6 +420,77 @@ function ResetPasswordForm() {
                 Back to Homepage
               </Button>
             </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Show OTP input form if not verified yet
+  if (!otpVerified && selectedType) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          {/* Header */}
+          <div className="text-center">
+            <Link href="/" className="inline-block">
+              <h1 className="text-3xl font-bold text-gray-900">FSAS</h1>
+              <p className="text-sm text-gray-500">Furman Smart Attendance System</p>
+            </Link>
+            <h2 className="mt-6 text-2xl font-bold text-gray-900">
+              Enter Verification Code
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Please enter the 6-digit code sent to your email.
+            </p>
+          </div>
+
+          {/* OTP Form */}
+          <Card className="p-8">
+            <form onSubmit={(e) => { e.preventDefault(); handleVerifyOtp(); }} className="space-y-6">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="otpCode" className="block text-sm font-medium text-gray-700">
+                  Verification Code
+                </label>
+                <Input
+                  id="otpCode"
+                  type="text"
+                  required
+                  value={otpCode}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setOtpCode(value);
+                  }}
+                  className="mt-1 text-center text-2xl tracking-widest"
+                  placeholder="000000"
+                  maxLength={6}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Enter the 6-digit code from your email
+                </p>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isLoading || otpCode.length !== 6}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                {isLoading ? (
+                  <div className="flex items-center justify-center">
+                    <LoadingSpinner size="sm" className="mr-2" />
+                    Verifying Code...
+                  </div>
+                ) : (
+                  'Verify Code'
+                )}
+              </Button>
+            </form>
           </Card>
         </div>
       </div>
