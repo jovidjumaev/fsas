@@ -800,7 +800,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Send password reset email using Supabase Auth
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password?type=${role}`,
+        redirectTo: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://fsas-frontend.vercel.app'}/reset-password?type=${role}`,
       });
 
       if (error) {
@@ -826,14 +826,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: 'Password must be at least 6 characters long' };
       }
 
-      // Use Supabase Auth to update password
-      const { data, error } = await supabase.auth.updateUser({
-        password: password
+      // For password reset, we need to verify the OTP token first
+      // The token from the URL is actually a password reset token
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: 'recovery'
       });
 
       if (error) {
-        console.error('🔐 AuthContext: Password update error:', error);
-        return { success: false, error: error.message };
+        console.error('🔐 AuthContext: Token verification error:', error);
+        return { success: false, error: 'Invalid or expired reset token. Please request a new password reset.' };
+      }
+
+      // Now update the password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password
+      });
+
+      if (updateError) {
+        console.error('🔐 AuthContext: Password update error:', updateError);
+        return { success: false, error: updateError.message };
       }
 
       console.log('✅ AuthContext: Password updated successfully');

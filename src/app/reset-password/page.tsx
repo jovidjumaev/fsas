@@ -20,7 +20,10 @@ function ResetPasswordForm() {
   
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get('token');
+  const token = searchParams.get('token') || 
+               searchParams.get('token_hash') || 
+               searchParams.get('access_token') ||
+               searchParams.get('refresh_token');
   const type = searchParams.get('type');
   const { updatePassword } = useAuth();
 
