@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/lib/auth-context';
+import { EmailConfirmationModal } from '@/components/email-confirmation-modal';
 import { BookOpen, Mail, Lock, User, Hash, Building2, Phone, ArrowRight, AlertCircle, Moon, Sun } from 'lucide-react';
 import { PasswordInputWithStrength } from '@/components/ui/password-strength-indicator';
 import { ErrorDisplay } from '@/components/ui/error-display';
@@ -27,6 +28,7 @@ export default function ProfessorRegisterPage() {
   const [error, setError] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isPasswordValid, setIsPasswordValid] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const router = useRouter();
   const { user, userRole, loading, signUp } = useAuth();
 
@@ -96,7 +98,7 @@ export default function ProfessorRegisterPage() {
         // Check if email confirmation is required
         if (result.requiresEmailConfirmation) {
           console.log('📧 Email confirmation required');
-          setError(result.message || 'Please check your email for confirmation instructions.');
+          setShowEmailModal(true);
           return;
         }
         
@@ -464,6 +466,14 @@ export default function ProfessorRegisterPage() {
           </Link>
         </div>
       </div>
+
+      {/* Email Confirmation Modal */}
+      <EmailConfirmationModal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        email={formData.email}
+        userType="professor"
+      />
     </div>
   );
 }

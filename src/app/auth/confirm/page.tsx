@@ -27,8 +27,11 @@ function EmailConfirmContent() {
           setUserType(type);
         }
 
+        console.log('🔐 Email confirmation page loaded with params:', { token, type });
+
+        // Check if we have a token in the URL
         if (!token) {
-          console.error('❌ No confirmation token found');
+          console.error('❌ No confirmation token found in URL');
           setStatus('error');
           setMessage('Invalid confirmation link. Please try registering again.');
           return;
@@ -36,11 +39,29 @@ function EmailConfirmContent() {
 
         console.log('🔐 Confirming email with token...');
         
-        // Confirm the email using Supabase
-        const { data, error } = await supabase.auth.verifyOtp({
+        // Try different confirmation methods
+        let data, error;
+        
+        // Method 1: Try verifyOtp with token_hash
+        const otpResult = await supabase.auth.verifyOtp({
           token_hash: token,
           type: 'email'
         });
+        
+        data = otpResult.data;
+        error = otpResult.error;
+        
+        // Method 2: If that fails, try with the token directly
+        if (error) {
+          console.log('🔐 Trying alternative confirmation method...');
+          const altResult = await supabase.auth.verifyOtp({
+            token: token,
+            type: 'email'
+          });
+          
+          data = altResult.data;
+          error = altResult.error;
+        }
 
         if (error) {
           console.error('❌ Email confirmation error:', error);
