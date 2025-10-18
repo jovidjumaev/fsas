@@ -50,10 +50,16 @@ function ResetPasswordForm() {
     });
   }
   
+  // Check for error parameters in hash FIRST
+  const hashError = hashParams.get('error');
+  const errorCode = hashParams.get('error_code');
+  const errorDescription = hashParams.get('error_description');
+  
   // Check if this is a direct access (no tokens) vs Supabase redirect
   if (typeof window !== 'undefined' && !token && !hashError && window.location.hash === '') {
     console.log('🔐 ResetPassword: Direct access detected - no tokens or errors in URL');
   }
+  
   const type = searchParams.get('type');
   const { updatePassword } = useAuth();
   
@@ -76,11 +82,6 @@ function ResetPasswordForm() {
       finalToken: token ? 'exists' : 'missing'
     });
   }
-
-  // Check for error parameters in hash
-  const hashError = hashParams.get('error');
-  const errorCode = hashParams.get('error_code');
-  const errorDescription = hashParams.get('error_description');
   
   if (hashError) {
     console.log('🔐 ResetPassword: Error detected in URL hash:', {
@@ -88,6 +89,18 @@ function ResetPasswordForm() {
       errorCode,
       errorDescription
     });
+  }
+
+  // Check if this is a Supabase redirect without tokens (common issue)
+  const isSupabaseRedirectWithoutTokens = typeof window !== 'undefined' && 
+    window.location.hash === '' && 
+    window.location.search.includes('type=') &&
+    !token;
+  
+  if (isSupabaseRedirectWithoutTokens) {
+    console.log('🔐 ResetPassword: Supabase redirect detected but no tokens in URL hash');
+    console.log('🔐 ResetPassword: This indicates a Supabase configuration issue');
+    console.log('🔐 ResetPassword: Site URL and Redirect URLs need to be configured in Supabase dashboard');
   }
 
   useEffect(() => {
@@ -139,6 +152,8 @@ function ResetPasswordForm() {
         let errorMessage = 'Invalid reset link. Please request a new password reset.';
         if (isDirectAccess) {
           errorMessage = 'Please use the password reset link from your email. Direct access to this page is not allowed.';
+        } else if (isSupabaseRedirectWithoutTokens) {
+          errorMessage = 'Password reset link is missing authentication tokens. This is a configuration issue with Supabase. Please contact support or try requesting a new password reset.';
         }
         
         setValidationError(errorMessage);
