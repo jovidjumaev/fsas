@@ -44,8 +44,15 @@ function ResetPasswordForm() {
     searchToken: searchToken ? 'found' : 'missing',
     hashToken: hashToken ? 'found' : 'missing',
     finalToken: token ? 'found' : 'missing',
-    hashParams: Object.fromEntries(hashParams.entries())
+    hashParams: Object.fromEntries(hashParams.entries()),
+    fullUrl: window.location.href
   });
+  
+  // Check if this is a direct access (no tokens) vs Supabase redirect
+  const isDirectAccess = !token && !hashError && window.location.hash === '';
+  if (isDirectAccess) {
+    console.log('🔐 ResetPassword: Direct access detected - no tokens or errors in URL');
+  }
   const type = searchParams.get('type');
   const { updatePassword } = useAuth();
 
@@ -93,42 +100,53 @@ function ResetPasswordForm() {
       return;
     }
 
-    // Check for error in URL hash first
-    if (hashError) {
-      console.log('🔐 ResetPassword: Error detected, showing error message');
-      let errorMessage = 'Invalid reset link. Please request a new password reset.';
-      
-      if (errorCode === 'otp_expired') {
-        errorMessage = 'This password reset link has expired. Please request a new one.';
-      } else if (errorCode === 'access_denied') {
-        errorMessage = 'Access denied. This reset link is invalid or has been used already.';
+    // Add a small delay to prevent flash of content
+    const timeoutId = setTimeout(() => {
+      // Check for error in URL hash first
+      if (hashError) {
+        console.log('🔐 ResetPassword: Error detected, showing error message');
+        let errorMessage = 'Invalid reset link. Please request a new password reset.';
+        
+        if (errorCode === 'otp_expired') {
+          errorMessage = 'This password reset link has expired. Please request a new one.';
+        } else if (errorCode === 'access_denied') {
+          errorMessage = 'Access denied. This reset link is invalid or has been used already.';
+        }
+        
+        setValidationError(errorMessage);
+        setIsValidating(false);
+        return;
       }
-      
-      setValidationError(errorMessage);
-      setIsValidating(false);
-      return;
-    }
 
-    if (!token) {
-      console.log('🔐 ResetPassword: Missing token, showing error');
-      console.log('🔐 ResetPassword: This usually means Supabase did not redirect with tokens');
-      console.log('🔐 ResetPassword: Check Supabase Site URL and email template configuration');
-      setValidationError('Invalid reset link. Please request a new password reset.');
-      setIsValidating(false);
-      console.log('🔐 ResetPassword: Error state set, isValidating set to false');
-      return;
-    }
+      if (!token) {
+        console.log('🔐 ResetPassword: Missing token, showing error');
+        console.log('🔐 ResetPassword: This usually means Supabase did not redirect with tokens');
+        console.log('🔐 ResetPassword: Check Supabase Site URL and email template configuration');
+        
+        let errorMessage = 'Invalid reset link. Please request a new password reset.';
+        if (isDirectAccess) {
+          errorMessage = 'Please use the password reset link from your email. Direct access to this page is not allowed.';
+        }
+        
+        setValidationError(errorMessage);
+        setIsValidating(false);
+        console.log('🔐 ResetPassword: Error state set, isValidating set to false');
+        return;
+      }
 
-    if (!type) {
-      console.log('🔐 ResetPassword: Missing type parameter, will show type selection');
-      // Show type selection since Supabase doesn't preserve our custom parameters
-      setIsValidating(false);
-      return;
-    }
+      if (!type) {
+        console.log('🔐 ResetPassword: Missing type parameter, will show type selection');
+        // Show type selection since Supabase doesn't preserve our custom parameters
+        setIsValidating(false);
+        return;
+      }
 
-    console.log('🔐 ResetPassword: All checks passed, calling validateResetToken');
-    // Validate the reset token
-    validateResetToken();
+      console.log('🔐 ResetPassword: All checks passed, calling validateResetToken');
+      // Validate the reset token
+      validateResetToken();
+    }, 100); // Small delay to prevent flash
+
+    return () => clearTimeout(timeoutId);
   }, [token, type, hashError, errorCode]);
 
   // Fallback timeout to prevent infinite loading
