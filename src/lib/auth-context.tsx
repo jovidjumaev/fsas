@@ -811,6 +811,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Send password reset email using Supabase Auth
+      // Note: Supabase will append the token_hash parameter to our redirectTo URL
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://fsas-frontend.vercel.app'}/reset-password?type=${role}`,
       });

@@ -27,6 +27,14 @@ function ResetPasswordForm() {
   const type = searchParams.get('type');
   const { updatePassword } = useAuth();
 
+  // Debug: Log all URL parameters
+  console.log('🔐 ResetPassword: All URL parameters:', {
+    search: window.location.search,
+    hash: window.location.hash,
+    pathname: window.location.pathname,
+    href: window.location.href
+  });
+
   useEffect(() => {
     console.log('🔐 ResetPassword: URL parameters:', {
       token: token ? 'exists' : 'missing',
@@ -36,11 +44,16 @@ function ResetPasswordForm() {
       hash: window.location.hash
     });
 
-    if (!token || !type) {
-      console.log('🔐 ResetPassword: Missing token or type, showing error');
+    if (!token) {
+      console.log('🔐 ResetPassword: Missing token, showing error');
       setValidationError('Invalid reset link. Please request a new password reset.');
       setIsValidating(false);
       return;
+    }
+
+    if (!type) {
+      console.log('🔐 ResetPassword: Missing type parameter, will try to detect from URL or allow user to select');
+      // We'll handle this case by showing a type selection or trying to detect it
     }
 
     // Validate the reset token
