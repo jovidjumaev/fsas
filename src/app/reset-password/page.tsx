@@ -21,10 +21,20 @@ function ResetPasswordForm() {
   
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get('token') || 
-               searchParams.get('token_hash') || 
-               searchParams.get('access_token') ||
-               searchParams.get('refresh_token');
+  // Extract token from search params or hash
+  const searchToken = searchParams.get('token') || 
+                     searchParams.get('token_hash') || 
+                     searchParams.get('access_token') ||
+                     searchParams.get('refresh_token');
+  
+  // Also check hash parameters (Supabase puts tokens there after redirect)
+  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  const hashToken = hashParams.get('token') || 
+                   hashParams.get('token_hash') || 
+                   hashParams.get('access_token') ||
+                   hashParams.get('refresh_token');
+  
+  const token = searchToken || hashToken;
   const type = searchParams.get('type');
   const { updatePassword } = useAuth();
 
@@ -33,11 +43,13 @@ function ResetPasswordForm() {
     search: window.location.search,
     hash: window.location.hash,
     pathname: window.location.pathname,
-    href: window.location.href
+    href: window.location.href,
+    searchToken: searchToken ? 'exists' : 'missing',
+    hashToken: hashToken ? 'exists' : 'missing',
+    finalToken: token ? 'exists' : 'missing'
   });
 
   // Check for error parameters in hash
-  const hashParams = new URLSearchParams(window.location.hash.substring(1));
   const hashError = hashParams.get('error');
   const errorCode = hashParams.get('error_code');
   const errorDescription = hashParams.get('error_description');
