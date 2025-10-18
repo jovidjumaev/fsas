@@ -37,19 +37,21 @@ function ResetPasswordForm() {
   const token = searchToken || hashToken;
   
   // Debug: Check if we're getting tokens from Supabase redirect
-  console.log('🔐 ResetPassword: Token extraction debug:', {
-    searchParams: window.location.search,
-    hash: window.location.hash,
-    hashLength: window.location.hash.length,
-    searchToken: searchToken ? 'found' : 'missing',
-    hashToken: hashToken ? 'found' : 'missing',
-    finalToken: token ? 'found' : 'missing',
-    hashParams: Object.fromEntries(hashParams.entries()),
-    fullUrl: window.location.href
-  });
+  if (typeof window !== 'undefined') {
+    console.log('🔐 ResetPassword: Token extraction debug:', {
+      searchParams: window.location.search,
+      hash: window.location.hash,
+      hashLength: window.location.hash.length,
+      searchToken: searchToken ? 'found' : 'missing',
+      hashToken: hashToken ? 'found' : 'missing',
+      finalToken: token ? 'found' : 'missing',
+      hashParams: Object.fromEntries(hashParams.entries()),
+      fullUrl: window.location.href
+    });
+  }
   
   // Check if this is a direct access (no tokens) vs Supabase redirect
-  const isDirectAccess = !token && !hashError && window.location.hash === '';
+  const isDirectAccess = typeof window !== 'undefined' && !token && !hashError && window.location.hash === '';
   if (isDirectAccess) {
     console.log('🔐 ResetPassword: Direct access detected - no tokens or errors in URL');
   }
@@ -57,15 +59,17 @@ function ResetPasswordForm() {
   const { updatePassword } = useAuth();
 
   // Debug: Log all URL parameters
-  console.log('🔐 ResetPassword: All URL parameters:', {
-    search: window.location.search,
-    hash: window.location.hash,
-    pathname: window.location.pathname,
-    href: window.location.href,
-    searchToken: searchToken ? 'exists' : 'missing',
-    hashToken: hashToken ? 'exists' : 'missing',
-    finalToken: token ? 'exists' : 'missing'
-  });
+  if (typeof window !== 'undefined') {
+    console.log('🔐 ResetPassword: All URL parameters:', {
+      search: window.location.search,
+      hash: window.location.hash,
+      pathname: window.location.pathname,
+      href: window.location.href,
+      searchToken: searchToken ? 'exists' : 'missing',
+      hashToken: hashToken ? 'exists' : 'missing',
+      finalToken: token ? 'exists' : 'missing'
+    });
+  }
 
   // Check for error parameters in hash
   const hashError = hashParams.get('error');
@@ -87,9 +91,9 @@ function ResetPasswordForm() {
       validationError,
       token: token ? 'exists' : 'missing',
       type: type,
-      fullUrl: window.location.href,
-      searchParams: window.location.search,
-      hash: window.location.hash,
+      fullUrl: typeof window !== 'undefined' ? window.location.href : 'N/A',
+      searchParams: typeof window !== 'undefined' ? window.location.search : 'N/A',
+      hash: typeof window !== 'undefined' ? window.location.hash : 'N/A',
       hashError: hashError,
       errorCode: errorCode
     });
