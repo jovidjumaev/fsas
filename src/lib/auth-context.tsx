@@ -810,12 +810,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      // Send password reset email using Supabase Auth
-      // Note: Supabase will append the token_hash parameter to our redirectTo URL
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://fsas-frontend.vercel.app'}/reset-password?type=${role}`,
-        // Add additional options to help with token expiry
+      // Send password reset using OTP instead of Magic Link
+      // This should have better expiry control
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email,
         options: {
+          shouldCreateUser: false, // Don't create user if they don't exist
           emailRedirectTo: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://fsas-frontend.vercel.app'}/reset-password?type=${role}`
         }
       });
@@ -843,11 +843,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: 'Password must be at least 6 characters long' };
       }
 
-      // For password reset, we need to verify the OTP token first
-      // The token from the URL is actually a password reset token
+      // For OTP password reset, we need to verify the OTP token first
+      // The token from the URL is actually an OTP token
       const { data, error } = await supabase.auth.verifyOtp({
         token_hash: token,
-        type: 'recovery'
+        type: 'email'
       });
 
       if (error) {
