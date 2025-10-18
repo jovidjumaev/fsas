@@ -187,6 +187,13 @@ function EmailConfirmContent() {
               >
                 Go to Sign In
               </Button>
+              <Button 
+                onClick={() => window.location.href = 'https://fsas-frontend.vercel.app/'}
+                className="w-full"
+                variant="outline"
+              >
+                Back to Home
+              </Button>
             </div>
           )}
 
@@ -206,6 +213,13 @@ function EmailConfirmContent() {
               >
                 Go to Login
               </Button>
+              <Button 
+                onClick={() => window.location.href = 'https://fsas-frontend.vercel.app/'}
+                className="w-full"
+                variant="outline"
+              >
+                Back to Home
+              </Button>
             </div>
           )}
 
@@ -224,6 +238,13 @@ function EmailConfirmContent() {
                 variant="outline"
               >
                 Go to Login
+              </Button>
+              <Button 
+                onClick={() => window.location.href = 'https://fsas-frontend.vercel.app/'}
+                className="w-full"
+                variant="outline"
+              >
+                Back to Home
               </Button>
             </div>
           )}
