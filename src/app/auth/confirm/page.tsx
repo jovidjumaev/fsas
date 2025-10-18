@@ -20,7 +20,13 @@ function EmailConfirmContent() {
         console.log('🔐 Email confirmation page loaded');
         
         // Get the token and type from URL parameters
-        const token = searchParams.get('token');
+        // Supabase might use different parameter names
+        const token = searchParams.get('token') || 
+                     searchParams.get('token_hash') || 
+                     searchParams.get('confirmation_token') ||
+                     searchParams.get('access_token') ||
+                     searchParams.get('refresh_token');
+        
         const type = searchParams.get('type') as 'student' | 'professor';
         
         if (type) {
@@ -30,13 +36,25 @@ function EmailConfirmContent() {
         console.log('🔐 Email confirmation page loaded with params:', { token, type });
         console.log('🔐 Full URL:', window.location.href);
         console.log('🔐 Search params:', Object.fromEntries(searchParams.entries()));
+        console.log('🔐 All available params:', Array.from(searchParams.keys()));
 
         // Check if we have a token in the URL
         if (!token) {
           console.error('❌ No confirmation token found in URL');
           console.log('🔐 Available search params:', Array.from(searchParams.keys()));
+          console.log('🔐 This might be a direct link without token - checking if user is already confirmed');
+          
+          // Check if user is already signed in and confirmed
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user && user.email_confirmed_at) {
+            console.log('✅ User is already confirmed:', user.email);
+            setStatus('success');
+            setMessage('🎉 Your email is already confirmed! You can now sign in to your account.');
+            return;
+          }
+          
           setStatus('error');
-          setMessage('Invalid confirmation link. Please try registering again.');
+          setMessage('Invalid confirmation link. Please try registering again or check your email for the correct link.');
           return;
         }
 
