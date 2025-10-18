@@ -28,7 +28,16 @@ function ResetPasswordForm() {
   const { updatePassword } = useAuth();
 
   useEffect(() => {
+    console.log('🔐 ResetPassword: URL parameters:', {
+      token: token ? 'exists' : 'missing',
+      type: type,
+      fullUrl: window.location.href,
+      searchParams: window.location.search,
+      hash: window.location.hash
+    });
+
     if (!token || !type) {
+      console.log('🔐 ResetPassword: Missing token or type, showing error');
       setValidationError('Invalid reset link. Please request a new password reset.');
       setIsValidating(false);
       return;
@@ -40,23 +49,14 @@ function ResetPasswordForm() {
 
   const validateResetToken = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/auth/validate-reset-token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token, type }),
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        setValidationError(data.error || 'Invalid or expired reset link.');
-      }
+      // For Supabase password reset, we don't need to validate the token via API
+      // The token will be validated when we try to update the password
+      console.log('🔐 ResetPassword: Token validation skipped - will validate during password update');
+      console.log('🔐 ResetPassword: Token exists:', !!token, 'Type:', type);
+      setIsValidating(false);
     } catch (err) {
       console.error('Token validation error:', err);
       setValidationError('Failed to validate reset link. Please try again.');
-    } finally {
       setIsValidating(false);
     }
   };
