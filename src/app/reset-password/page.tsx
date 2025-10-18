@@ -38,13 +38,13 @@ function ResetPasswordForm() {
 
   // Check for error parameters in hash
   const hashParams = new URLSearchParams(window.location.hash.substring(1));
-  const error = hashParams.get('error');
+  const hashError = hashParams.get('error');
   const errorCode = hashParams.get('error_code');
   const errorDescription = hashParams.get('error_description');
   
-  if (error) {
+  if (hashError) {
     console.log('🔐 ResetPassword: Error detected in URL hash:', {
-      error,
+      hashError,
       errorCode,
       errorDescription
     });
@@ -60,7 +60,7 @@ function ResetPasswordForm() {
       fullUrl: window.location.href,
       searchParams: window.location.search,
       hash: window.location.hash,
-      error: error,
+      hashError: hashError,
       errorCode: errorCode
     });
 
@@ -71,7 +71,7 @@ function ResetPasswordForm() {
     }
 
     // Check for error in URL hash first
-    if (error) {
+    if (hashError) {
       console.log('🔐 ResetPassword: Error detected, showing error message');
       let errorMessage = 'Invalid reset link. Please request a new password reset.';
       
@@ -104,7 +104,7 @@ function ResetPasswordForm() {
     console.log('🔐 ResetPassword: All checks passed, calling validateResetToken');
     // Validate the reset token
     validateResetToken();
-  }, [token, type, error, errorCode]);
+  }, [token, type, hashError, errorCode]);
 
   // Fallback timeout to prevent infinite loading
   useEffect(() => {
