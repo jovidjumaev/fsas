@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/lib/auth-context';
+import { EmailConfirmationModal } from '@/components/email-confirmation-modal';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -23,6 +24,7 @@ export default function RegisterPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const router = useRouter();
   const { user, userRole, loading, signUp } = useAuth();
 
@@ -90,7 +92,7 @@ export default function RegisterPage() {
         // Check if email confirmation is required
         if (result.requiresEmailConfirmation) {
           console.log('Email confirmation required');
-          setError(result.message || 'Please check your email for confirmation instructions.');
+          setShowEmailModal(true);
           return;
         }
         
@@ -409,6 +411,14 @@ export default function RegisterPage() {
           </Link>
         </div>
       </div>
+
+      {/* Email Confirmation Modal */}
+      <EmailConfirmationModal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        email={formData.email}
+        userType={formData.role}
+      />
     </div>
   );
 }
