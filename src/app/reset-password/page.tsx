@@ -52,7 +52,9 @@ function ResetPasswordForm() {
 
   useEffect(() => {
     console.log('🔐 ResetPassword: useEffect triggered');
-    console.log('🔐 ResetPassword: URL parameters:', {
+    console.log('🔐 ResetPassword: Current state:', {
+      isValidating,
+      validationError,
       token: token ? 'exists' : 'missing',
       type: type,
       fullUrl: window.location.href,
@@ -61,6 +63,12 @@ function ResetPasswordForm() {
       error: error,
       errorCode: errorCode
     });
+
+    // Prevent multiple executions if already processed
+    if (!isValidating && validationError) {
+      console.log('🔐 ResetPassword: Already processed, skipping');
+      return;
+    }
 
     // Check for error in URL hash first
     if (error) {
@@ -82,6 +90,7 @@ function ResetPasswordForm() {
       console.log('🔐 ResetPassword: Missing token, showing error');
       setValidationError('Invalid reset link. Please request a new password reset.');
       setIsValidating(false);
+      console.log('🔐 ResetPassword: Error state set, isValidating set to false');
       return;
     }
 
@@ -96,6 +105,21 @@ function ResetPasswordForm() {
     // Validate the reset token
     validateResetToken();
   }, [token, type, error, errorCode]);
+
+  // Fallback timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isValidating) {
+        console.log('🔐 ResetPassword: Timeout reached, forcing validation to complete');
+        setIsValidating(false);
+        if (!validationError) {
+          setValidationError('Invalid reset link. Please request a new password reset.');
+        }
+      }
+    }, 5000); // 5 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [isValidating, validationError]);
 
   const validateResetToken = async () => {
     try {
