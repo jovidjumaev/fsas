@@ -778,24 +778,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: 'Please enter a valid email address' };
       }
 
-      // First check if user exists in Supabase Auth
-      console.log('🔐 AuthContext: Checking Supabase Auth for user...');
-      const { data: authUsers, error: authListError } = await supabaseAdmin.auth.admin.listUsers();
+      // Simplified approach: Check users table first, then try password reset
+      console.log('🔐 AuthContext: Checking users table for user...');
       
-      if (authListError) {
-        console.error('🔐 AuthContext: Error listing auth users:', authListError);
-        return { success: false, error: 'Unable to verify account. Please try again.' };
-      }
-
-      const authUser = authUsers.users.find(u => u.email === email.trim().toLowerCase());
-      if (!authUser) {
-        console.log('🔐 AuthContext: User not found in Supabase Auth');
-        return { success: false, error: 'No account found with this email address' };
-      }
-
-      console.log('🔐 AuthContext: User found in Supabase Auth:', authUser.id);
-
-      // Check if user exists in the users table
       const { data: userData, error: userError } = await supabaseAdmin
         .from('users')
         .select('id, email, role')
@@ -805,33 +790,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let userRole = null;
       
       if (userError && userError.code === 'PGRST116') {
-        // User exists in Auth but not in users table - create the record
-        console.log('🔐 AuthContext: User exists in Auth but not in users table, creating record...');
-        
-        // Extract role from auth metadata or use the provided role
-        const authRole = authUser.user_metadata?.role || role;
-        
-        const { data: newUserData, error: createError } = await supabaseAdmin
-          .from('users')
-          .insert({
-            id: authUser.id,
-            email: email.trim().toLowerCase(),
-            role: authRole,
-            first_name: authUser.user_metadata?.first_name || '',
-            last_name: authUser.user_metadata?.last_name || '',
-            created_at: authUser.created_at,
-            updated_at: new Date().toISOString()
-          })
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('🔐 AuthContext: Error creating user record:', createError);
-          return { success: false, error: 'Unable to process password reset. Please contact support.' };
-        }
-
-        userRole = authRole;
-        console.log('🔐 AuthContext: User record created with role:', userRole);
+        // User not found in users table - assume they exist in Auth and use provided role
+        console.log('🔐 AuthContext: User not found in users table, using provided role:', role);
+        userRole = role;
       } else if (userError) {
         console.error('🔐 AuthContext: Error querying users table:', userError);
         return { success: false, error: 'Unable to verify account. Please try again.' };
