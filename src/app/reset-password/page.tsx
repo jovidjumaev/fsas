@@ -51,12 +51,18 @@ function ResetPasswordForm() {
   }
   
   // Check if this is a direct access (no tokens) vs Supabase redirect
-  const isDirectAccess = typeof window !== 'undefined' && !token && !hashError && window.location.hash === '';
-  if (isDirectAccess) {
+  if (typeof window !== 'undefined' && !token && !hashError && window.location.hash === '') {
     console.log('🔐 ResetPassword: Direct access detected - no tokens or errors in URL');
   }
   const type = searchParams.get('type');
   const { updatePassword } = useAuth();
+  
+  // Add error boundary for debugging
+  if (typeof window !== 'undefined') {
+    window.addEventListener('error', (e) => {
+      console.error('🔐 ResetPassword: Global error caught:', e.error);
+    });
+  }
 
   // Debug: Log all URL parameters
   if (typeof window !== 'undefined') {
@@ -126,6 +132,9 @@ function ResetPasswordForm() {
         console.log('🔐 ResetPassword: Missing token, showing error');
         console.log('🔐 ResetPassword: This usually means Supabase did not redirect with tokens');
         console.log('🔐 ResetPassword: Check Supabase Site URL and email template configuration');
+        
+        // Check if this is direct access
+        const isDirectAccess = typeof window !== 'undefined' && !hashError && window.location.hash === '';
         
         let errorMessage = 'Invalid reset link. Please request a new password reset.';
         if (isDirectAccess) {
