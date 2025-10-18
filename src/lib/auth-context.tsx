@@ -229,6 +229,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
+      // Check if email is confirmed before proceeding
+      if (data.user && !data.user.email_confirmed_at) {
+        console.log('🔐 AuthContext: Email not confirmed, blocking sign-in');
+        return {
+          success: false,
+          error: 'Please check your email and click the confirmation link before signing in.\n\n📧 Check your spam folder if you don\'t see the confirmation email.'
+        };
+      }
+
       if (data.user) {
         console.log('✅ AuthContext: ===== AUTHENTICATION SUCCESSFUL =====');
         console.log('✅ AuthContext: User authenticated successfully');

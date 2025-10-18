@@ -58,18 +58,7 @@ export default function EmailConfirmPage() {
         if (data?.user) {
           console.log('✅ Email confirmed successfully for user:', data.user.id);
           setStatus('success');
-          setMessage('Your email has been confirmed successfully! You can now sign in to your account.');
-          
-          // Redirect to appropriate dashboard after a short delay
-          setTimeout(() => {
-            if (type === 'student') {
-              router.push('/student/dashboard');
-            } else if (type === 'professor') {
-              router.push('/professor/dashboard');
-            } else {
-              router.push('/');
-            }
-          }, 3000);
+          setMessage('🎉 Congratulations! Your email has been confirmed successfully!\n\nYou can now sign in to your account and access all features.');
         } else {
           setStatus('error');
           setMessage('Email confirmation failed. Please try again.');
@@ -142,14 +131,14 @@ export default function EmailConfirmPage() {
           {status === 'success' && (
             <div className="space-y-3">
               <div className="text-center text-sm text-gray-500">
-                Redirecting you to your dashboard in a few seconds...
+                Your account is now fully activated and ready to use!
               </div>
               <Button 
                 onClick={handleGoToLogin} 
                 className="w-full"
                 variant="default"
               >
-                Go to Dashboard Now
+                Go to Sign In
               </Button>
             </div>
           )}
