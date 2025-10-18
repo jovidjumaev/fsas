@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
 
-export default function EmailConfirmPage() {
+function EmailConfirmContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'expired'>('loading');
@@ -191,5 +191,25 @@ export default function EmailConfirmPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function EmailConfirmPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+            </div>
+            <CardTitle>Loading...</CardTitle>
+            <CardDescription>Please wait while we process your request.</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    }>
+      <EmailConfirmContent />
+    </Suspense>
   );
 }

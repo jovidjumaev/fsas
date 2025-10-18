@@ -42,6 +42,22 @@ export function CardContent({ children, className = '' }: ComponentProps) {
   );
 }
 
+export function CardTitle({ children, className = '' }: ComponentProps) {
+  return (
+    <h3 className={`text-lg font-semibold leading-none tracking-tight ${className}`}>
+      {children}
+    </h3>
+  );
+}
+
+export function CardDescription({ children, className = '' }: ComponentProps) {
+  return (
+    <p className={`text-sm text-muted-foreground ${className}`}>
+      {children}
+    </p>
+  );
+}
+
 export function CardFooter({ children, className = '' }: ComponentProps) {
   return (
     <div className={`px-6 py-4 border-t border-gray-200 ${className}`}>
