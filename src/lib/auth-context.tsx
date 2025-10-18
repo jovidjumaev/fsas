@@ -573,7 +573,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: role
           },
           // Enable email confirmation for new users
-          emailRedirectTo: `${window.location.origin}/auth/confirm?type=${role}`
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://fsas-frontend.vercel.app'}/auth/confirm?type=${role}`
         }
       });
 
