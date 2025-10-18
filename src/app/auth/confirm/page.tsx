@@ -181,16 +181,9 @@ function EmailConfirmContent() {
                 Your account is now fully activated and ready to use!
               </div>
               <Button 
-                onClick={handleGoToLogin} 
-                className="w-full"
-                variant="default"
-              >
-                Go to Sign In
-              </Button>
-              <Button 
                 onClick={() => window.location.href = 'https://fsas-frontend.vercel.app/'}
                 className="w-full"
-                variant="outline"
+                variant="default"
               >
                 Back to Home
               </Button>
