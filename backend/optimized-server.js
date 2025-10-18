@@ -982,7 +982,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
     // Send password reset email using Supabase Auth
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/reset-password?type=${role}`,
+      redirectTo: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://fsas-frontend.vercel.app'}/reset-password?type=${role}`,
     });
 
     if (resetError) {
