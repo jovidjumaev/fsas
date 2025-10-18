@@ -35,6 +35,17 @@ function ResetPasswordForm() {
                    hashParams.get('refresh_token');
   
   const token = searchToken || hashToken;
+  
+  // Debug: Check if we're getting tokens from Supabase redirect
+  console.log('🔐 ResetPassword: Token extraction debug:', {
+    searchParams: window.location.search,
+    hash: window.location.hash,
+    hashLength: window.location.hash.length,
+    searchToken: searchToken ? 'found' : 'missing',
+    hashToken: hashToken ? 'found' : 'missing',
+    finalToken: token ? 'found' : 'missing',
+    hashParams: Object.fromEntries(hashParams.entries())
+  });
   const type = searchParams.get('type');
   const { updatePassword } = useAuth();
 
@@ -100,6 +111,8 @@ function ResetPasswordForm() {
 
     if (!token) {
       console.log('🔐 ResetPassword: Missing token, showing error');
+      console.log('🔐 ResetPassword: This usually means Supabase did not redirect with tokens');
+      console.log('🔐 ResetPassword: Check Supabase Site URL and email template configuration');
       setValidationError('Invalid reset link. Please request a new password reset.');
       setIsValidating(false);
       console.log('🔐 ResetPassword: Error state set, isValidating set to false');
