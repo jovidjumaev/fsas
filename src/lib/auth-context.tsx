@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', userId)
         .single();
       
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((unused, reject) => 
         setTimeout(() => reject(new Error('Role fetch timeout')), 3000)
       );
       
@@ -814,6 +814,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Note: Supabase will append the token_hash parameter to our redirectTo URL
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://fsas-frontend.vercel.app'}/reset-password?type=${role}`,
+        // Add additional options to help with token expiry
+        options: {
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://fsas-frontend.vercel.app'}/reset-password?type=${role}`
+        }
       });
 
       if (error) {
