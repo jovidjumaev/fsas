@@ -51,12 +51,15 @@ function ResetPasswordForm() {
   }
 
   useEffect(() => {
+    console.log('🔐 ResetPassword: useEffect triggered');
     console.log('🔐 ResetPassword: URL parameters:', {
       token: token ? 'exists' : 'missing',
       type: type,
       fullUrl: window.location.href,
       searchParams: window.location.search,
-      hash: window.location.hash
+      hash: window.location.hash,
+      error: error,
+      errorCode: errorCode
     });
 
     // Check for error in URL hash first
@@ -89,17 +92,21 @@ function ResetPasswordForm() {
       return;
     }
 
+    console.log('🔐 ResetPassword: All checks passed, calling validateResetToken');
     // Validate the reset token
     validateResetToken();
   }, [token, type, error, errorCode]);
 
   const validateResetToken = async () => {
     try {
+      console.log('🔐 ResetPassword: Starting token validation...');
       // For Supabase password reset, we don't need to validate the token via API
       // The token will be validated when we try to update the password
       console.log('🔐 ResetPassword: Token validation skipped - will validate during password update');
       console.log('🔐 ResetPassword: Token exists:', !!token, 'Type:', type);
+      console.log('🔐 ResetPassword: Setting isValidating to false');
       setIsValidating(false);
+      console.log('🔐 ResetPassword: Token validation complete');
     } catch (err) {
       console.error('Token validation error:', err);
       setValidationError('Failed to validate reset link. Please try again.');
