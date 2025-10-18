@@ -36,6 +36,20 @@ function ResetPasswordForm() {
     href: window.location.href
   });
 
+  // Check for error parameters in hash
+  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  const error = hashParams.get('error');
+  const errorCode = hashParams.get('error_code');
+  const errorDescription = hashParams.get('error_description');
+  
+  if (error) {
+    console.log('🔐 ResetPassword: Error detected in URL hash:', {
+      error,
+      errorCode,
+      errorDescription
+    });
+  }
+
   useEffect(() => {
     console.log('🔐 ResetPassword: URL parameters:', {
       token: token ? 'exists' : 'missing',
@@ -44,6 +58,22 @@ function ResetPasswordForm() {
       searchParams: window.location.search,
       hash: window.location.hash
     });
+
+    // Check for error in URL hash first
+    if (error) {
+      console.log('🔐 ResetPassword: Error detected, showing error message');
+      let errorMessage = 'Invalid reset link. Please request a new password reset.';
+      
+      if (errorCode === 'otp_expired') {
+        errorMessage = 'This password reset link has expired. Please request a new one.';
+      } else if (errorCode === 'access_denied') {
+        errorMessage = 'Access denied. This reset link is invalid or has been used already.';
+      }
+      
+      setValidationError(errorMessage);
+      setIsValidating(false);
+      return;
+    }
 
     if (!token) {
       console.log('🔐 ResetPassword: Missing token, showing error');
@@ -61,7 +91,7 @@ function ResetPasswordForm() {
 
     // Validate the reset token
     validateResetToken();
-  }, [token, type]);
+  }, [token, type, error, errorCode]);
 
   const validateResetToken = async () => {
     try {
@@ -204,17 +234,12 @@ function ResetPasswordForm() {
               </p>
               
               <div className="space-y-4">
-                <Link href={`/${selectedType || 'student'}/forgot-password`}>
-                  <Button className="w-full">
-                    Request New Reset Link
-                  </Button>
-                </Link>
-                
-                <Link href={`/${selectedType || 'student'}/login`}>
-                  <Button variant="outline" className="w-full">
-                    Back to Login
-                  </Button>
-                </Link>
+                <Button 
+                  onClick={() => window.location.href = 'https://fsas-frontend.vercel.app/'}
+                  className="w-full"
+                >
+                  Back to Homepage
+                </Button>
               </div>
             </div>
           </Card>
@@ -250,11 +275,12 @@ function ResetPasswordForm() {
                 Your password has been successfully reset. You can now sign in with your new password.
               </p>
               
-              <Link href={`/${type}/login`}>
-                <Button className="w-full">
-                  Sign In with New Password
-                </Button>
-              </Link>
+              <Button 
+                onClick={() => window.location.href = 'https://fsas-frontend.vercel.app/'}
+                className="w-full"
+              >
+                Back to Homepage
+              </Button>
             </div>
           </Card>
         </div>
@@ -338,9 +364,13 @@ function ResetPasswordForm() {
           </form>
 
           <div className="mt-6 text-center">
-            <Link href={`/${type}/login`} className="text-sm text-blue-600 hover:text-blue-500">
-              ← Back to Login
-            </Link>
+            <Button 
+              variant="ghost" 
+              onClick={() => window.location.href = 'https://fsas-frontend.vercel.app/'}
+              className="text-sm text-blue-600 hover:text-blue-500"
+            >
+              ← Back to Homepage
+            </Button>
           </div>
         </Card>
       </div>
