@@ -207,13 +207,6 @@ function EmailConfirmContent() {
                 Try Registration Again
               </Button>
               <Button 
-                onClick={handleGoToLogin} 
-                className="w-full"
-                variant="outline"
-              >
-                Go to Login
-              </Button>
-              <Button 
                 onClick={() => window.location.href = 'https://fsas-frontend.vercel.app/'}
                 className="w-full"
                 variant="outline"
@@ -231,13 +224,6 @@ function EmailConfirmContent() {
                 variant="default"
               >
                 Request New Confirmation Email
-              </Button>
-              <Button 
-                onClick={handleGoToLogin} 
-                className="w-full"
-                variant="outline"
-              >
-                Go to Login
               </Button>
               <Button 
                 onClick={() => window.location.href = 'https://fsas-frontend.vercel.app/'}
