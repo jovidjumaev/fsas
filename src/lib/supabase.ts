@@ -30,7 +30,9 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    // Enable email confirmation for new users
+    confirmEmailChange: true
   },
   global: {
     headers: {

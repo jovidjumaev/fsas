@@ -553,7 +553,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Email uniqueness already validated above, proceeding with registration
       console.log('✅ Email is available, proceeding with registration...');
       
-      // First, create the auth user with metadata
+      // First, create the auth user with metadata and email confirmation
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -562,7 +562,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             first_name: additionalData.firstName,
             last_name: additionalData.lastName,
             role: role
-          }
+          },
+          // Enable email confirmation for new users
+          emailRedirectTo: `${window.location.origin}/auth/confirm?type=${role}`
         }
       });
 
@@ -591,6 +593,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { 
           success: false, 
           error: 'Account creation failed. No user data returned.\n\n💡 Please try again or contact support if this persists.' 
+        };
+      }
+
+      // Check if email confirmation is required for new users
+      if (!authData.user.email_confirmed_at) {
+        console.log('AuthContext: Email confirmation required for new user');
+        return {
+          success: true,
+          requiresEmailConfirmation: true,
+          message: `Account created successfully! Please check your email (${email}) and click the confirmation link to activate your account.\n\n📧 Check your spam folder if you don't see the email.`
         };
       }
 
@@ -669,21 +681,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       console.log('✅ User profile created with role:', role);
-
-      // Confirm the user's email automatically
-      console.log('AuthContext: Confirming user email...');
-      const { error: confirmError } = await supabaseAdmin.auth.admin.updateUserById(authData.user.id, {
-        email_confirm: true
-      });
-      
-      if (confirmError) {
-        console.error('AuthContext: Could not confirm email automatically:', confirmError.message);
-        console.error('AuthContext: Confirm error details:', confirmError);
-        // Don't fail registration if email confirmation fails, but warn the user
-        console.warn('AuthContext: Registration successful but email confirmation failed. User will need to confirm email manually.');
-      } else {
-        console.log('AuthContext: Email confirmed successfully');
-      }
 
       // Record password hash for uniqueness tracking
       console.log('📝 Recording password hash for uniqueness tracking...');

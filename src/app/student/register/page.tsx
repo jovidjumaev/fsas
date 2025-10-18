@@ -126,6 +126,15 @@ export default function StudentRegisterPage() {
 
       if (result.success) {
         console.log('✅ Student registration successful');
+        
+        // Check if email confirmation is required
+        if (result.requiresEmailConfirmation) {
+          console.log('📧 Email confirmation required');
+          setError(result.message || 'Please check your email for confirmation instructions.');
+          return;
+        }
+        
+        // Redirect to dashboard if email is already confirmed
         router.push('/student/dashboard');
       } else {
         console.error('❌ Student registration failed:', result.error);

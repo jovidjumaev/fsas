@@ -91,6 +91,16 @@ export default function ProfessorRegisterPage() {
       );
 
       if (result.success) {
+        console.log('✅ Professor registration successful');
+        
+        // Check if email confirmation is required
+        if (result.requiresEmailConfirmation) {
+          console.log('📧 Email confirmation required');
+          setError(result.message || 'Please check your email for confirmation instructions.');
+          return;
+        }
+        
+        // Redirect to login if email is already confirmed
         router.push('/professor/login?message=registration_success');
       } else {
         console.error('❌ Professor registration failed:', result.error);

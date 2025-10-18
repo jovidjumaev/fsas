@@ -85,8 +85,16 @@ export default function RegisterPage() {
       console.log('SignUp result:', result);
       
       if (result.success) {
-        console.log('Registration successful, redirecting...');
-        // Redirect will happen automatically via useEffect
+        console.log('Registration successful');
+        
+        // Check if email confirmation is required
+        if (result.requiresEmailConfirmation) {
+          console.log('Email confirmation required');
+          setError(result.message || 'Please check your email for confirmation instructions.');
+          return;
+        }
+        
+        // Redirect to dashboard if email is already confirmed
         if (formData.role === 'student') {
           router.push('/student/dashboard');
         } else {
