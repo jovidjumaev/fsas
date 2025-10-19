@@ -282,6 +282,16 @@ router.delete('/api/classes/:classId/materials/:materialId', async (req, res) =>
 
     console.log('📁 Found material to delete:', material.file_name);
     console.log('🔗 File URL:', material.file_url);
+    console.log('📄 File type:', material.file_type);
+    
+    // Check if this is a PowerPoint file
+    const isPowerPoint = material.file_type.includes('powerpoint') || 
+                        material.file_name.toLowerCase().endsWith('.ppt') || 
+                        material.file_name.toLowerCase().endsWith('.pptx');
+    
+    if (isPowerPoint) {
+      console.log('📊 This is a PowerPoint file - enhanced logging enabled');
+    }
     
     // List files in storage bucket to see what's actually there
     console.log('📋 Listing files in storage bucket...');
@@ -293,6 +303,14 @@ router.delete('/api/classes/:classId/materials/:materialId', async (req, res) =>
       console.error('❌ Error listing bucket files:', listError);
     } else {
       console.log('📋 Files in bucket:', bucketFiles?.map(f => f.name) || []);
+      
+      // For PowerPoint files, show which files match
+      if (isPowerPoint) {
+        const matchingFiles = bucketFiles?.filter(f => 
+          f.name.toLowerCase().includes(material.file_name.toLowerCase().split('.')[0])
+        ) || [];
+        console.log('📊 PowerPoint files that might match:', matchingFiles.map(f => f.name));
+      }
     }
 
     // Extract filename from URL - handle different Supabase URL formats
@@ -313,6 +331,39 @@ router.delete('/api/classes/:classId/materials/:materialId', async (req, res) =>
       }
       
       console.log('📄 Extracted filename:', fileName);
+      
+      // For PowerPoint files, try additional extraction methods
+      if (isPowerPoint) {
+        console.log('📊 PowerPoint filename extraction details:');
+        console.log('📊 Original file_name:', material.file_name);
+        console.log('📊 Extracted from URL:', fileName);
+        console.log('📊 URL parts:', urlParts);
+        
+        // Try to find the actual filename in the bucket
+        if (bucketFiles) {
+          const exactMatch = bucketFiles.find(f => f.name === fileName);
+          const nameMatch = bucketFiles.find(f => f.name === material.file_name);
+          const partialMatch = bucketFiles.find(f => 
+            f.name.toLowerCase().includes(material.file_name.toLowerCase().split('.')[0])
+          );
+          
+          console.log('📊 Exact match found:', exactMatch?.name || 'none');
+          console.log('📊 Name match found:', nameMatch?.name || 'none');
+          console.log('📊 Partial match found:', partialMatch?.name || 'none');
+          
+          // Use the best match
+          if (exactMatch) {
+            fileName = exactMatch.name;
+            console.log('📊 Using exact match:', fileName);
+          } else if (nameMatch) {
+            fileName = nameMatch.name;
+            console.log('📊 Using name match:', fileName);
+          } else if (partialMatch) {
+            fileName = partialMatch.name;
+            console.log('📊 Using partial match:', fileName);
+          }
+        }
+      }
     } catch (error) {
       console.error('❌ Error extracting filename:', error);
       fileName = material.file_name;
@@ -347,6 +398,36 @@ router.delete('/api/classes/:classId/materials/:materialId', async (req, res) =>
       
       if (altStorageError) {
         console.error('❌ Alternative storage deletion also failed:', altStorageError);
+        
+        // For PowerPoint files, try additional approaches
+        if (isPowerPoint && bucketFiles) {
+          console.log('📊 PowerPoint deletion failed - trying all possible filenames...');
+          
+          // Try deleting all files that might be related
+          const possibleFiles = bucketFiles.filter(f => 
+            f.name.toLowerCase().includes(material.file_name.toLowerCase().split('.')[0]) ||
+            f.name.toLowerCase().includes(fileName.toLowerCase().split('.')[0])
+          );
+          
+          console.log('📊 Possible PowerPoint files to delete:', possibleFiles.map(f => f.name));
+          
+          if (possibleFiles.length > 0) {
+            const fileNamesToDelete = possibleFiles.map(f => f.name);
+            console.log('📊 Attempting to delete PowerPoint files:', fileNamesToDelete);
+            
+            const { data: pptStorageData, error: pptStorageError } = await supabase.storage
+              .from('class-materials')
+              .remove(fileNamesToDelete);
+            
+            console.log('🗑️ PowerPoint storage deletion result:', { pptStorageData, pptStorageError });
+            
+            if (!pptStorageError) {
+              console.log('✅ PowerPoint files deleted from storage:', fileNamesToDelete);
+            } else {
+              console.error('❌ PowerPoint storage deletion failed:', pptStorageError);
+            }
+          }
+        }
       } else {
         console.log('✅ File deleted from storage with alternative filename:', alternativeFileName);
       }
