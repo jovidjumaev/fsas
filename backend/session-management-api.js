@@ -373,7 +373,20 @@ async function completeSessionAutomatically(sessionId) {
     
     // VALIDATION: Check if session should actually be completed based on time
     const now = new Date();
-    const sessionEndTime = new Date(`${session.date}T${session.end_time}`);
+    
+    // Create session end time in Eastern Time (assuming all sessions are in Eastern Time)
+    // Use a more robust approach to handle timezone conversion
+    const sessionEndTimeUTC = new Date(`${session.date}T${session.end_time}:00`);
+    
+    // Convert to Eastern Time by adjusting for timezone offset
+    // Eastern Time is UTC-4 (EDT) or UTC-5 (EST) - using EDT for now
+    const easternOffset = -4 * 60; // EDT offset in minutes
+    const sessionEndTime = new Date(sessionEndTimeUTC.getTime() + (easternOffset * 60 * 1000));
+    
+    console.log(`🕐 Auto-completion time check for session ${sessionId}:`);
+    console.log(`   Current time (UTC): ${now.toISOString()}`);
+    console.log(`   Session end time (UTC): ${sessionEndTimeUTC.toISOString()}`);
+    console.log(`   Session end time (Eastern): ${sessionEndTime.toISOString()}`);
     
     // Only auto-complete if session end time has passed (with 1-minute grace period)
     const gracePeriod = 1 * 60 * 1000; // 1 minute in milliseconds
@@ -486,8 +499,25 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
     
     // VALIDATION: Check if session can be completed
     const now = new Date();
-    const sessionEndTime = new Date(`${session.date}T${session.end_time}`);
-    const sessionStartTime = new Date(`${session.date}T${session.start_time}`);
+    
+    // Create session times in Eastern Time (assuming all sessions are in Eastern Time)
+    // Use a more robust approach to handle timezone conversion
+    const sessionEndTimeUTC = new Date(`${session.date}T${session.end_time}:00`);
+    const sessionStartTimeUTC = new Date(`${session.date}T${session.start_time}:00`);
+    
+    // Convert to Eastern Time by adjusting for timezone offset
+    // Eastern Time is UTC-4 (EDT) or UTC-5 (EST) - using EDT for now
+    const easternOffset = -4 * 60; // EDT offset in minutes
+    const sessionEndTime = new Date(sessionEndTimeUTC.getTime() + (easternOffset * 60 * 1000));
+    const sessionStartTime = new Date(sessionStartTimeUTC.getTime() + (easternOffset * 60 * 1000));
+    
+    console.log(`🕐 Time debugging for session ${sessionId}:`);
+    console.log(`   Current time (UTC): ${now.toISOString()}`);
+    console.log(`   Current time (Eastern): ${now.toLocaleString('en-US', { timeZone: 'America/New_York' })}`);
+    console.log(`   Session start time (UTC): ${sessionStartTimeUTC.toISOString()}`);
+    console.log(`   Session end time (UTC): ${sessionEndTimeUTC.toISOString()}`);
+    console.log(`   Session start time (Eastern): ${sessionStartTime.toISOString()}`);
+    console.log(`   Session end time (Eastern): ${sessionEndTime.toISOString()}`);
     
     // Allow completion if:
     // 1. Session has started (current time >= session start time)
