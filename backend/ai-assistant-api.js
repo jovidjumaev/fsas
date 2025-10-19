@@ -891,6 +891,8 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
     const { classId } = req.params;
     const { professorId, sessionId, message } = req.body;
 
+    console.log('🤖 AI Assistant endpoint called:', { classId, professorId, sessionId, message });
+
     // Validate access
     const { data: classInstance, error: classError } = await supabase
       .from('class_instances')
@@ -899,7 +901,10 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       .eq('professor_id', professorId)
       .single();
 
+    console.log('🔍 Class validation result:', { classInstance, classError });
+
     if (classError || !classInstance) {
+      console.error('❌ Access denied:', classError);
       return res.status(403).json({
         success: false,
         error: 'Access denied to this class'
@@ -914,7 +919,10 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       .eq('professor_id', professorId)
       .single();
 
+    console.log('🔍 Session validation result:', { session, sessionError });
+
     if (sessionError || !session) {
+      console.error('❌ Session not found:', sessionError);
       return res.status(404).json({
         success: false,
         error: 'Chat session not found'
@@ -943,6 +951,8 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
     // Extract student name from question for targeted queries
     const studentName = extractStudentNameFromQuestion(message);
     console.log('🔍 Extracted student name from question:', studentName);
+
+    console.log('🤖 Starting database context processing...');
 
     // Get database context (class overview and student attendance data)
     let databaseContext = '';
