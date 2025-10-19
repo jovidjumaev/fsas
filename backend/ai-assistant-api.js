@@ -963,10 +963,10 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       
       // Add class identification to context
       if (classOverview) {
-        databaseContext += `\nCLASS IDENTIFICATION:\n`;
-        databaseContext += `Class ID: ${classId}\n`;
-        databaseContext += `Class Code: ${classOverview.class_code}\n`;
-        databaseContext += `Course: ${classOverview.course_name} (${classOverview.course_code})\n\n`;
+        databaseContext += `\nCLASS: ${classOverview.course_name} (${classOverview.class_code})\n`;
+        databaseContext += `Sessions: ${classOverview.completed_sessions}/${classOverview.total_sessions} completed\n`;
+        databaseContext += `Students: ${classOverview.total_enrolled} enrolled\n`;
+        databaseContext += `Overall Attendance: ${classOverview.overall_attendance_percentage}%\n\n`;
       }
       
       if (studentData && studentData.length > 0) {
@@ -977,24 +977,7 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
         }
         
         studentData.forEach(student => {
-          databaseContext += `• ${student.first_name} ${student.last_name} (ID: ${student.student_id})\n`;
-          databaseContext += `  - Enrollment: ${student.enrollment_date} (${student.enrollment_status})\n`;
-          databaseContext += `  - Attendance Rate: ${student.attendance_percentage}%\n`;
-          databaseContext += `  - Records: ${student.present_count} present, ${student.late_count} late, ${student.absent_count} absent, ${student.excused_count} excused\n`;
-          databaseContext += `  - Sessions: ${student.total_attendance_records} out of ${student.total_sessions} total sessions\n`;
-          
-          // Add session-by-session details
-          if (student.session_details && student.session_details.length > 0) {
-            databaseContext += `  - Session Details:\n`;
-            student.session_details.forEach(session => {
-              databaseContext += `    * Session ${session.session_number} (${session.date}): ${session.status}`;
-              if (session.minutes_late > 0) {
-                databaseContext += ` (${session.minutes_late} min late)`;
-              }
-              databaseContext += `\n`;
-            });
-          }
-          databaseContext += `\n`;
+          databaseContext += `• ${student.first_name} ${student.last_name}: ${student.attendance_percentage}% (${student.present_count + student.late_count + student.excused_count}/${student.total_sessions})\n`;
         });
         
         console.log('🤖 DEBUG: Student attendance data provided to AI:');
@@ -1019,13 +1002,13 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
     console.log('🤖 Final database context length:', databaseContext.length);
     console.log('🤖 Database context preview:', databaseContext.substring(0, 500) + '...');
 
-    // Get recent chat history (reduced to 5 messages to save tokens)
+    // Get recent chat history (reduced to 3 messages to save tokens - 20% reduction)
     const { data: recentMessages, error: messagesError } = await supabase
       .from('professor_chat_messages')
       .select('role, content')
       .eq('session_id', sessionId)
       .order('timestamp', { ascending: false })
-      .limit(5);
+      .limit(3);
 
     // Build conversation history
     const conversationHistory = [];
@@ -1047,56 +1030,31 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
     // Prepare system message with context
     const systemMessage = {
       role: 'system',
-      content: `You are an AI assistant helping a professor with questions about their class materials and student attendance data.
+      content: `AI Assistant for professor class management.
 
-AVAILABLE MATERIALS:
-${contextText || 'No materials uploaded yet.'}
+MATERIALS: ${materials.length} files available.
+DATABASE: Real-time attendance data.
 
 ${databaseContext}
 
-CRITICAL INSTRUCTIONS:
-- Keep responses CONCISE and DIRECT (max 2-3 sentences)
-- Focus ONLY on the specific question asked
-- Use bullet points for multiple items
-- Avoid lengthy explanations or examples
-- You can answer questions about both uploaded materials AND student attendance/performance
-- For attendance questions, use the provided database context (this data is LIVE and up-to-date)
-- The database context shows REAL-TIME data - trust it completely and use it as the source of truth
-- IMPORTANT: Only students with ACTIVE enrollments are included in the data - dropped/inactive students are excluded
-
-ATTENDANCE QUESTIONS YOU CAN ANSWER:
-- "Who has the best attendance?" → Look at the STUDENT ATTENDANCE DATA section and find the student with the highest attendance percentage
-- "Who was absent in session X?" → Check session details for specific session numbers
-- "How is [student name] doing?" → Find the student in the STUDENT ATTENDANCE DATA section
-- "Show me [student name]'s attendance record" → Find the student and show their detailed attendance
-- "Who was late in the last session?" → Check session details for late status
-- "How many classes did [student] miss?" → Calculate from absent_count in student data
-- "Is [student] enrolled in this class?" → Check if student appears in STUDENT ATTENDANCE DATA
-- "Who has the worst attendance?" → Find student with lowest attendance percentage
-- "What's the average attendance?" → Use the overall attendance rate from CLASS OVERVIEW
-
-EXAMPLE RESPONSES:
-- "Who has the best attendance?" → "Jovid Jumaev has the best attendance at 100% (4/4 sessions)."
-- "How is Pratik doing?" → "Pratik Shrestha has 75% attendance (3/4 sessions) with 1 absence."
-- "Who was absent in session 2?" → "Check the session details in the student data for session 2."
-
-IMPORTANT RULES:
-- ALWAYS use the STUDENT ATTENDANCE DATA section to answer attendance questions
-- If STUDENT ATTENDANCE DATA is provided, you CAN answer individual student questions
-- If a student is not in the database context, they are NOT enrolled in this class
-- Use session details to answer specific session questions
-- If question is unrelated to materials or attendance, say: "Please ask about the uploaded materials or student attendance."
+INSTRUCTIONS:
+- Answer material questions using file content
+- Answer attendance questions using LIVE DATA above
+- Keep responses concise (max 120 tokens)
+- "Best attendance?" → Find highest percentage in STUDENT ATTENDANCE DATA
+- "How is [name]?" → Report their attendance percentage
+- Unrelated questions → "Ask about materials or attendance only"
 - Prioritize accuracy over verbosity`
     };
 
-    // Call OpenAI with strict token limits
+    // Call OpenAI with strict token limits (20% reduction)
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: [systemMessage, ...conversationHistory],
-      max_tokens: 150, // Reduced from 1000 to 150 for concise responses
-      temperature: 0.3, // Reduced from 0.7 for more focused responses
-      presence_penalty: 0.1, // Slight penalty to avoid repetition
-      frequency_penalty: 0.1 // Slight penalty to avoid repetitive phrases
+      max_tokens: 120, // Reduced from 150 to 120 (20% reduction)
+      temperature: 0.2, // Reduced from 0.3 for more focused responses
+      presence_penalty: 0.2, // Increased to reduce repetition
+      frequency_penalty: 0.2 // Increased to reduce repetitive phrases
     });
 
     const aiResponse = completion.choices[0].message.content;
