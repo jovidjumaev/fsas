@@ -954,6 +954,15 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       const classOverview = await getClassOverviewData(classId);
       const studentData = await getStudentAttendanceData(classId, studentName);
       
+      // Simple check to see if data is being fetched
+      if (!studentData || studentData.length === 0) {
+        console.error('CRITICAL: No student data returned from getStudentAttendanceData');
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to fetch student attendance data'
+        });
+      }
+      
       // Add class identification to context
       if (classOverview) {
         databaseContext += `\nCLASS: ${classOverview.course_name} (${classOverview.class_code})\n`;
