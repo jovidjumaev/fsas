@@ -352,14 +352,20 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
       console.log('📡 Environment:', process.env.NODE_ENV);
       console.log('📡 API URL:', process.env.NEXT_PUBLIC_API_URL);
 
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
       const response = await fetch(`/api/classes/${classId}/materials/${materialToDelete}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ professorId }),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
       console.log('📡 Delete response status:', response.status);
       
       if (!response.ok) {
@@ -375,7 +381,12 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
       if (data.success) {
         console.log('✅ Delete successful, URL after delete:', window.location.href);
         toast.success('File deleted successfully');
-        loadMaterials(); // Reload materials list
+        
+        // Add small delay before reloading to prevent auth conflicts
+        setTimeout(() => {
+          console.log('🔄 Reloading materials after delay...');
+          loadMaterials();
+        }, 500);
       } else {
         console.log('❌ Delete failed, URL after failed delete:', window.location.href);
         toast.error(data.error || 'Failed to delete file');
@@ -383,7 +394,12 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     } catch (error) {
       console.error('❌ Error deleting material:', error);
       console.log('❌ URL after error:', window.location.href);
-      toast.error('Failed to delete file: ' + error.message);
+      
+      if (error.name === 'AbortError') {
+        toast.error('Delete request timed out. Please try again.');
+      } else {
+        toast.error('Failed to delete file: ' + error.message);
+      }
     } finally {
       console.log('🏁 Delete process finished, final URL:', window.location.href);
       setShowDeleteConfirm(false);

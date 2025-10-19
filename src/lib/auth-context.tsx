@@ -102,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('🔐 Fetching user role for:', userId, retryCount > 0 ? `(retry ${retryCount})` : '');
       
-      // Add timeout to prevent hanging - increased from 3s to 10s
+      // Add timeout to prevent hanging - increased from 3s to 15s for better stability
       const rolePromise = supabase
         .from('users')
         .select('role')
@@ -110,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
       
       const timeoutPromise = new Promise((unused, reject) => 
-        setTimeout(() => reject(new Error('Role fetch timeout')), 10000) // Increased to 10 seconds
+        setTimeout(() => reject(new Error('Role fetch timeout')), 15000) // Increased to 15 seconds
       );
       
       const { data: userData, error: userError } = await Promise.race([
@@ -121,10 +121,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (userError) {
         console.error('Error fetching user role:', userError);
         
-        // Retry logic for temporary failures
-        if (retryCount < 2 && (userError.message?.includes('timeout') || userError.message?.includes('network'))) {
-          console.log('🔐 Retrying role fetch in 1 second...');
-          setTimeout(() => fetchUserRole(userId, retryCount + 1), 1000);
+        // Retry logic for temporary failures - reduced retries to prevent loops
+        if (retryCount < 1 && (userError.message?.includes('timeout') || userError.message?.includes('network'))) {
+          console.log('🔐 Retrying role fetch in 2 seconds...');
+          setTimeout(() => fetchUserRole(userId, retryCount + 1), 2000);
           return;
         }
         
@@ -134,7 +134,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('🔐 Could not fetch role from users table');
         // No additional fallback needed - users is the main table
         
-        setUserRole(null);
+        // Don't set userRole to null on failure - keep existing role to prevent UI issues
+        console.log('🔐 Keeping existing role to prevent UI disruption');
         return;
       }
 
@@ -145,17 +146,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       console.warn('🔐 No role found for user');
-      setUserRole(null);
+      // Don't set to null - keep existing role
+      console.log('🔐 Keeping existing role to prevent UI disruption');
     } catch (error) {
       console.error('Error fetching user role:', error);
       
-      // Retry logic for timeout errors
-      if (retryCount < 2 && error.message?.includes('timeout')) {
+      // Retry logic for timeout errors - reduced retries
+      if (retryCount < 1 && error.message?.includes('timeout')) {
         console.log('🔐 Retrying role fetch after timeout...');
-        setTimeout(() => fetchUserRole(userId, retryCount + 1), 1000);
+        setTimeout(() => fetchUserRole(userId, retryCount + 1), 2000);
         return;
       }
-      setUserRole(null);
+      
+      // Don't set userRole to null on failure - keep existing role
+      console.log('🔐 Keeping existing role to prevent UI disruption');
     }
   };
 
