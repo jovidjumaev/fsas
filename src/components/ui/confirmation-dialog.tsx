@@ -35,9 +35,9 @@ export function ConfirmationDialog({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-md mx-4">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="flex items-center gap-2">
+      <Card className="w-full max-w-md mx-4 dark:bg-gray-800 dark:border-gray-700">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 dark:bg-gray-800 dark:border-gray-700">
+          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <AlertTriangle className="h-5 w-5 text-orange-500" />
             {title}
           </CardTitle>
@@ -45,12 +45,12 @@ export function ConfirmationDialog({
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <X className="h-4 w-4" />
           </Button>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 dark:bg-gray-800">
           <p className="text-sm text-gray-600 dark:text-gray-300">
             {message}
           </p>
@@ -58,13 +58,14 @@ export function ConfirmationDialog({
             <Button
               variant="outline"
               onClick={onClose}
-              className="dark:border-gray-600 dark:text-gray-300"
+              className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
             >
               {cancelText}
             </Button>
             <Button
               variant={variant === 'destructive' ? 'destructive' : 'default'}
               onClick={handleConfirm}
+              className={variant === 'destructive' ? 'dark:bg-red-600 dark:hover:bg-red-700' : ''}
             >
               {confirmText}
             </Button>

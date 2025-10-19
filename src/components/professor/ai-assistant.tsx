@@ -252,6 +252,8 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   const confirmDelete = async () => {
     if (!materialToDelete) return;
 
+    console.log('🗑️ Attempting to delete material:', materialToDelete);
+
     try {
       const response = await fetch(`/api/classes/${classId}/materials/${materialToDelete}`, {
         method: 'DELETE',
@@ -261,7 +263,9 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         body: JSON.stringify({ professorId }),
       });
 
+      console.log('📡 Delete response status:', response.status);
       const data = await response.json();
+      console.log('📡 Delete response data:', data);
 
       if (data.success) {
         toast.success('File deleted successfully');
@@ -270,7 +274,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         toast.error(data.error || 'Failed to delete file');
       }
     } catch (error) {
-      console.error('Error deleting material:', error);
+      console.error('❌ Error deleting material:', error);
       toast.error('Failed to delete file');
     } finally {
       setShowDeleteConfirm(false);
