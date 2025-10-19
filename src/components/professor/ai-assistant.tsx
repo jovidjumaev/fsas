@@ -325,11 +325,31 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     }
   };
 
-  const handleKeyPress = (event: React.KeyboardEvent) => {
-    console.log('🔑 Key pressed:', event.key);
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    console.log('🔑 Key pressed:', event.key, 'Code:', event.code);
+    console.log('🔑 Shift key:', event.shiftKey, 'Ctrl key:', event.ctrlKey, 'Alt key:', event.altKey);
+    
     if (event.key === 'Enter' && !event.shiftKey) {
       console.log('✅ Enter key detected, sending message');
       event.preventDefault();
+      event.stopPropagation();
+      handleSendMessage();
+    } else if (event.key === 'Enter' && event.shiftKey) {
+      console.log('📝 Shift+Enter detected, allowing new line');
+      // Allow Shift+Enter for new lines
+    } else {
+      console.log('🔑 Other key pressed:', event.key);
+    }
+  };
+
+  const handleKeyUp = (event: React.KeyboardEvent) => {
+    console.log('🔑 Key released:', event.key, 'Code:', event.code);
+    
+    // Fallback for Enter key if onKeyDown didn't work
+    if (event.key === 'Enter' && !event.shiftKey) {
+      console.log('✅ Enter key fallback detected, sending message');
+      event.preventDefault();
+      event.stopPropagation();
       handleSendMessage();
     }
   };
@@ -592,7 +612,8 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
               <Input
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyDown}
+                onKeyUp={handleKeyUp}
                 placeholder="Ask a concise question about your materials..."
                 disabled={isLoading}
                 className="flex-1"
