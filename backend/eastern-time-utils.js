@@ -50,12 +50,29 @@ function createEasternDate(date, time) {
 function getCurrentEasternTime() {
   const now = new Date();
   
-  // Convert UTC to Eastern Time manually (more reliable than toLocaleString)
-  // Eastern Time is UTC-4 (EDT) or UTC-5 (EST) - using EDT for simplicity
-  const easternOffset = -4 * 60 * 60 * 1000; // EDT offset in milliseconds
-  const easternTime = new Date(now.getTime() + easternOffset);
+  // Use toLocaleString to get Eastern Time, then parse it back to a Date
+  // This is more reliable than manual offset calculation
+  const easternTimeString = now.toLocaleString("en-US", {timeZone: "America/New_York"});
   
-  return easternTime;
+  // Parse the Eastern Time string back to a Date object
+  // Format: "10/18/2025, 11:46:07 PM"
+  const [datePart, timePart] = easternTimeString.split(', ');
+  const [month, day, year] = datePart.split('/');
+  const [time, period] = timePart.split(' ');
+  const [hour, minute, second] = time.split(':');
+  
+  // Convert 12-hour to 24-hour format
+  let hour24 = parseInt(hour);
+  if (period === 'PM' && hour24 !== 12) {
+    hour24 += 12;
+  } else if (period === 'AM' && hour24 === 12) {
+    hour24 = 0;
+  }
+  
+  // Create a Date object in Eastern Time
+  const easternDate = new Date(year, month - 1, day, hour24, minute, second);
+  
+  return easternDate;
 }
 
 /**
