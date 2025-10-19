@@ -957,15 +957,12 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       const studentData = await getStudentAttendanceData(classId, studentName);
       console.log('📊 Student data result:', studentData ? `${studentData.length} students` : 'FAILED');
       
+      // Add class identification to context
       if (classOverview) {
-        databaseContext += `\nCLASS OVERVIEW:\n`;
-        databaseContext += `Course: ${classOverview.course_name} (${classOverview.course_code})\n`;
+        databaseContext += `\nCLASS IDENTIFICATION:\n`;
+        databaseContext += `Class ID: ${classId}\n`;
         databaseContext += `Class Code: ${classOverview.class_code}\n`;
-        databaseContext += `Academic Period: ${classOverview.period_name}\n`;
-        databaseContext += `Total Sessions: ${classOverview.total_sessions} (${classOverview.completed_sessions} completed, ${classOverview.cancelled_sessions} cancelled)\n`;
-        databaseContext += `Total Enrolled: ${classOverview.total_enrolled} students\n`;
-        databaseContext += `Overall Attendance Rate: ${classOverview.overall_attendance_percentage}%\n`;
-        databaseContext += `Attendance Breakdown: ${classOverview.present_count} present, ${classOverview.late_count} late, ${classOverview.absent_count} absent, ${classOverview.excused_count} excused\n\n`;
+        databaseContext += `Course: ${classOverview.course_name} (${classOverview.course_code})\n\n`;
       }
       
       if (studentData && studentData.length > 0) {
@@ -1003,6 +1000,12 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
         });
       } else {
         console.log('❌ DEBUG: No student attendance data provided to AI');
+        databaseContext += `\nSTUDENT ATTENDANCE DATA:\n`;
+        databaseContext += `❌ No students enrolled in this class or no attendance data available.\n`;
+        databaseContext += `This could mean:\n`;
+        databaseContext += `- No students are currently enrolled in this class\n`;
+        databaseContext += `- Students are enrolled but no sessions have been completed yet\n`;
+        databaseContext += `- You may be in the wrong class (check the Class Code above)\n\n`;
       }
     } catch (error) {
       console.error('❌ Error fetching database context:', error);
