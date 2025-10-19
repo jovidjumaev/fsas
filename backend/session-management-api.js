@@ -515,6 +515,15 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
     console.log(`   Session start time (Eastern): ${formatEasternTime(sessionStartTime)}`);
     console.log(`   Session end time (Eastern): ${formatEasternTime(sessionEndTime)}`);
     
+    // Check if session times are valid
+    if (isNaN(sessionStartTime.getTime()) || isNaN(sessionEndTime.getTime())) {
+      console.error(`❌ Invalid session times for session ${sessionId}`);
+      return res.status(500).json({
+        success: false,
+        error: 'Invalid session time configuration'
+      });
+    }
+    
     // Allow completion if:
     // 1. Session has started (current time >= session start time)
     // 2. OR if it's within 30 minutes of session start time (for early completion)
@@ -534,7 +543,9 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
     
     // Log completion timing for monitoring
     const minutesRemaining = Math.round((sessionEndTime - now) / (1000 * 60));
-    if (minutesRemaining > 0) {
+    if (isNaN(minutesRemaining)) {
+      console.log(`⚠️ Session ${sessionId} completed (time calculation unavailable)`);
+    } else if (minutesRemaining > 0) {
       console.log(`⚠️ Session ${sessionId} completed ${minutesRemaining} minutes early (professor override)`);
     } else {
       console.log(`✅ Session ${sessionId} completed on time or after end time`);

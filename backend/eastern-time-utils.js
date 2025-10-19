@@ -21,18 +21,26 @@ function toEasternTime(utcDate) {
  * @returns {Date} - The date in Eastern Time
  */
 function createEasternDate(date, time) {
-  // Create UTC date first - ensure proper format
+  // Ensure proper time format
   const timeString = time.includes(':') ? time : `${time}:00`;
-  const utcDate = new Date(`${date}T${timeString}`);
+  
+  // Parse the date and time components
+  const [year, month, day] = date.split('-');
+  const [hour, minute, second] = timeString.split(':');
+  
+  // Create a date string in Eastern Time format
+  // Use the format: YYYY-MM-DDTHH:MM:SS-04:00 (EDT)
+  const easternDateString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour.padStart(2, '0')}:${minute.padStart(2, '0')}:${(second || '00').padStart(2, '0')}-04:00`;
+  
+  const easternDate = new Date(easternDateString);
   
   // Check if the date is valid
-  if (isNaN(utcDate.getTime())) {
-    console.error(`❌ Invalid date created: ${date}T${timeString}`);
+  if (isNaN(easternDate.getTime())) {
+    console.error(`❌ Invalid date created: ${easternDateString}`);
     return new Date(); // Return current time as fallback
   }
   
-  // Convert to Eastern Time
-  return toEasternTime(utcDate);
+  return easternDate;
 }
 
 /**
@@ -41,7 +49,30 @@ function createEasternDate(date, time) {
  */
 function getCurrentEasternTime() {
   const now = new Date();
-  return toEasternTime(now);
+  
+  // Use toLocaleString to get accurate Eastern Time
+  const easternTimeString = now.toLocaleString("en-US", {
+    timeZone: "America/New_York",
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  
+  // Parse the Eastern Time string back to a Date object
+  // Format: MM/DD/YYYY, HH:MM:SS
+  const [datePart, timePart] = easternTimeString.split(', ');
+  const [month, day, year] = datePart.split('/');
+  const [hour, minute, second] = timePart.split(':');
+  
+  // Create Eastern Time date
+  const easternDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 
+                              parseInt(hour), parseInt(minute), parseInt(second));
+  
+  return easternDate;
 }
 
 /**
