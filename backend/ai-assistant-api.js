@@ -38,16 +38,7 @@ async function getStudentAttendanceData(classId, studentName = null) {
       .select(`
         student_id,
         enrollment_date,
-        status,
-        students!inner(
-          user_id,
-          student_id,
-          users!inner(
-            first_name,
-            last_name,
-            email
-          )
-        )
+        status
       `)
       .eq('class_instance_id', classId);
     
@@ -58,12 +49,39 @@ async function getStudentAttendanceData(classId, studentName = null) {
     
     console.log('📋 Found enrollments:', enrollments?.length || 0);
     
+    if (!enrollments || enrollments.length === 0) {
+      console.log('❌ No enrollments found for class:', classId);
+      return [];
+    }
+    
+    // Get student data for all enrolled students
+    const studentIds = enrollments.map(e => e.student_id);
+    const { data: students, error: studentsError } = await supabase
+      .from('students')
+      .select(`
+        user_id,
+        student_id,
+        users!inner(
+          first_name,
+          last_name,
+          email
+        )
+      `)
+      .in('user_id', studentIds);
+    
+    if (studentsError) {
+      console.error('❌ Error fetching students:', studentsError);
+      return null;
+    }
+    
+    console.log('👥 Found students:', students?.length || 0);
+    
     // Filter by student name if provided
-    let filteredEnrollments = enrollments || [];
+    let filteredStudents = students || [];
     if (studentName) {
       const searchName = studentName.toLowerCase();
-      filteredEnrollments = enrollments?.filter(enrollment => {
-        const user = enrollment.students.users;
+      filteredStudents = students?.filter(student => {
+        const user = student.users;
         const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
         const firstName = user.first_name.toLowerCase();
         const lastName = user.last_name.toLowerCase();
@@ -73,7 +91,7 @@ async function getStudentAttendanceData(classId, studentName = null) {
                lastName.includes(searchName);
       }) || [];
       
-      console.log('🔍 Filtered enrollments for', studentName, ':', filteredEnrollments.length);
+      console.log('🔍 Filtered students for', studentName, ':', filteredStudents.length);
     }
     
     // Get all sessions for this class
@@ -105,9 +123,9 @@ async function getStudentAttendanceData(classId, studentName = null) {
     // Process the data to calculate attendance statistics
     const processedData = [];
     
-    for (const enrollment of filteredEnrollments) {
-      const student = enrollment.students;
+    for (const student of filteredStudents) {
       const user = student.users;
+      const enrollment = enrollments.find(e => e.student_id === student.user_id);
       
       // Calculate attendance statistics
       const totalSessions = sessions?.length || 0;
@@ -171,8 +189,8 @@ async function getStudentAttendanceData(classId, studentName = null) {
         last_name: user.last_name,
         email: user.email,
         student_id: student.student_id,
-        enrollment_date: enrollment.enrollment_date,
-        enrollment_status: enrollment.status,
+        enrollment_date: enrollment?.enrollment_date,
+        enrollment_status: enrollment?.status,
         total_sessions: totalSessions,
         completed_sessions: completedSessions,
         cancelled_sessions: cancelledSessions,
@@ -903,8 +921,13 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
     // Get database context (class overview and student attendance data)
     let databaseContext = '';
     try {
+      console.log('📊 Fetching class overview for classId:', classId);
       const classOverview = await getClassOverviewData(classId);
+      console.log('📊 Class overview result:', classOverview ? 'SUCCESS' : 'FAILED');
+      
+      console.log('📊 Fetching student data for classId:', classId, 'studentName:', studentName);
       const studentData = await getStudentAttendanceData(classId, studentName);
+      console.log('📊 Student data result:', studentData ? `${studentData.length} students` : 'FAILED');
       
       if (classOverview) {
         databaseContext += `\nCLASS OVERVIEW:\n`;
