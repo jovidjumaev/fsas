@@ -252,11 +252,12 @@ async function getClassOverviewData(classId) {
       return null;
     }
     
-    // Process the data
+    // Process the data - only count sessions with actual attendance records (professor-initiated)
     const sessions = data.class_sessions || [];
-    const totalSessions = sessions.length;
-    const completedSessions = sessions.filter(s => s.status === 'completed').length;
-    const cancelledSessions = sessions.filter(s => s.status === 'cancelled').length;
+    const sessionsWithAttendance = sessions.filter(s => s.attendance_records && s.attendance_records.length > 0);
+    const totalSessions = sessionsWithAttendance.length;
+    const completedSessions = sessionsWithAttendance.filter(s => s.status === 'completed').length;
+    const cancelledSessions = sessionsWithAttendance.filter(s => s.status === 'cancelled').length;
     
     let totalAttendanceRecords = 0;
     let presentCount = 0;
@@ -264,7 +265,7 @@ async function getClassOverviewData(classId) {
     let absentCount = 0;
     let excusedCount = 0;
     
-    for (const session of sessions) {
+    for (const session of sessionsWithAttendance) {
       const attendanceRecords = session.attendance_records || [];
       totalAttendanceRecords += attendanceRecords.length;
       

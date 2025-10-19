@@ -1191,8 +1191,130 @@ router.patch('/api/sessions/:sessionId/attendance/:studentNumber', async (req, r
       message: 'Attendance status updated successfully'
     });
     
+    // Emit WebSocket event for real-time updates
+    if (global.io) {
+      global.io.emit('attendance_status_updated', {
+        sessionId: sessionId,
+        studentNumber: studentNumber,
+        status: status,
+        timestamp: new Date().toISOString()
+      });
+      console.log('📡 Emitted attendance status update via WebSocket');
+    }
+    
   } catch (error) {
     console.error('❌ Error updating attendance status:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// =====================================================
+// AUTOMATIC SESSION COMPLETION
+// =====================================================
+
+// Automatically complete sessions that weren't manually completed by professor
+// This creates "present" records for all enrolled students
+router.post('/api/sessions/auto-complete', async (req, res) => {
+  try {
+    console.log('🔄 Starting automatic session completion process...');
+    
+    // Find sessions that are past their end time but not completed
+    const now = new Date();
+    const { data: incompleteSessions, error: sessionsError } = await supabase
+      .from('class_sessions')
+      .select(`
+        id,
+        class_instance_id,
+        date,
+        end_time,
+        status
+      `)
+      .eq('status', 'scheduled')
+      .lt('date', now.toISOString().split('T')[0]); // Past sessions
+    
+    if (sessionsError) throw sessionsError;
+    
+    console.log(`📅 Found ${incompleteSessions?.length || 0} incomplete sessions`);
+    
+    let completedCount = 0;
+    
+    for (const session of incompleteSessions || []) {
+      const sessionEndTime = new Date(`${session.date}T${session.end_time}`);
+      
+      // Only auto-complete if session ended more than 1 hour ago
+      if (now - sessionEndTime > 60 * 60 * 1000) {
+        console.log(`⏰ Auto-completing session ${session.id} (ended ${Math.round((now - sessionEndTime) / (1000 * 60))} minutes ago)`);
+        
+        // Get all enrolled students for this class
+        const { data: enrolledStudents, error: enrollmentError } = await supabase
+          .from('enrollments')
+          .select('student_id')
+          .eq('class_instance_id', session.class_instance_id)
+          .eq('status', 'active');
+        
+        if (enrollmentError) throw enrollmentError;
+        
+        // Get existing attendance records
+        const { data: existingRecords, error: recordsError } = await supabase
+          .from('attendance_records')
+          .select('student_id')
+          .eq('session_id', session.id);
+        
+        if (recordsError) throw recordsError;
+        
+        // Create "present" records for students who don't have them
+        const existingStudentIds = new Set(existingRecords.map(record => record.student_id));
+        const studentsNeedingRecords = enrolledStudents.filter(
+          enrollment => !existingStudentIds.has(enrollment.student_id)
+        );
+        
+        if (studentsNeedingRecords.length > 0) {
+          const presentRecords = studentsNeedingRecords.map(enrollment => ({
+            session_id: session.id,
+            student_id: enrollment.student_id,
+            status: 'present', // Default to present for auto-completed sessions
+            scanned_at: sessionEndTime.toISOString(), // Use session end time
+            status_change_reason: 'Auto-completed session - default present'
+          }));
+          
+          const { error: insertError } = await supabase
+            .from('attendance_records')
+            .insert(presentRecords);
+          
+          if (insertError) throw insertError;
+          
+          console.log(`✅ Created ${presentRecords.length} present attendance records for auto-completed session`);
+        }
+        
+        // Update session status
+        const { error: updateError } = await supabase
+          .from('class_sessions')
+          .update({
+            status: 'completed',
+            is_active: false,
+            qr_expires_at: null,
+            attendance_count: enrolledStudents.length // Set attendance count
+          })
+          .eq('id', session.id);
+        
+        if (updateError) throw updateError;
+        
+        completedCount++;
+        console.log(`✅ Auto-completed session ${session.id}`);
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `Auto-completed ${completedCount} sessions`,
+      completed_sessions: completedCount
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in auto-completion process:', error);
     res.status(500).json({
       success: false,
       error: error.message

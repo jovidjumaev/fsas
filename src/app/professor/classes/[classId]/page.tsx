@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import ProtectedRoute from '@/components/protected-route';
+import { io } from 'socket.io-client';
 import { 
   ArrowLeft, Settings, Users, Calendar, BarChart3, 
   Clock, MapPin, GraduationCap, Pin, PinOff, MoreHorizontal,
@@ -153,6 +154,24 @@ function ClassManagementPageContent() {
     if (classId) {
       fetchClassData();
       fetchStudents();
+      
+      // Connect to WebSocket for real-time updates
+      const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
+      
+      // Listen for attendance status updates
+      socket.on('attendance_status_updated', (data) => {
+        console.log('📊 Received attendance status update:', data);
+        
+        // Refresh sessions data to get updated attendance counts
+        fetchSessions();
+        
+        // Refresh analytics to get updated stats
+        fetchAnalytics();
+      });
+      
+      return () => {
+        socket.disconnect();
+      };
     }
   }, [classId]);
 
@@ -987,17 +1006,17 @@ function ClassManagementPageContent() {
                 </div>
                 <div className="text-center p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20">
                   <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                    {sessions.filter(s => s.status === 'completed').length}
+                    {sessions.filter(s => s.status === 'completed' && s.attendance_count > 0).length}
                   </div>
                   <div className="text-sm text-slate-600 dark:text-slate-300">Completed Sessions</div>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20">
                   <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                     {(() => {
-                      const completedSessions = sessions.filter(s => s.status === 'completed');
-                      return completedSessions.length > 0 
-                        ? Math.round(completedSessions.reduce((acc, session) => 
-                            acc + (session.total_enrolled > 0 ? (session.attendance_count / session.total_enrolled) * 100 : 0), 0) / completedSessions.length)
+                      const professorInitiatedSessions = sessions.filter(s => s.status === 'completed' && s.attendance_count > 0);
+                      return professorInitiatedSessions.length > 0 
+                        ? Math.round(professorInitiatedSessions.reduce((acc, session) => 
+                            acc + (session.total_enrolled > 0 ? (session.attendance_count / session.total_enrolled) * 100 : 0), 0) / professorInitiatedSessions.length)
                         : 0;
                     })()}%
                   </div>
