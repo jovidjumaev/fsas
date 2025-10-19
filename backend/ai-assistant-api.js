@@ -911,7 +911,6 @@ router.post('/api/classes/:classId/chat/session', async (req, res) => {
  */
 router.post('/api/classes/:classId/chat/message', async (req, res) => {
   try {
-    console.log('🔥 AI ENDPOINT CALLED - TESTING');
     const { classId } = req.params;
     const { professorId, sessionId, message } = req.body;
 
@@ -986,11 +985,6 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
         studentData = null;
       }
       
-      // Temporarily remove the check to see what data is actually being sent to AI
-      console.error('DEBUG: studentData result:', studentData ? `${studentData.length} students` : 'null/undefined');
-      if (studentData && studentData.length > 0) {
-        console.error('DEBUG: First student sample:', studentData[0]);
-      }
       
       // Add class identification to context
       if (classOverview) {
@@ -1023,8 +1017,6 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       console.error('❌ Error fetching database context:', error);
     }
     
-    // Temporarily remove the check to see what database context is actually being sent to AI
-    console.error('DEBUG: databaseContext length:', databaseContext ? databaseContext.length : 'null/undefined');
 
     // Get recent chat history (reduced to 3 messages to save tokens - 20% reduction)
     const { data: recentMessages, error: messagesError } = await supabase
