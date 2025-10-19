@@ -33,15 +33,17 @@ async function getStudentAttendanceData(classId, studentName = null) {
     console.log('🔍 Looking for student:', studentName);
     console.log('🔄 Cache-busting timestamp:', Date.now());
     
-    // First get all enrollments for this class
+    // First get ACTIVE enrollments for this class (real-time data)
     const { data: enrollments, error: enrollmentsError } = await supabase
       .from('enrollments')
       .select(`
         student_id,
         enrollment_date,
-        status
+        status,
+        created_at
       `)
-      .eq('class_instance_id', classId);
+      .eq('class_instance_id', classId)
+      .eq('status', 'active'); // Only active enrollments
     
     if (enrollmentsError) {
       console.error('❌ Error fetching enrollments:', enrollmentsError);
@@ -240,7 +242,7 @@ async function getClassOverviewData(classId) {
         professors!inner(
           users!inner(first_name, last_name)
         ),
-        enrollments(count),
+        enrollments!inner(count),
         class_sessions(
           id,
           status,
@@ -251,6 +253,7 @@ async function getClassOverviewData(classId) {
         )
       `)
       .eq('id', classId)
+      .eq('enrollments.status', 'active') // Only count active enrollments
       .single();
     
     if (error) {
@@ -940,7 +943,9 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
     try {
       // Add timestamp to ensure AI knows data is fresh
       const dataTimestamp = new Date().toISOString();
-      databaseContext += `📊 LIVE DATABASE DATA (Updated: ${dataTimestamp}):\n\n`;
+      databaseContext += `📊 LIVE DATABASE DATA (Updated: ${dataTimestamp}):\n`;
+      databaseContext += `🔄 This data is fetched in REAL-TIME - it reflects the current state of enrollments and attendance.\n`;
+      databaseContext += `✅ Only ACTIVE enrollments are included - dropped/inactive students are excluded.\n\n`;
       
       // Force fresh data by adding cache-busting timestamp
       console.log('🔄 Fetching fresh data with timestamp:', dataTimestamp);
@@ -1030,13 +1035,15 @@ ${contextText || 'No materials uploaded yet.'}
 
 ${databaseContext}
 
-IMPORTANT INSTRUCTIONS:
+CRITICAL INSTRUCTIONS:
 - Keep responses CONCISE and DIRECT (max 2-3 sentences)
 - Focus ONLY on the specific question asked
 - Use bullet points for multiple items
 - Avoid lengthy explanations or examples
 - You can answer questions about both uploaded materials AND student attendance/performance
 - For attendance questions, use the provided database context (this data is LIVE and up-to-date)
+- The database context shows REAL-TIME data - trust it completely and use it as the source of truth
+- IMPORTANT: Only students with ACTIVE enrollments are included in the data - dropped/inactive students are excluded
 - You can answer specific questions like:
   * "Who was absent in session 3?"
   * "How is John doing?"
@@ -1044,8 +1051,9 @@ IMPORTANT INSTRUCTIONS:
   * "Who was late in the last session?"
   * "Who has the best attendance?"
   * "How many classes did [student] miss?"
+  * "Is [student] enrolled in this class?"
 - Use session details to answer specific session questions
-- The database context shows REAL-TIME data - trust it completely
+- If a student is not in the database context, they are NOT enrolled in this class
 - If question is unrelated to materials or attendance, say: "Please ask about the uploaded materials or student attendance."
 - Prioritize accuracy over verbosity`
     };

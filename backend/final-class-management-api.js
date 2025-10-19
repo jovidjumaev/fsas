@@ -610,6 +610,23 @@ router.post('/api/class-instances/:instanceId/enroll', async (req, res) => {
     
     if (error) throw error;
     
+    // Emit real-time update for AI Assistant
+    if (global.io) {
+      global.io.emit('enrollment_updated', {
+        classInstanceId: instanceId,
+        action: 'enrolled',
+        studentCount: data.length,
+        students: data.map(enrollment => ({
+          id: enrollment.student_id,
+          name: `${enrollment.students.users.first_name} ${enrollment.students.users.last_name}`,
+          email: enrollment.students.users.email,
+          studentId: enrollment.students.student_id
+        })),
+        timestamp: new Date().toISOString()
+      });
+      console.log('📡 Real-time enrollment update emitted for AI Assistant');
+    }
+    
     res.json({
       success: true,
       enrollments: data,
@@ -736,6 +753,17 @@ router.post('/api/class-instances/:instanceId/unenroll', async (req, res) => {
       .single();
     
     if (error) throw error;
+    
+    // Emit real-time update for AI Assistant
+    if (global.io) {
+      global.io.emit('enrollment_updated', {
+        classInstanceId: instanceId,
+        action: 'unenrolled',
+        studentId: student_id,
+        timestamp: new Date().toISOString()
+      });
+      console.log('📡 Real-time unenrollment update emitted for AI Assistant');
+    }
     
     // Create notification for the unenrolled student
     try {
