@@ -118,8 +118,11 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('📁 File upload started');
     const file = event.target.files?.[0];
     if (!file) return;
+
+    console.log('📁 File selected:', file.name, file.type, file.size);
 
     // Validate file type
     const allowedTypes = [
@@ -141,6 +144,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     }
 
     setIsUploading(true);
+    console.log('📁 Starting upload process');
     
     try {
       const formData = new FormData();
@@ -158,7 +162,9 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         }
       );
 
+      console.log('📡 Upload response status:', response.status);
       const data = await response.json();
+      console.log('📡 Upload response data:', data);
       
       if (data.success) {
         toast.success('File uploaded successfully');
@@ -167,7 +173,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         toast.error(data.error || 'Failed to upload file');
       }
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error('❌ Error uploading file:', error);
       toast.error('Error uploading file');
     } finally {
       setIsUploading(false);
@@ -177,9 +183,14 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   };
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || !sessionId) return;
+    console.log('💬 Send message button clicked');
+    if (!inputMessage.trim() || !sessionId) {
+      console.log('❌ Cannot send message - no input or session');
+      return;
+    }
 
     const userMessage = inputMessage.trim();
+    console.log('💬 Sending message:', userMessage);
     setInputMessage('');
     setIsLoading(true);
 
@@ -193,6 +204,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     setMessages(prev => [...prev, newUserMessage]);
 
     try {
+      console.log('📡 Sending to:', `/api/classes/${classId}/chat/message`);
       const response = await fetch(
         `/api/classes/${classId}/chat/message`,
         {
@@ -208,7 +220,9 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         }
       );
 
+      console.log('📡 Chat response status:', response.status);
       const data = await response.json();
+      console.log('📡 Chat response data:', data);
       
       if (data.success) {
         // Add AI response to messages
@@ -241,7 +255,9 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
+    console.log('🔑 Key pressed:', event.key);
     if (event.key === 'Enter' && !event.shiftKey) {
+      console.log('✅ Enter key detected, sending message');
       event.preventDefault();
       handleSendMessage();
     }
@@ -365,6 +381,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
                       {material.is_processed ? 'Processed' : 'Processing'}
                     </Badge>
                     <Button
+                      type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDeleteMaterial(material.id)}
@@ -487,6 +504,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
                 maxLength={200} // Limit input length
               />
               <Button
+                type="button"
                 onClick={handleSendMessage}
                 disabled={!inputMessage.trim() || isLoading || inputMessage.length > 200}
                 size="sm"
