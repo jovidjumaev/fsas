@@ -676,36 +676,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Create role-specific data
-      if (role === 'student') {
-        const { error: studentError } = await supabaseAdmin
-          .from('students')
-          .insert({
-            user_id: authData.user.id,
-            student_id: additionalData.studentNumber,
-            enrollment_year: new Date().getFullYear(),
-            major: additionalData.major || 'Computer Science'
-          });
+      // Create role-specific data with proper error handling
+      try {
+        if (role === 'student') {
+          console.log('🎓 Creating student record...');
+          
+          // Generate a student ID if none provided
+          let studentId = additionalData.studentNumber;
+          if (!studentId || studentId.trim() === '') {
+            // Generate a unique student ID
+            const timestamp = Date.now();
+            const random = Math.floor(Math.random() * 1000);
+            studentId = `500${timestamp.toString().slice(-6)}${random.toString().padStart(3, '0')}`;
+            console.log('🔢 Generated student ID:', studentId);
+          }
+          
+          const { data: studentData, error: studentError } = await supabaseAdmin
+            .from('students')
+            .insert({
+              user_id: authData.user.id,
+              student_id: studentId,
+              enrollment_year: new Date().getFullYear(),
+              major: additionalData.major || 'Computer Science',
+              created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
 
-        if (studentError) {
-          console.error('Failed to create student record:', studentError);
-          // Don't fail registration for this, just log it
-        }
-      } else if (role === 'professor') {
-        const { error: professorError } = await supabaseAdmin
-          .from('professors')
-          .insert({
-            user_id: authData.user.id,
-            employee_id: additionalData.employeeId,
-            title: additionalData.title || 'Professor',
-            office_location: additionalData.office_location || '',
-            phone: additionalData.phone || ''
-          });
+          if (studentError) {
+            console.error('❌ Failed to create student record:', studentError);
+            // This is critical - fail the registration if student record creation fails
+            throw new Error(`Failed to create student record: ${studentError.message}`);
+          }
+          
+          console.log('✅ Student record created successfully:', studentData);
+        } else if (role === 'professor') {
+          console.log('👨‍🏫 Creating professor record...');
+          
+          const { data: professorData, error: professorError } = await supabaseAdmin
+            .from('professors')
+            .insert({
+              user_id: authData.user.id,
+              employee_id: additionalData.employeeId,
+              title: additionalData.title || 'Professor',
+              office_location: additionalData.office_location || '',
+              phone: additionalData.phone || '',
+              created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
 
-        if (professorError) {
-          console.error('Failed to create professor record:', professorError);
-          // Don't fail registration for this, just log it
+          if (professorError) {
+            console.error('❌ Failed to create professor record:', professorError);
+            // This is critical - fail the registration if professor record creation fails
+            throw new Error(`Failed to create professor record: ${professorError.message}`);
+          }
+          
+          console.log('✅ Professor record created successfully:', professorData);
         }
+      } catch (roleError) {
+        console.error('❌ Role-specific record creation failed:', roleError);
+        
+        // Clean up: Delete the user if role-specific record creation failed
+        console.log('🧹 Cleaning up user record due to role creation failure...');
+        try {
+          await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+          console.log('✅ User record cleaned up successfully');
+        } catch (cleanupError) {
+          console.error('❌ Failed to clean up user record:', cleanupError);
+        }
+        
+        // Return error to user
+        return {
+          success: false,
+          error: `Registration failed: ${roleError.message}\n\n💡 Please try again or contact support if this persists.`
+        };
       }
 
       console.log('✅ User profile created with role:', role);
