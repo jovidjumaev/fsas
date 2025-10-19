@@ -957,6 +957,7 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
     // Get database context (class overview and student attendance data)
     let databaseContext = '';
     try {
+      console.log('🔄 About to call getClassOverviewData...');
       // Add timestamp to ensure AI knows data is fresh
       const dataTimestamp = new Date().toISOString();
       databaseContext += `📊 LIVE DATABASE DATA (Updated: ${dataTimestamp}):\n`;
@@ -975,6 +976,9 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       console.log('📊 Student data details:', studentData);
       if (studentData && studentData.length > 0) {
         console.log('📊 First student sample:', studentData[0]);
+        console.log('📊 All students:', studentData.map(s => `${s.first_name} ${s.last_name}: ${s.attendance_percentage}%`));
+      } else {
+        console.log('❌ NO STUDENT DATA - THIS IS THE PROBLEM!');
       }
       
       // Add class identification to context
