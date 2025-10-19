@@ -994,13 +994,8 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       console.error('❌ Error fetching database context:', error);
     }
     
-    // CRITICAL CHECK: Only proceed if we have valid database context
-    if (!databaseContext || databaseContext.length < 100) {
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to fetch class data for AI context'
-      });
-    }
+    // Temporarily remove the check to see what database context is actually being sent to AI
+    console.error('DEBUG: databaseContext length:', databaseContext ? databaseContext.length : 'null/undefined');
 
     // Get recent chat history (reduced to 3 messages to save tokens - 20% reduction)
     const { data: recentMessages, error: messagesError } = await supabase
