@@ -127,10 +127,11 @@ async function getStudentAttendanceData(classId, studentName = null) {
       const user = student.users;
       const enrollment = enrollments.find(e => e.student_id === student.user_id);
       
-      // Calculate attendance statistics
-      const totalSessions = sessions?.length || 0;
-      const completedSessions = sessions?.filter(s => s.status === 'completed').length || 0;
-      const cancelledSessions = sessions?.filter(s => s.status === 'cancelled').length || 0;
+      // Calculate attendance statistics - only count sessions with actual attendance data
+      const sessionsWithAttendance = sessions?.filter(s => s.attendance_records && s.attendance_records.length > 0) || [];
+      const totalSessions = sessionsWithAttendance.length;
+      const completedSessions = sessionsWithAttendance.filter(s => s.status === 'completed').length;
+      const cancelledSessions = sessionsWithAttendance.filter(s => s.status === 'cancelled').length;
       
       let totalAttendanceRecords = 0;
       let presentCount = 0;
@@ -139,8 +140,8 @@ async function getStudentAttendanceData(classId, studentName = null) {
       let excusedCount = 0;
       const sessionDetails = [];
       
-      // Process each session
-      for (const session of sessions || []) {
+      // Process each session that has attendance data
+      for (const session of sessionsWithAttendance) {
         const attendanceRecords = session.attendance_records || [];
         const studentRecord = attendanceRecords.find(record => record.student_id === student.user_id);
         
