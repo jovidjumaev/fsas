@@ -149,9 +149,21 @@ router.post('/api/classes/:classId/materials/upload', upload.single('file'), asy
 
     if (dbError) {
       console.error('❌ Database error:', dbError);
+      console.error('❌ Database error details:', JSON.stringify(dbError, null, 2));
+      console.error('❌ Insert data:', {
+        class_instance_id: classId,
+        professor_id: professorId,
+        file_name: req.file.originalname,
+        file_type: req.file.mimetype,
+        file_size: req.file.size,
+        file_url: urlData.publicUrl,
+        extracted_text: extractedText,
+        is_processed: true
+      });
       return res.status(500).json({
         success: false,
-        error: 'Failed to save file metadata'
+        error: 'Failed to save file metadata',
+        details: dbError.message
       });
     }
 

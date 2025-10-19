@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS class_materials (
     
     -- File details
     file_name VARCHAR(255) NOT NULL,
-    file_type VARCHAR(50) NOT NULL, -- 'pdf', 'txt', 'docx'
+    file_type VARCHAR(100) NOT NULL, -- 'pdf', 'txt', 'docx', 'pptx', 'ppt'
     file_size BIGINT NOT NULL,
     file_url TEXT NOT NULL, -- Supabase Storage URL
     
