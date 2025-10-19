@@ -20,6 +20,318 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// =====================================================
+// DATABASE QUERY FUNCTIONS FOR AI CONTEXT
+// =====================================================
+
+/**
+ * Get student attendance data for a specific class
+ */
+async function getStudentAttendanceData(classId, studentName = null) {
+  try {
+    console.log('📊 Fetching student attendance data for class:', classId);
+    
+    let query = `
+      SELECT 
+        u.first_name,
+        u.last_name,
+        u.email,
+        s.student_id,
+        e.enrollment_date,
+        e.status as enrollment_status,
+        
+        -- Session counts
+        COUNT(cs.id) as total_sessions,
+        COUNT(CASE WHEN cs.status = 'completed' THEN 1 END) as completed_sessions,
+        COUNT(CASE WHEN cs.status = 'cancelled' THEN 1 END) as cancelled_sessions,
+        
+        -- Attendance records
+        COUNT(ar.id) as total_attendance_records,
+        COUNT(CASE WHEN ar.status = 'present' THEN 1 END) as present_count,
+        COUNT(CASE WHEN ar.status = 'late' THEN 1 END) as late_count,
+        COUNT(CASE WHEN ar.status = 'absent' THEN 1 END) as absent_count,
+        COUNT(CASE WHEN ar.status = 'excused' THEN 1 END) as excused_count,
+        
+        -- Attendance percentage
+        CASE 
+          WHEN COUNT(ar.id) > 0 THEN 
+            ROUND((COUNT(CASE WHEN ar.status = 'present' THEN 1 END)::DECIMAL / COUNT(ar.id)) * 100, 2)
+          ELSE 0 
+        END as attendance_percentage
+        
+      FROM class_instances ci
+      JOIN enrollments e ON ci.id = e.class_instance_id
+      JOIN students s ON e.student_id = s.user_id
+      JOIN users u ON s.user_id = u.id
+      LEFT JOIN class_sessions cs ON ci.id = cs.class_instance_id
+      LEFT JOIN attendance_records ar ON cs.id = ar.session_id AND ar.student_id = s.user_id
+      WHERE ci.id = $1
+    `;
+    
+    const params = [classId];
+    
+    // Add student name filter if provided
+    if (studentName) {
+      query += ` AND (LOWER(u.first_name) LIKE LOWER($2) OR LOWER(u.last_name) LIKE LOWER($2) OR LOWER(u.first_name || ' ' || u.last_name) LIKE LOWER($2))`;
+      params.push(`%${studentName}%`);
+    }
+    
+    query += `
+      GROUP BY u.first_name, u.last_name, u.email, s.student_id, e.enrollment_date, e.status, ci.id
+      ORDER BY u.last_name, u.first_name
+    `;
+    
+    const { data, error } = await supabase
+      .from('class_instances')
+      .select(`
+        enrollments!inner(
+          students!inner(
+            users!inner(first_name, last_name, email),
+            student_id
+          ),
+          enrollment_date,
+          status
+        ),
+        class_sessions(
+          id,
+          session_number,
+          status,
+          attendance_records(
+            id,
+            status,
+            minutes_late
+          )
+        )
+      `)
+      .eq('id', classId);
+    
+    if (error) {
+      console.error('❌ Error fetching student attendance data:', error);
+      return null;
+    }
+    
+    // Process the data to calculate attendance statistics
+    const processedData = [];
+    if (data && data.length > 0) {
+      const classInstance = data[0];
+      const enrollments = classInstance.enrollments || [];
+      
+      for (const enrollment of enrollments) {
+        const student = enrollment.students;
+        const user = student.users;
+        
+        // Filter by student name if provided
+        if (studentName) {
+          const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+          const firstName = user.first_name.toLowerCase();
+          const lastName = user.last_name.toLowerCase();
+          const searchName = studentName.toLowerCase();
+          
+          if (!fullName.includes(searchName) && !firstName.includes(searchName) && !lastName.includes(searchName)) {
+            continue;
+          }
+        }
+        
+        // Calculate attendance statistics
+        const sessions = classInstance.class_sessions || [];
+        const totalSessions = sessions.length;
+        const completedSessions = sessions.filter(s => s.status === 'completed').length;
+        const cancelledSessions = sessions.filter(s => s.status === 'cancelled').length;
+        
+        let totalAttendanceRecords = 0;
+        let presentCount = 0;
+        let lateCount = 0;
+        let absentCount = 0;
+        let excusedCount = 0;
+        
+        for (const session of sessions) {
+          const attendanceRecords = session.attendance_records || [];
+          for (const record of attendanceRecords) {
+            if (record.student_id === student.user_id) {
+              totalAttendanceRecords++;
+              switch (record.status) {
+                case 'present':
+                  presentCount++;
+                  break;
+                case 'late':
+                  lateCount++;
+                  break;
+                case 'absent':
+                  absentCount++;
+                  break;
+                case 'excused':
+                  excusedCount++;
+                  break;
+              }
+            }
+          }
+        }
+        
+        const attendancePercentage = totalAttendanceRecords > 0 
+          ? Math.round((presentCount / totalAttendanceRecords) * 100 * 100) / 100
+          : 0;
+        
+        processedData.push({
+          first_name: user.first_name,
+          last_name: user.last_name,
+          email: user.email,
+          student_id: student.student_id,
+          enrollment_date: enrollment.enrollment_date,
+          enrollment_status: enrollment.status,
+          total_sessions: totalSessions,
+          completed_sessions: completedSessions,
+          cancelled_sessions: cancelledSessions,
+          total_attendance_records: totalAttendanceRecords,
+          present_count: presentCount,
+          late_count: lateCount,
+          absent_count: absentCount,
+          excused_count: excusedCount,
+          attendance_percentage: attendancePercentage
+        });
+      }
+    }
+    
+    console.log('✅ Student attendance data fetched:', processedData.length, 'students');
+    return processedData;
+    
+  } catch (error) {
+    console.error('❌ Error in getStudentAttendanceData:', error);
+    return null;
+  }
+}
+
+/**
+ * Get class overview data for context
+ */
+async function getClassOverviewData(classId) {
+  try {
+    console.log('📊 Fetching class overview data for class:', classId);
+    
+    const { data, error } = await supabase
+      .from('class_instances')
+      .select(`
+        class_code,
+        courses!inner(code, name),
+        academic_periods!inner(name),
+        professors!inner(
+          users!inner(first_name, last_name)
+        ),
+        enrollments(count),
+        class_sessions(
+          id,
+          status,
+          attendance_records(
+            id,
+            status
+          )
+        )
+      `)
+      .eq('id', classId)
+      .single();
+    
+    if (error) {
+      console.error('❌ Error fetching class overview data:', error);
+      return null;
+    }
+    
+    // Process the data
+    const sessions = data.class_sessions || [];
+    const totalSessions = sessions.length;
+    const completedSessions = sessions.filter(s => s.status === 'completed').length;
+    const cancelledSessions = sessions.filter(s => s.status === 'cancelled').length;
+    
+    let totalAttendanceRecords = 0;
+    let presentCount = 0;
+    let lateCount = 0;
+    let absentCount = 0;
+    let excusedCount = 0;
+    
+    for (const session of sessions) {
+      const attendanceRecords = session.attendance_records || [];
+      totalAttendanceRecords += attendanceRecords.length;
+      
+      for (const record of attendanceRecords) {
+        switch (record.status) {
+          case 'present':
+            presentCount++;
+            break;
+          case 'late':
+            lateCount++;
+            break;
+          case 'absent':
+            absentCount++;
+            break;
+          case 'excused':
+            excusedCount++;
+            break;
+        }
+      }
+    }
+    
+    const overallAttendancePercentage = totalAttendanceRecords > 0 
+      ? Math.round((presentCount / totalAttendanceRecords) * 100 * 100) / 100
+      : 0;
+    
+    const processedData = {
+      class_code: data.class_code,
+      course_code: data.courses.code,
+      course_name: data.courses.name,
+      period_name: data.academic_periods.name,
+      professor_name: `${data.professors.users.first_name} ${data.professors.users.last_name}`,
+      total_sessions: totalSessions,
+      completed_sessions: completedSessions,
+      cancelled_sessions: cancelledSessions,
+      total_enrolled: data.enrollments?.[0]?.count || 0,
+      active_enrolled: data.enrollments?.[0]?.count || 0, // Assuming all enrolled are active
+      total_attendance_records: totalAttendanceRecords,
+      present_count: presentCount,
+      late_count: lateCount,
+      absent_count: absentCount,
+      excused_count: excusedCount,
+      overall_attendance_percentage: overallAttendancePercentage
+    };
+    
+    console.log('✅ Class overview data fetched');
+    return processedData;
+    
+  } catch (error) {
+    console.error('❌ Error in getClassOverviewData:', error);
+    return null;
+  }
+}
+
+/**
+ * Extract student name from question for targeted queries
+ */
+function extractStudentNameFromQuestion(question) {
+  const lowerQuestion = question.toLowerCase();
+  
+  // Common patterns for asking about specific students
+  const patterns = [
+    /how has (\w+)/i,
+    /how is (\w+)/i,
+    /how did (\w+)/i,
+    /(\w+) attendance/i,
+    /(\w+) performance/i,
+    /(\w+) progress/i,
+    /student (\w+)/i,
+    /(\w+) in this class/i
+  ];
+  
+  for (const pattern of patterns) {
+    const match = question.match(pattern);
+    if (match && match[1]) {
+      const name = match[1].trim();
+      // Filter out common words that aren't names
+      if (!['the', 'this', 'that', 'my', 'our', 'their', 'his', 'her'].includes(name.toLowerCase())) {
+        return name;
+      }
+    }
+  }
+  
+  return null;
+}
+
 // Configure multer for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -581,6 +893,46 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       ).join('\n\n');
     }
 
+    // Extract student name from question for targeted queries
+    const studentName = extractStudentNameFromQuestion(message);
+    console.log('🔍 Extracted student name from question:', studentName);
+
+    // Get database context (class overview and student attendance data)
+    let databaseContext = '';
+    try {
+      const classOverview = await getClassOverviewData(classId);
+      const studentData = await getStudentAttendanceData(classId, studentName);
+      
+      if (classOverview) {
+        databaseContext += `\nCLASS OVERVIEW:\n`;
+        databaseContext += `Course: ${classOverview.course_name} (${classOverview.course_code})\n`;
+        databaseContext += `Class Code: ${classOverview.class_code}\n`;
+        databaseContext += `Academic Period: ${classOverview.period_name}\n`;
+        databaseContext += `Total Sessions: ${classOverview.total_sessions} (${classOverview.completed_sessions} completed, ${classOverview.cancelled_sessions} cancelled)\n`;
+        databaseContext += `Total Enrolled: ${classOverview.total_enrolled} students\n`;
+        databaseContext += `Overall Attendance Rate: ${classOverview.overall_attendance_percentage}%\n`;
+        databaseContext += `Attendance Breakdown: ${classOverview.present_count} present, ${classOverview.late_count} late, ${classOverview.absent_count} absent, ${classOverview.excused_count} excused\n\n`;
+      }
+      
+      if (studentData && studentData.length > 0) {
+        if (studentName) {
+          databaseContext += `STUDENT ATTENDANCE DATA (${studentName}):\n`;
+        } else {
+          databaseContext += `STUDENT ATTENDANCE DATA:\n`;
+        }
+        
+        studentData.forEach(student => {
+          databaseContext += `• ${student.first_name} ${student.last_name} (ID: ${student.student_id})\n`;
+          databaseContext += `  - Enrollment: ${student.enrollment_date} (${student.enrollment_status})\n`;
+          databaseContext += `  - Attendance Rate: ${student.attendance_percentage}%\n`;
+          databaseContext += `  - Records: ${student.present_count} present, ${student.late_count} late, ${student.absent_count} absent, ${student.excused_count} excused\n`;
+          databaseContext += `  - Sessions: ${student.total_attendance_records} out of ${student.total_sessions} total sessions\n\n`;
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error fetching database context:', error);
+    }
+
     // Get recent chat history (reduced to 5 messages to save tokens)
     const { data: recentMessages, error: messagesError } = await supabase
       .from('professor_chat_messages')
@@ -609,17 +961,21 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
     // Prepare system message with context
     const systemMessage = {
       role: 'system',
-      content: `You are an AI assistant helping a professor with questions about their class materials. 
+      content: `You are an AI assistant helping a professor with questions about their class materials and student attendance data.
 
-Available materials:
+AVAILABLE MATERIALS:
 ${contextText || 'No materials uploaded yet.'}
+
+${databaseContext}
 
 IMPORTANT INSTRUCTIONS:
 - Keep responses CONCISE and DIRECT (max 2-3 sentences)
 - Focus ONLY on the specific question asked
 - Use bullet points for multiple items
 - Avoid lengthy explanations or examples
-- If question is unrelated to materials, say: "Please ask about the uploaded materials."
+- You can answer questions about both uploaded materials AND student attendance/performance
+- For attendance questions, use the provided database context
+- If question is unrelated to materials or attendance, say: "Please ask about the uploaded materials or student attendance."
 - Prioritize accuracy over verbosity`
     };
 
