@@ -1382,20 +1382,45 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
     
     let averageAttendance = 0;
     if (!completedSessionsError && completedSessions.length > 0) {
-      const { data: attendanceData, error: attendanceError } = await supabase
-        .from('attendance_records')
+      // Get sessions with attendance (professor-initiated)
+      const { data: sessionsWithAttendance, error: sessionsWithAttendanceError } = await supabase
+        .from('class_sessions')
         .select(`
-          session_id,
-          status
+          id,
+          class_instance_id,
+          attendance_count,
+          attendance_records(
+            status
+          )
         `)
-        .in('session_id', completedSessions.map(s => s.id));
+        .in('class_instance_id', classInstances.map(c => c.id))
+        .eq('status', 'completed')
+        .gt('attendance_count', 0); // Only sessions where professor took attendance
       
-      if (!attendanceError && attendanceData.length > 0) {
-        // Count present, late, and excused as "attended" (same logic as analytics)
-        const attendedCount = attendanceData.filter(a => 
-          ['present', 'late', 'excused'].includes(a.status)
-        ).length;
-        averageAttendance = Math.round((attendedCount / attendanceData.length) * 100);
+      if (!sessionsWithAttendanceError && sessionsWithAttendance.length > 0) {
+        let totalPossibleAttendance = 0;
+        let totalAttended = 0;
+        
+        sessionsWithAttendance.forEach(session => {
+          // Get enrollments for this class
+          const classEnrollments = enrollments.filter(e => e.class_instance_id === session.class_instance_id);
+          const totalEnrolled = classEnrollments.length;
+          
+          // Total possible attendance = number of enrolled students for each session
+          totalPossibleAttendance += totalEnrolled;
+          
+          // Count how many were present/late/excused
+          if (session.attendance_records && session.attendance_records.length > 0) {
+            const attendedInSession = session.attendance_records.filter(record => 
+              ['present', 'late', 'excused'].includes(record.status)
+            ).length;
+            totalAttended += attendedInSession;
+          }
+        });
+        
+        if (totalPossibleAttendance > 0) {
+          averageAttendance = Math.round((totalAttended / totalPossibleAttendance) * 100);
+        }
       }
     }
     
