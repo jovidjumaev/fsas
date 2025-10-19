@@ -956,6 +956,10 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       console.log('📊 Fetching student data for classId:', classId, 'studentName:', studentName);
       const studentData = await getStudentAttendanceData(classId, studentName);
       console.log('📊 Student data result:', studentData ? `${studentData.length} students` : 'FAILED');
+      console.log('📊 Student data details:', studentData);
+      if (studentData && studentData.length > 0) {
+        console.log('📊 First student sample:', studentData[0]);
+      }
       
       // Add class identification to context
       if (classOverview) {
@@ -1010,6 +1014,10 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
     } catch (error) {
       console.error('❌ Error fetching database context:', error);
     }
+    
+    // Log the final database context that will be sent to AI
+    console.log('🤖 Final database context length:', databaseContext.length);
+    console.log('🤖 Database context preview:', databaseContext.substring(0, 500) + '...');
 
     // Get recent chat history (reduced to 5 messages to save tokens)
     const { data: recentMessages, error: messagesError } = await supabase
