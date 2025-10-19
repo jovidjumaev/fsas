@@ -886,6 +886,7 @@ router.post('/api/classes/:classId/chat/session', async (req, res) => {
  */
 router.post('/api/classes/:classId/chat/message', async (req, res) => {
   try {
+    console.log('🔥 AI ENDPOINT CALLED - TESTING');
     const { classId } = req.params;
     const { professorId, sessionId, message } = req.body;
 
