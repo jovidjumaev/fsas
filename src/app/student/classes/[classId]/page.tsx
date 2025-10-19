@@ -22,8 +22,10 @@ import {
   CalendarDays,
   TrendingUp,
   Users,
-  RefreshCw
+  RefreshCw,
+  Brain
 } from 'lucide-react';
+import { StudentAIAssistant } from '@/components/student/ai-assistant';
 
 function ClassDetailContent() {
   const params = useParams();
@@ -34,7 +36,7 @@ function ClassDetailContent() {
   const [classDetail, setClassDetail] = useState<ClassDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'history' | 'upcoming'>('history');
+  const [activeTab, setActiveTab] = useState<'history' | 'upcoming' | 'ai-assistant'>('history');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'present' | 'late' | 'absent' | 'excused' | 'not_marked'>('all');
@@ -331,69 +333,87 @@ function ClassDetailContent() {
               >
                 Upcoming Sessions ({upcoming_sessions.length})
               </button>
+              <button
+                onClick={() => setActiveTab('ai-assistant')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                  activeTab === 'ai-assistant'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+              >
+                <Brain className="w-4 h-4" />
+                <span>AI Assistant</span>
+              </button>
             </nav>
           </div>
         </div>
 
-        {/* Attendance Filter */}
-        {activeTab === 'history' && (
-          <div className="mb-6">
-            <div className="flex flex-wrap gap-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Filter by:</span>
-              {[
-                { key: 'all', label: 'All', count: past_sessions.length },
-                { key: 'present', label: 'Present', count: past_sessions.filter(s => s.attendance?.status === 'present').length },
-                { key: 'late', label: 'Late', count: past_sessions.filter(s => s.attendance?.status === 'late').length },
-                { key: 'absent', label: 'Absent', count: past_sessions.filter(s => s.attendance?.status === 'absent').length },
-                { key: 'excused', label: 'Excused', count: past_sessions.filter(s => s.attendance?.status === 'excused').length },
-                { key: 'not_marked', label: 'Not Marked', count: past_sessions.filter(s => !s.attendance).length }
-              ].map((filter) => (
-                <button
-                  key={filter.key}
-                  onClick={() => setAttendanceFilter(filter.key as any)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    attendanceFilter === filter.key
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {filter.label} ({filter.count})
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Sessions List */}
-        <div className="space-y-4">
-          {(activeTab === 'history' ? filteredPastSessions : filteredUpcomingSessions).map((session) => (
-            <SessionCard key={session.id} session={session} />
-          ))}
-          
-          {((activeTab === 'history' ? filteredPastSessions : filteredUpcomingSessions).length === 0) && (
-            <Card className="p-12 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              <div className="text-center">
-                <Calendar className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  {activeTab === 'history' 
-                    ? (attendanceFilter === 'all' 
-                        ? 'No past sessions' 
-                        : `No ${attendanceFilter} sessions`)
-                    : 'No upcoming sessions'
-                  }
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {activeTab === 'history' 
-                    ? (attendanceFilter === 'all' 
-                        ? 'No class sessions have been completed yet.'
-                        : `No sessions found with ${attendanceFilter} attendance status.`)
-                    : 'No upcoming class sessions are scheduled.'
-                  }
-                </p>
+        {/* Tab Content */}
+        {activeTab === 'ai-assistant' ? (
+          <StudentAIAssistant classId={classId} studentId={user.id} />
+        ) : (
+          <>
+            {/* Attendance Filter */}
+            {activeTab === 'history' && (
+              <div className="mb-6">
+                <div className="flex flex-wrap gap-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Filter by:</span>
+                  {[
+                    { key: 'all', label: 'All', count: past_sessions.length },
+                    { key: 'present', label: 'Present', count: past_sessions.filter(s => s.attendance?.status === 'present').length },
+                    { key: 'late', label: 'Late', count: past_sessions.filter(s => s.attendance?.status === 'late').length },
+                    { key: 'absent', label: 'Absent', count: past_sessions.filter(s => s.attendance?.status === 'absent').length },
+                    { key: 'excused', label: 'Excused', count: past_sessions.filter(s => s.attendance?.status === 'excused').length },
+                    { key: 'not_marked', label: 'Not Marked', count: past_sessions.filter(s => !s.attendance).length }
+                  ].map((filter) => (
+                    <button
+                      key={filter.key}
+                      onClick={() => setAttendanceFilter(filter.key as any)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        attendanceFilter === filter.key
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      {filter.label} ({filter.count})
+                    </button>
+                  ))}
+                </div>
               </div>
-            </Card>
-          )}
-        </div>
+            )}
+
+            {/* Sessions List */}
+            <div className="space-y-4">
+              {(activeTab === 'history' ? filteredPastSessions : filteredUpcomingSessions).map((session) => (
+                <SessionCard key={session.id} session={session} />
+              ))}
+              
+              {((activeTab === 'history' ? filteredPastSessions : filteredUpcomingSessions).length === 0) && (
+                <Card className="p-12 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                  <div className="text-center">
+                    <Calendar className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      {activeTab === 'history' 
+                        ? (attendanceFilter === 'all' 
+                            ? 'No past sessions' 
+                            : `No ${attendanceFilter} sessions`)
+                        : 'No upcoming sessions'
+                      }
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      {activeTab === 'history' 
+                        ? (attendanceFilter === 'all' 
+                            ? 'No class sessions have been completed yet.'
+                            : `No sessions found with ${attendanceFilter} attendance status.`)
+                        : 'No upcoming class sessions are scheduled.'
+                      }
+                    </p>
+                  </div>
+                </Card>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

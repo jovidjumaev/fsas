@@ -28,6 +28,9 @@ const studentClassDetailAPI = require('./student-class-detail-api.js');
 // Import the AI assistant API
 const aiAssistantAPI = require('./ai-assistant-api.js');
 
+// Import the student AI assistant API
+const studentAIAssistantAPI = require('./student-ai-assistant-api.js');
+
 // Import the student dashboard API (commented out - using frontend service instead)
 // const studentDashboardAPI = require('./student-dashboard-api.js');
 
@@ -161,6 +164,7 @@ app.use('/', attendanceAPI);
 app.use('/', studentClassesAPI);
 app.use('/', studentClassDetailAPI);
 app.use('/', aiAssistantAPI);
+app.use('/', studentAIAssistantAPI);
 // app.use('/', studentDashboardAPI); // Commented out - using frontend service instead
 
 // =====================================================
