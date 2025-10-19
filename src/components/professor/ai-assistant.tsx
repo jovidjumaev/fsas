@@ -248,6 +248,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   };
 
   const handleDeleteMaterial = async (materialId: string) => {
+    console.log('🗑️ Delete button clicked for material:', materialId);
     setMaterialToDelete(materialId);
     setShowDeleteConfirm(true);
   };
@@ -269,6 +270,14 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
       });
 
       console.log('📡 Delete response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Delete failed:', response.status, errorText);
+        toast.error(`Delete failed: ${response.status} ${response.statusText}`);
+        return;
+      }
+
       const data = await response.json();
       console.log('📡 Delete response data:', data);
 
@@ -280,7 +289,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
       }
     } catch (error) {
       console.error('❌ Error deleting material:', error);
-      toast.error('Failed to delete file');
+      toast.error('Failed to delete file: ' + error.message);
     } finally {
       setShowDeleteConfirm(false);
       setMaterialToDelete(null);

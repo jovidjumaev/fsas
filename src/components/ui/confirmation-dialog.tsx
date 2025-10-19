@@ -29,6 +29,7 @@ export function ConfirmationDialog({
   if (!isOpen) return null;
 
   const handleConfirm = () => {
+    console.log('✅ Confirmation dialog confirm button clicked');
     onConfirm();
     onClose();
   };
@@ -56,6 +57,7 @@ export function ConfirmationDialog({
           </p>
           <div className="flex gap-2 justify-end">
             <Button
+              type="button"
               variant="outline"
               onClick={onClose}
               className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
@@ -63,6 +65,7 @@ export function ConfirmationDialog({
               {cancelText}
             </Button>
             <Button
+              type="button"
               variant={variant === 'destructive' ? 'destructive' : 'default'}
               onClick={handleConfirm}
               className={variant === 'destructive' ? 'dark:bg-red-600 dark:hover:bg-red-700' : ''}
