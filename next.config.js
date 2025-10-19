@@ -19,10 +19,15 @@ const nextConfig = {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   },
   async rewrites() {
+    // In production, use the actual backend URL
+    const backendUrl = process.env.NODE_ENV === 'production' 
+      ? process.env.NEXT_PUBLIC_API_URL || 'https://your-backend-domain.com'
+      : 'http://localhost:3001';
+    
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3001/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },
