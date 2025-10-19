@@ -58,6 +58,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   useEffect(() => {
     const handleNavigation = () => {
       console.log('🚨 NAVIGATION DETECTED! Current URL:', window.location.href);
+      console.log('🚨 Navigation stack trace:', new Error().stack);
     };
 
     // Listen for navigation events
@@ -70,36 +71,63 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     
     history.pushState = function(...args) {
       console.log('🚨 pushState called:', args);
+      console.log('🚨 pushState stack trace:', new Error().stack);
       originalPushState.apply(history, args);
     };
     
     history.replaceState = function(...args) {
       console.log('🚨 replaceState called:', args);
+      console.log('🚨 replaceState stack trace:', new Error().stack);
       originalReplaceState.apply(history, args);
     };
+
+    // Track any location changes
+    const originalLocation = window.location;
+    let lastUrl = window.location.href;
+    
+    const checkUrlChange = () => {
+      if (window.location.href !== lastUrl) {
+        console.log('🚨 URL CHANGED!');
+        console.log('🚨 From:', lastUrl);
+        console.log('🚨 To:', window.location.href);
+        console.log('🚨 URL change stack trace:', new Error().stack);
+        lastUrl = window.location.href;
+      }
+    };
+    
+    // Check for URL changes every 100ms
+    const urlCheckInterval = setInterval(checkUrlChange, 100);
 
     return () => {
       window.removeEventListener('beforeunload', handleNavigation);
       window.removeEventListener('popstate', handleNavigation);
       history.pushState = originalPushState;
       history.replaceState = originalReplaceState;
+      clearInterval(urlCheckInterval);
     };
   }, []);
 
   const loadMaterials = async () => {
     try {
+      console.log('📋 Loading materials, URL before fetch:', window.location.href);
       const response = await fetch(
         `/api/classes/${classId}/materials?professorId=${professorId}`
       );
+      console.log('📋 Materials response received, URL:', window.location.href);
       const data = await response.json();
+      console.log('📋 Materials data parsed, URL:', window.location.href);
       
       if (data.success) {
+        console.log('📋 Setting materials, URL:', window.location.href);
         setMaterials(data.materials);
+        console.log('📋 Materials set successfully, URL:', window.location.href);
       } else {
+        console.log('📋 Failed to load materials, URL:', window.location.href);
         toast.error('Failed to load materials');
       }
     } catch (error) {
-      console.error('Error loading materials:', error);
+      console.error('❌ Error loading materials:', error);
+      console.log('❌ URL after materials error:', window.location.href);
       toast.error('Error loading materials');
     }
   };
@@ -196,13 +224,19 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
       );
 
       console.log('📡 Upload response status:', response.status);
+      console.log('📡 URL immediately after response:', window.location.href);
+      
       const data = await response.json();
       console.log('📡 Upload response data:', data);
+      console.log('📡 URL after parsing response:', window.location.href);
       
       if (data.success) {
         console.log('✅ Upload successful, URL after upload:', window.location.href);
+        console.log('✅ About to call loadMaterials()');
         toast.success('File uploaded successfully');
+        console.log('✅ About to reload materials, URL:', window.location.href);
         loadMaterials(); // Reload materials
+        console.log('✅ Materials reloaded, final URL:', window.location.href);
       } else {
         console.log('❌ Upload failed, URL after failed upload:', window.location.href);
         toast.error(data.error || 'Failed to upload file');
