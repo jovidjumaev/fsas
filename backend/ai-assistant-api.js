@@ -118,6 +118,10 @@ router.post('/api/classes/:classId/materials/upload', upload.single('file'), asy
               shape.texts ? shape.texts.join(' ') : ''
             ).join(' ')
           ).join('\n\n');
+          console.log('✅ PowerPoint text extracted:', extractedText.length, 'characters');
+        } catch (pptxError) {
+          console.error('❌ PowerPoint extraction error:', pptxError);
+          extractedText = 'PowerPoint file uploaded. Text extraction failed.';
         } finally {
           // Clean up temp file
           try {
@@ -136,6 +140,12 @@ router.post('/api/classes/:classId/materials/upload', upload.single('file'), asy
     }
 
     // Save to database
+    console.log('💾 Saving material to database:', {
+      fileName: req.file.originalname,
+      fileType: req.file.mimetype,
+      extractedTextLength: extractedText.length
+    });
+    
     const { data: materialData, error: dbError } = await supabase
       .from('class_materials')
       .insert({
@@ -158,6 +168,8 @@ router.post('/api/classes/:classId/materials/upload', upload.single('file'), asy
         error: 'Failed to save file metadata'
       });
     }
+
+    console.log('✅ Material saved successfully:', materialData.id);
 
     res.json({
       success: true,

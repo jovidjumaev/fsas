@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Upload, MessageCircle, FileText, Trash2, Send, Bot, User } from 'lucide-react';
 import { toast } from 'sonner';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 interface Material {
   id: string;
@@ -38,6 +39,8 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [totalTokensUsed, setTotalTokensUsed] = useState(0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [materialToDelete, setMaterialToDelete] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom when new messages arrive
@@ -242,12 +245,15 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   };
 
   const handleDeleteMaterial = async (materialId: string) => {
-    if (!confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
-      return;
-    }
+    setMaterialToDelete(materialId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!materialToDelete) return;
 
     try {
-      const response = await fetch(`/api/classes/${classId}/materials/${materialId}`, {
+      const response = await fetch(`/api/classes/${classId}/materials/${materialToDelete}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -266,6 +272,9 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     } catch (error) {
       console.error('Error deleting material:', error);
       toast.error('Failed to delete file');
+    } finally {
+      setShowDeleteConfirm(false);
+      setMaterialToDelete(null);
     }
   };
 
@@ -286,16 +295,16 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 dark:bg-gray-900 dark:text-gray-100">
       {/* Materials Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="dark:bg-gray-800 dark:border-gray-700">
+        <CardHeader className="dark:bg-gray-800 dark:border-gray-700">
+          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <FileText className="h-5 w-5" />
             Class Materials
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 dark:bg-gray-800">
           {/* File Upload */}
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
@@ -356,16 +365,16 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
       </Card>
 
       {/* Chat Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="dark:bg-gray-800 dark:border-gray-700">
+        <CardHeader className="dark:bg-gray-800 dark:border-gray-700">
+          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <MessageCircle className="h-5 w-5" />
             AI Assistant
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 dark:bg-gray-800">
           {/* Chat Messages */}
-          <div className="h-96 overflow-y-auto border rounded-lg p-4 space-y-4">
+          <div className="h-96 overflow-y-auto border rounded-lg p-4 space-y-4 dark:border-gray-600 dark:bg-gray-700">
             {messages.length > 0 ? (
               messages.map((message) => (
                 <div
@@ -473,6 +482,21 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setMaterialToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Delete File"
+        message="Are you sure you want to delete this file? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </div>
   );
 }
