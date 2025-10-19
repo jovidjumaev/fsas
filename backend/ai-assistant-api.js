@@ -242,7 +242,7 @@ async function getClassOverviewData(classId) {
         professors!inner(
           users!inner(first_name, last_name)
         ),
-        enrollments!inner(count),
+        enrollments(count),
         class_sessions(
           id,
           status,
@@ -253,7 +253,6 @@ async function getClassOverviewData(classId) {
         )
       `)
       .eq('id', classId)
-      .eq('enrollments.status', 'active') // Only count active enrollments
       .single();
     
     if (error) {
@@ -305,6 +304,13 @@ async function getClassOverviewData(classId) {
       ? Math.round((totalAttended / totalPossibleAttendance) * 100)
       : 0;
     
+    // Get actual count of active enrollments
+    const { count: activeEnrollmentCount } = await supabase
+      .from('enrollments')
+      .select('*', { count: 'exact', head: true })
+      .eq('class_instance_id', classId)
+      .eq('status', 'active');
+    
     const processedData = {
       class_code: data.class_code,
       course_code: data.courses.code,
@@ -314,8 +320,8 @@ async function getClassOverviewData(classId) {
       total_sessions: totalSessions,
       completed_sessions: completedSessions,
       cancelled_sessions: cancelledSessions,
-      total_enrolled: data.enrollments?.[0]?.count || 0,
-      active_enrolled: data.enrollments?.[0]?.count || 0, // Assuming all enrolled are active
+      total_enrolled: activeEnrollmentCount || 0,
+      active_enrolled: activeEnrollmentCount || 0,
       total_attendance_records: totalAttendanceRecords,
       present_count: presentCount,
       late_count: lateCount,

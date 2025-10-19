@@ -1591,18 +1591,24 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
       let todayAttendanceRate = 0;
       
       if (todaySession) {
-        // Calculate today's specific attendance
-        const { data: todayAttendanceData } = await supabase
-          .from('attendance_records')
-          .select('status')
-          .eq('session_id', todaySession.id);
-        
-        if (todayAttendanceData && todayAttendanceData.length > 0) {
-          const attendedCount = todayAttendanceData.filter(a => 
-            ['present', 'late', 'excused'].includes(a.status)
-          ).length;
-          todayAttendanceRate = instance.current_enrollment > 0 ? 
-            Math.round((attendedCount / instance.current_enrollment) * 100) : 0;
+        // Only calculate attendance for active or completed sessions
+        if (todaySession.status === 'active' || todaySession.status === 'completed') {
+          // Calculate today's specific attendance
+          const { data: todayAttendanceData } = await supabase
+            .from('attendance_records')
+            .select('status')
+            .eq('session_id', todaySession.id);
+          
+          if (todayAttendanceData && todayAttendanceData.length > 0) {
+            const attendedCount = todayAttendanceData.filter(a => 
+              ['present', 'late', 'excused'].includes(a.status)
+            ).length;
+            todayAttendanceRate = instance.current_enrollment > 0 ? 
+              Math.round((attendedCount / instance.current_enrollment) * 100) : 0;
+          }
+        } else {
+          // For scheduled/upcoming sessions, show 0% attendance
+          todayAttendanceRate = 0;
         }
         classAttendanceRate = todayAttendanceRate; // Use today's rate for today's classes
       } else {
