@@ -4,6 +4,7 @@ const OpenAI = require('openai');
 const { createClient } = require('@supabase/supabase-js');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
+const pptx2json = require('pptx2json');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -27,11 +28,17 @@ const upload = multer({
     fileSize: 50 * 1024 * 1024, // 50MB limit
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['application/pdf', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const allowedTypes = [
+      'application/pdf', 
+      'text/plain', 
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    ];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF, TXT, and DOCX files are allowed'), false);
+      cb(new Error('Only PDF, TXT, DOCX, PPT, and PPTX files are allowed'), false);
     }
   }
 });
@@ -99,6 +106,29 @@ router.post('/api/classes/:classId/materials/upload', upload.single('file'), asy
       } else if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
         const result = await mammoth.extractRawText({ buffer: req.file.buffer });
         extractedText = result.value;
+      } else if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
+        // For PPTX files
+        const tempPath = path.join(__dirname, 'temp', `${Date.now()}.pptx`);
+        await fs.writeFile(tempPath, req.file.buffer);
+        
+        try {
+          const jsonData = await pptx2json(tempPath);
+          extractedText = jsonData.slides.map(slide => 
+            slide.shapes.map(shape => 
+              shape.texts ? shape.texts.join(' ') : ''
+            ).join(' ')
+          ).join('\n\n');
+        } finally {
+          // Clean up temp file
+          try {
+            await fs.unlink(tempPath);
+          } catch (cleanupError) {
+            console.warn('⚠️ Could not delete temp file:', cleanupError);
+          }
+        }
+      } else if (req.file.mimetype === 'application/vnd.ms-powerpoint') {
+        // For older PPT files, we'll just store a placeholder
+        extractedText = 'PowerPoint file uploaded. Text extraction for .ppt files is not supported yet.';
       }
     } catch (extractError) {
       console.error('❌ Text extraction error:', extractError);
@@ -189,6 +219,87 @@ router.get('/api/classes/:classId/materials', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error in GET materials:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * Delete material file
+ * DELETE /api/classes/:classId/materials/:materialId
+ */
+router.delete('/api/classes/:classId/materials/:materialId', async (req, res) => {
+  try {
+    const { classId, materialId } = req.params;
+    const { professorId } = req.body;
+
+    // Validate access
+    const { data: classInstance, error: classError } = await supabase
+      .from('class_instances')
+      .select('id, professor_id')
+      .eq('id', classId)
+      .eq('professor_id', professorId)
+      .single();
+
+    if (classError || !classInstance) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to this class'
+      });
+    }
+
+    // Get material details
+    const { data: material, error: materialError } = await supabase
+      .from('class_materials')
+      .select('*')
+      .eq('id', materialId)
+      .eq('class_instance_id', classId)
+      .eq('professor_id', professorId)
+      .single();
+
+    if (materialError || !material) {
+      return res.status(404).json({
+        success: false,
+        error: 'Material not found'
+      });
+    }
+
+    // Extract filename from URL for deletion
+    const fileName = material.file_url.split('/').pop();
+    
+    // Delete from Supabase Storage
+    const { error: storageError } = await supabase.storage
+      .from('class-materials')
+      .remove([fileName]);
+
+    if (storageError) {
+      console.error('❌ Storage deletion error:', storageError);
+      // Continue with database deletion even if storage fails
+    }
+
+    // Delete from database
+    const { error: dbError } = await supabase
+      .from('class_materials')
+      .delete()
+      .eq('id', materialId);
+
+    if (dbError) {
+      console.error('❌ Database deletion error:', dbError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to delete material from database'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Material deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Delete error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'

@@ -119,9 +119,15 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     if (!file) return;
 
     // Validate file type
-    const allowedTypes = ['application/pdf', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const allowedTypes = [
+      'application/pdf', 
+      'text/plain', 
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    ];
     if (!allowedTypes.includes(file.type)) {
-      toast.error('Only PDF, TXT, and DOCX files are allowed');
+      toast.error('Only PDF, TXT, DOCX, PPT, and PPTX files are allowed');
       return;
     }
 
@@ -235,6 +241,34 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     }
   };
 
+  const handleDeleteMaterial = async (materialId: string) => {
+    if (!confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/classes/${classId}/materials/${materialId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ professorId }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('File deleted successfully');
+        loadMaterials(); // Reload materials list
+      } else {
+        toast.error(data.error || 'Failed to delete file');
+      }
+    } catch (error) {
+      console.error('Error deleting material:', error);
+      toast.error('Failed to delete file');
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -247,6 +281,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     if (fileType.includes('pdf')) return '📄';
     if (fileType.includes('word') || fileType.includes('document')) return '📝';
     if (fileType.includes('text')) return '📃';
+    if (fileType.includes('powerpoint') || fileType.includes('presentation')) return '📊';
     return '📁';
   };
 
@@ -263,21 +298,21 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         <CardContent className="space-y-4">
           {/* File Upload */}
           <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+            <label className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
               <Upload className="h-4 w-4" />
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 dark:text-gray-300">
                 {isUploading ? 'Uploading...' : 'Upload File'}
               </span>
               <input
                 type="file"
-                accept=".pdf,.txt,.docx"
+                accept=".pdf,.txt,.docx,.ppt,.pptx"
                 onChange={handleFileUpload}
                 disabled={isUploading}
                 className="hidden"
               />
             </label>
-            <span className="text-xs text-gray-500">
-              PDF, TXT, DOCX up to 50MB
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              PDF, TXT, DOCX, PPT, PPTX up to 50MB
             </span>
           </div>
 
@@ -287,13 +322,13 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
               {materials.map((material) => (
                 <div
                   key={material.id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
+                  className="flex items-center justify-between p-3 border rounded-lg dark:border-gray-700 dark:bg-gray-800/50"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-lg">{getFileIcon(material.file_type)}</span>
                     <div>
-                      <p className="font-medium text-sm">{material.file_name}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="font-medium text-sm dark:text-gray-200">{material.file_name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         {formatFileSize(material.file_size)} • {new Date(material.uploaded_at).toLocaleDateString()}
                       </p>
                     </div>
@@ -302,12 +337,20 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
                     <Badge variant={material.is_processed ? 'default' : 'secondary'}>
                       {material.is_processed ? 'Processed' : 'Processing'}
                     </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteMaterial(material.id)}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-sm">No materials uploaded yet.</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">No materials uploaded yet.</p>
           )}
         </CardContent>
       </Card>
@@ -353,7 +396,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
                       className={`p-3 rounded-lg ${
                         message.role === 'user'
                           ? 'bg-blue-500 text-white'
-                          : 'bg-gray-100 text-gray-900'
+                          : 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100'
                       }`}
                     >
                       <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -372,7 +415,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
                 </div>
               ))
             ) : (
-              <div className="text-center text-gray-500 py-8">
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
                 <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Start a conversation with the AI assistant</p>
                 <p className="text-sm">Ask questions about your uploaded materials</p>
@@ -399,7 +442,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
 
           {/* Token Usage Display */}
           {totalTokensUsed > 0 && (
-            <div className="text-xs text-gray-500 text-center">
+            <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
               Total tokens used this session: {totalTokensUsed}
             </div>
           )}
@@ -424,7 +467,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
                 <Send className="h-4 w-4" />
               </Button>
             </div>
-            <div className="text-xs text-gray-400 text-right">
+            <div className="text-xs text-gray-400 dark:text-gray-500 text-right">
               {inputMessage.length}/200 characters
             </div>
           </div>
