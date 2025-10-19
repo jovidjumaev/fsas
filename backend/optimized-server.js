@@ -1235,6 +1235,145 @@ app.post('/api/classes', async (req, res) => {
 });
 
 // =====================================================
+// AUTOMATIC SESSION COMPLETION
+// =====================================================
+
+// Automatically complete sessions that are past their end time
+async function autoCompletePastSessions(classInstanceIds) {
+  try {
+    console.log('🔄 Checking for past sessions that need completion...');
+    
+    const easternTime = getCurrentEasternTime();
+    const todayDate = easternTime.toISOString().split('T')[0];
+    
+    // Find sessions that are past their end time but still scheduled
+    const { data: pastSessions, error: sessionsError } = await supabase
+      .from('class_sessions')
+      .select(`
+        id,
+        class_instance_id,
+        date,
+        start_time,
+        end_time,
+        status
+      `)
+      .in('class_instance_id', classInstanceIds)
+      .eq('status', 'scheduled')
+      .lte('date', todayDate); // Sessions on or before today
+    
+    if (sessionsError) {
+      console.error('❌ Error fetching past sessions:', sessionsError);
+      return;
+    }
+    
+    if (!pastSessions || pastSessions.length === 0) {
+      console.log('✅ No past sessions need completion');
+      return;
+    }
+    
+    console.log(`📅 Found ${pastSessions.length} past sessions to check`);
+    
+    let completedCount = 0;
+    
+    for (const session of pastSessions) {
+      // Create session end time in Eastern Time
+      const sessionEndTime = createEasternDate(session.date, session.end_time);
+      
+      // Check if session end time has passed (with 5-minute grace period)
+      const gracePeriod = 5 * 60 * 1000; // 5 minutes in milliseconds
+      const completionTime = new Date(sessionEndTime.getTime() + gracePeriod);
+      
+      if (easternTime >= completionTime) {
+        console.log(`⏰ Auto-completing session ${session.id} (ended ${Math.round((easternTime - sessionEndTime) / (1000 * 60))} minutes ago)`);
+        
+        // Get all enrolled students for this class
+        const { data: enrolledStudents, error: enrollmentError } = await supabase
+          .from('enrollments')
+          .select('student_id')
+          .eq('class_instance_id', session.class_instance_id)
+          .eq('status', 'active');
+        
+        if (enrollmentError) {
+          console.error(`❌ Error fetching enrollments for session ${session.id}:`, enrollmentError);
+          continue;
+        }
+        
+        // Get existing attendance records
+        const { data: existingRecords, error: recordsError } = await supabase
+          .from('attendance_records')
+          .select('student_id')
+          .eq('session_id', session.id);
+        
+        if (recordsError) {
+          console.error(`❌ Error fetching attendance records for session ${session.id}:`, recordsError);
+          continue;
+        }
+        
+        // Create "present" records for students who don't have them
+        const existingStudentIds = new Set(existingRecords.map(record => record.student_id));
+        const studentsNeedingRecords = enrolledStudents.filter(
+          enrollment => !existingStudentIds.has(enrollment.student_id)
+        );
+        
+        if (studentsNeedingRecords.length > 0) {
+          // Create attendance records for students who don't have them
+          const attendanceRecords = studentsNeedingRecords.map(enrollment => ({
+            session_id: session.id,
+            student_id: enrollment.student_id,
+            status: 'present', // Default to present for auto-completed sessions
+            scanned_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            device_fingerprint: 'auto-completion',
+            ip_address: '127.0.0.1'
+          }));
+          
+          const { error: insertError } = await supabase
+            .from('attendance_records')
+            .insert(attendanceRecords);
+          
+          if (insertError) {
+            console.error(`❌ Error creating attendance records for session ${session.id}:`, insertError);
+            continue;
+          }
+          
+          console.log(`✅ Created ${attendanceRecords.length} attendance records for session ${session.id}`);
+        }
+        
+        // Update session status to completed
+        const { error: updateError } = await supabase
+          .from('class_sessions')
+          .update({
+            status: 'completed',
+            is_active: false,
+            attendance_count: enrolledStudents.length,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', session.id);
+        
+        if (updateError) {
+          console.error(`❌ Error updating session ${session.id}:`, updateError);
+          continue;
+        }
+        
+        completedCount++;
+        console.log(`✅ Auto-completed session ${session.id}`);
+      } else {
+        console.log(`⏰ Session ${session.id} not yet ready for completion (${Math.round((completionTime - easternTime) / (1000 * 60))} minutes remaining)`);
+      }
+    }
+    
+    if (completedCount > 0) {
+      console.log(`🎉 Auto-completed ${completedCount} past sessions`);
+    } else {
+      console.log('✅ No sessions needed auto-completion');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error in autoCompletePastSessions:', error);
+  }
+}
+
+// =====================================================
 // PROFESSOR DASHBOARD API
 // =====================================================
 
@@ -1373,6 +1512,9 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
     
     // Get today's classes
     const todayClasses = classInstances.filter(isClassToday);
+    
+    // AUTOMATIC SESSION COMPLETION: Check for past sessions that need to be completed
+    await autoCompletePastSessions(classInstances.map(c => c.id));
     
     // Calculate stats
     const totalClasses = classInstances.length;
