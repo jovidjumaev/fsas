@@ -57,7 +57,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   const loadMaterials = async () => {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}/materials?professorId=${professorId}`
+        `/api/classes/${classId}/materials?professorId=${professorId}`
       );
       const data = await response.json();
       
@@ -75,7 +75,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   const createChatSession = async () => {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}/chat/session`,
+        `/api/classes/${classId}/chat/session`,
         {
           method: 'POST',
           headers: {
@@ -147,8 +147,11 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
       formData.append('file', file);
       formData.append('professorId', professorId);
 
+      console.log('📡 Uploading to:', `/api/classes/${classId}/materials/upload`);
+      console.log('📡 File details:', file.name, file.type, file.size);
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}/materials/upload`,
+        `/api/classes/${classId}/materials/upload`,
         {
           method: 'POST',
           body: formData,
@@ -191,7 +194,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}/chat/message`,
+        `/api/classes/${classId}/chat/message`,
         {
           method: 'POST',
           headers: {
@@ -255,6 +258,8 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     console.log('🗑️ Attempting to delete material:', materialToDelete);
 
     try {
+      console.log('📡 Delete URL:', `/api/classes/${classId}/materials/${materialToDelete}`);
+
       const response = await fetch(`/api/classes/${classId}/materials/${materialToDelete}`, {
         method: 'DELETE',
         headers: {
