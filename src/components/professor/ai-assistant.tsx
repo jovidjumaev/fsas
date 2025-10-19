@@ -54,6 +54,38 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     createChatSession();
   }, [classId]);
 
+  // Add global navigation tracking
+  useEffect(() => {
+    const handleNavigation = () => {
+      console.log('🚨 NAVIGATION DETECTED! Current URL:', window.location.href);
+    };
+
+    // Listen for navigation events
+    window.addEventListener('beforeunload', handleNavigation);
+    window.addEventListener('popstate', handleNavigation);
+    
+    // Also track any programmatic navigation
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+    
+    history.pushState = function(...args) {
+      console.log('🚨 pushState called:', args);
+      originalPushState.apply(history, args);
+    };
+    
+    history.replaceState = function(...args) {
+      console.log('🚨 replaceState called:', args);
+      originalReplaceState.apply(history, args);
+    };
+
+    return () => {
+      window.removeEventListener('beforeunload', handleNavigation);
+      window.removeEventListener('popstate', handleNavigation);
+      history.pushState = originalPushState;
+      history.replaceState = originalReplaceState;
+    };
+  }, []);
+
   const loadMaterials = async () => {
     try {
       const response = await fetch(
@@ -119,6 +151,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     console.log('📁 File upload started');
+    console.log('📁 Current URL before upload:', window.location.href);
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -167,15 +200,19 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
       console.log('📡 Upload response data:', data);
       
       if (data.success) {
+        console.log('✅ Upload successful, URL after upload:', window.location.href);
         toast.success('File uploaded successfully');
         loadMaterials(); // Reload materials
       } else {
+        console.log('❌ Upload failed, URL after failed upload:', window.location.href);
         toast.error(data.error || 'Failed to upload file');
       }
     } catch (error) {
       console.error('❌ Error uploading file:', error);
+      console.log('❌ URL after upload error:', window.location.href);
       toast.error('Error uploading file');
     } finally {
+      console.log('🏁 Upload process finished, final URL:', window.location.href);
       setIsUploading(false);
       // Reset file input
       event.target.value = '';
@@ -265,6 +302,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
 
   const handleDeleteMaterial = async (materialId: string) => {
     console.log('🗑️ Delete button clicked for material:', materialId);
+    console.log('🗑️ Current URL before delete:', window.location.href);
     setMaterialToDelete(materialId);
     setShowDeleteConfirm(true);
   };
@@ -273,6 +311,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     if (!materialToDelete) return;
 
     console.log('🗑️ Attempting to delete material:', materialToDelete);
+    console.log('🗑️ Current URL before delete API call:', window.location.href);
 
     try {
       console.log('📡 Delete URL:', `/api/classes/${classId}/materials/${materialToDelete}`);
@@ -298,15 +337,19 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
       console.log('📡 Delete response data:', data);
 
       if (data.success) {
+        console.log('✅ Delete successful, URL after delete:', window.location.href);
         toast.success('File deleted successfully');
         loadMaterials(); // Reload materials list
       } else {
+        console.log('❌ Delete failed, URL after failed delete:', window.location.href);
         toast.error(data.error || 'Failed to delete file');
       }
     } catch (error) {
       console.error('❌ Error deleting material:', error);
+      console.log('❌ URL after error:', window.location.href);
       toast.error('Failed to delete file: ' + error.message);
     } finally {
+      console.log('🏁 Delete process finished, final URL:', window.location.href);
       setShowDeleteConfirm(false);
       setMaterialToDelete(null);
     }

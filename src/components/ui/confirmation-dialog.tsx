@@ -30,6 +30,7 @@ export function ConfirmationDialog({
 
   const handleConfirm = () => {
     console.log('✅ Confirmation dialog confirm button clicked');
+    console.log('✅ Current URL before confirm:', window.location.href);
     onConfirm();
     onClose();
   };
@@ -43,6 +44,7 @@ export function ConfirmationDialog({
             {title}
           </CardTitle>
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={onClose}
