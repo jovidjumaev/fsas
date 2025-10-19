@@ -952,7 +952,13 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       
       // Force fresh data by adding cache-busting timestamp
       const classOverview = await getClassOverviewData(classId);
-      const studentData = await getStudentAttendanceData(classId, studentName);
+      let studentData;
+      try {
+        studentData = await getStudentAttendanceData(classId, studentName);
+      } catch (error) {
+        console.error('Error in getStudentAttendanceData:', error);
+        studentData = null;
+      }
       
       // Simple check to see if data is being fetched
       if (!studentData || studentData.length === 0) {
