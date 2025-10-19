@@ -4,7 +4,6 @@ const OpenAI = require('openai');
 const { createClient } = require('@supabase/supabase-js');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
-const pptx2json = require('pptx2json');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -109,11 +108,15 @@ router.post('/api/classes/:classId/materials/upload', upload.single('file'), asy
       } else if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
         // For PPTX files - simplified approach
         console.log('📊 Processing PowerPoint file:', req.file.originalname);
+        console.log('📊 File size:', req.file.size, 'bytes');
+        console.log('📊 MIME type:', req.file.mimetype);
         extractedText = `PowerPoint presentation: ${req.file.originalname}\n\nThis PowerPoint file has been uploaded successfully. The AI assistant can help answer questions about the presentation content, but detailed text extraction from slides is not available yet.`;
         console.log('✅ PowerPoint file processed successfully');
       } else if (req.file.mimetype === 'application/vnd.ms-powerpoint') {
         // For older PPT files
         console.log('📊 Processing legacy PowerPoint file:', req.file.originalname);
+        console.log('📊 File size:', req.file.size, 'bytes');
+        console.log('📊 MIME type:', req.file.mimetype);
         extractedText = `PowerPoint presentation: ${req.file.originalname}\n\nThis PowerPoint file has been uploaded successfully. The AI assistant can help answer questions about the presentation content, but detailed text extraction from slides is not available yet.`;
         console.log('✅ Legacy PowerPoint file processed successfully');
       }
@@ -266,21 +269,44 @@ router.delete('/api/classes/:classId/materials/:materialId', async (req, res) =>
     }
 
     console.log('📁 Found material to delete:', material.file_name);
+    console.log('🔗 File URL:', material.file_url);
 
-    // Extract filename from URL for deletion
-    const fileName = material.file_url.split('/').pop();
-    console.log('📄 Filename to delete from storage:', fileName);
+    // Extract filename from URL - handle different Supabase URL formats
+    let fileName;
+    try {
+      // Try to extract from the URL path
+      const urlParts = material.file_url.split('/');
+      fileName = urlParts[urlParts.length - 1];
+      
+      // If the filename has query parameters, remove them
+      if (fileName.includes('?')) {
+        fileName = fileName.split('?')[0];
+      }
+      
+      // If the filename is empty or doesn't look right, use the original filename
+      if (!fileName || fileName.length < 3) {
+        fileName = material.file_name;
+      }
+      
+      console.log('📄 Extracted filename:', fileName);
+    } catch (error) {
+      console.error('❌ Error extracting filename:', error);
+      fileName = material.file_name;
+    }
     
     // Delete from Supabase Storage
+    console.log('🗑️ Attempting to delete from storage bucket "class-materials"');
     const { error: storageError } = await supabase.storage
       .from('class-materials')
       .remove([fileName]);
 
     if (storageError) {
       console.error('❌ Storage deletion error:', storageError);
+      console.log('📄 Attempted filename:', fileName);
+      console.log('🔗 Original URL:', material.file_url);
       // Continue with database deletion even if storage fails
     } else {
-      console.log('✅ File deleted from storage');
+      console.log('✅ File deleted from storage:', fileName);
     }
 
     // Delete from database
