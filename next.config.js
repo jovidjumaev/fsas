@@ -21,8 +21,13 @@ const nextConfig = {
   async rewrites() {
     // In production, use the actual backend URL
     const backendUrl = process.env.NODE_ENV === 'production' 
-      ? process.env.NEXT_PUBLIC_API_URL || 'https://your-backend-domain.com'
+      ? process.env.NEXT_PUBLIC_API_URL || 'https://fsas-backend-production.up.railway.app'
       : 'http://localhost:3001';
+    
+    console.log('🔗 API Rewrite Configuration:');
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
+    console.log('Backend URL:', backendUrl);
     
     return [
       {

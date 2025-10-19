@@ -349,6 +349,8 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
 
     try {
       console.log('📡 Delete URL:', `/api/classes/${classId}/materials/${materialToDelete}`);
+      console.log('📡 Environment:', process.env.NODE_ENV);
+      console.log('📡 API URL:', process.env.NEXT_PUBLIC_API_URL);
 
       const response = await fetch(`/api/classes/${classId}/materials/${materialToDelete}`, {
         method: 'DELETE',
