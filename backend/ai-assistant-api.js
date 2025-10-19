@@ -343,6 +343,30 @@ async function getClassOverviewData(classId) {
 function extractStudentNameFromQuestion(question) {
   const lowerQuestion = question.toLowerCase();
   
+  // First, check for general questions that should return ALL students
+  const generalQuestions = [
+    'who has the best attendance',
+    'who has best attendance', 
+    'who has the worst attendance',
+    'who has worst attendance',
+    'who is absent',
+    'who is present',
+    'who missed',
+    'who attended',
+    'best attendance',
+    'worst attendance',
+    'attendance summary',
+    'class attendance',
+    'overall attendance'
+  ];
+  
+  for (const generalQ of generalQuestions) {
+    if (lowerQuestion.includes(generalQ)) {
+      console.log('🔍 General question detected, returning null for ALL students');
+      return null;
+    }
+  }
+  
   // Common patterns for asking about specific students
   const patterns = [
     /how has ([a-zA-Z\s]+)/i,
@@ -363,10 +387,10 @@ function extractStudentNameFromQuestion(question) {
       let name = match[1].trim();
       
       // Clean up the name (remove extra words)
-      name = name.replace(/\b(doing|in|this|class|my|the|a|an)\b/gi, '').trim();
+      name = name.replace(/\b(doing|in|this|class|my|the|a|an|has|best|worst|attendance)\b/gi, '').trim();
       
       // Filter out common words that aren't names
-      const commonWords = ['the', 'this', 'that', 'my', 'our', 'their', 'his', 'her', 'doing', 'in', 'class'];
+      const commonWords = ['the', 'this', 'that', 'my', 'our', 'their', 'his', 'her', 'doing', 'in', 'class', 'has', 'best', 'worst', 'attendance', 'who', 'what', 'how'];
       if (!commonWords.includes(name.toLowerCase()) && name.length > 1) {
         console.log('🔍 Extracted name:', name);
         return name;
@@ -374,6 +398,7 @@ function extractStudentNameFromQuestion(question) {
     }
   }
   
+  console.log('🔍 No specific student name found, returning null for ALL students');
   return null;
 }
 
