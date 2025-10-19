@@ -145,7 +145,7 @@ async function getStudentAttendanceData(classId, studentName = null) {
         const studentRecord = attendanceRecords.find(record => record.student_id === student.user_id);
         
         if (studentRecord) {
-          totalAttendanceRecords++;
+          // Student has an attendance record for this session
           switch (studentRecord.status) {
             case 'present':
               presentCount++;
@@ -170,6 +170,7 @@ async function getStudentAttendanceData(classId, studentName = null) {
           });
         } else {
           // Student has no record for this session (absent)
+          absentCount++;
           sessionDetails.push({
             session_number: session.session_number,
             date: session.date,
@@ -180,8 +181,11 @@ async function getStudentAttendanceData(classId, studentName = null) {
         }
       }
       
+      // Calculate total attendance records for this student
+      totalAttendanceRecords = presentCount + lateCount + absentCount + excusedCount;
+      
       const attendancePercentage = totalSessions > 0 
-        ? Math.round((presentCount / totalSessions) * 100 * 100) / 100
+        ? Math.round(((presentCount + lateCount) / totalSessions) * 100 * 100) / 100
         : 0;
       
       processedData.push({
