@@ -1153,4 +1153,88 @@ router.get('/api/classes/:classId/chat/session/:sessionId/messages', async (req,
   }
 });
 
+/**
+ * Debug endpoint to test database queries
+ * GET /api/debug/class/:classId/students
+ */
+router.get('/api/debug/class/:classId/students', async (req, res) => {
+  try {
+    const { classId } = req.params;
+    console.log('🔍 DEBUG: Testing database queries for class:', classId);
+    
+    // Test enrollments query
+    const { data: enrollments, error: enrollmentsError } = await supabase
+      .from('enrollments')
+      .select('student_id, enrollment_date, status')
+      .eq('class_instance_id', classId);
+    
+    console.log('🔍 DEBUG: Enrollments result:', { enrollments, enrollmentsError });
+    
+    if (enrollmentsError) {
+      return res.status(500).json({ error: 'Enrollments query failed', details: enrollmentsError });
+    }
+    
+    if (!enrollments || enrollments.length === 0) {
+      return res.json({ message: 'No enrollments found', enrollments: [] });
+    }
+    
+    // Test students query
+    const studentIds = enrollments.map(e => e.student_id);
+    const { data: students, error: studentsError } = await supabase
+      .from('students')
+      .select(`
+        user_id,
+        student_id,
+        users!inner(
+          first_name,
+          last_name,
+          email
+        )
+      `)
+      .in('user_id', studentIds);
+    
+    console.log('🔍 DEBUG: Students result:', { students, studentsError });
+    
+    if (studentsError) {
+      return res.status(500).json({ error: 'Students query failed', details: studentsError });
+    }
+    
+    // Test sessions query
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('class_sessions')
+      .select(`
+        id,
+        session_number,
+        date,
+        status,
+        attendance_records(
+          id,
+          student_id,
+          status,
+          minutes_late
+        )
+      `)
+      .eq('class_instance_id', classId)
+      .order('session_number');
+    
+    console.log('🔍 DEBUG: Sessions result:', { sessions, sessionsError });
+    
+    return res.json({
+      success: true,
+      enrollments: enrollments.length,
+      students: students?.length || 0,
+      sessions: sessions?.length || 0,
+      data: {
+        enrollments,
+        students,
+        sessions
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ DEBUG: Error in debug endpoint:', error);
+    return res.status(500).json({ error: 'Debug endpoint failed', details: error.message });
+  }
+});
+
 module.exports = router;
