@@ -30,165 +30,160 @@ const supabase = createClient(
 async function getStudentAttendanceData(classId, studentName = null) {
   try {
     console.log('📊 Fetching student attendance data for class:', classId);
+    console.log('🔍 Looking for student:', studentName);
     
-    let query = `
-      SELECT 
-        u.first_name,
-        u.last_name,
-        u.email,
-        s.student_id,
-        e.enrollment_date,
-        e.status as enrollment_status,
-        
-        -- Session counts
-        COUNT(cs.id) as total_sessions,
-        COUNT(CASE WHEN cs.status = 'completed' THEN 1 END) as completed_sessions,
-        COUNT(CASE WHEN cs.status = 'cancelled' THEN 1 END) as cancelled_sessions,
-        
-        -- Attendance records
-        COUNT(ar.id) as total_attendance_records,
-        COUNT(CASE WHEN ar.status = 'present' THEN 1 END) as present_count,
-        COUNT(CASE WHEN ar.status = 'late' THEN 1 END) as late_count,
-        COUNT(CASE WHEN ar.status = 'absent' THEN 1 END) as absent_count,
-        COUNT(CASE WHEN ar.status = 'excused' THEN 1 END) as excused_count,
-        
-        -- Attendance percentage
-        CASE 
-          WHEN COUNT(ar.id) > 0 THEN 
-            ROUND((COUNT(CASE WHEN ar.status = 'present' THEN 1 END)::DECIMAL / COUNT(ar.id)) * 100, 2)
-          ELSE 0 
-        END as attendance_percentage
-        
-      FROM class_instances ci
-      JOIN enrollments e ON ci.id = e.class_instance_id
-      JOIN students s ON e.student_id = s.user_id
-      JOIN users u ON s.user_id = u.id
-      LEFT JOIN class_sessions cs ON ci.id = cs.class_instance_id
-      LEFT JOIN attendance_records ar ON cs.id = ar.session_id AND ar.student_id = s.user_id
-      WHERE ci.id = $1
-    `;
-    
-    const params = [classId];
-    
-    // Add student name filter if provided
-    if (studentName) {
-      query += ` AND (LOWER(u.first_name) LIKE LOWER($2) OR LOWER(u.last_name) LIKE LOWER($2) OR LOWER(u.first_name || ' ' || u.last_name) LIKE LOWER($2))`;
-      params.push(`%${studentName}%`);
-    }
-    
-    query += `
-      GROUP BY u.first_name, u.last_name, u.email, s.student_id, e.enrollment_date, e.status, ci.id
-      ORDER BY u.last_name, u.first_name
-    `;
-    
-    const { data, error } = await supabase
-      .from('class_instances')
+    // First get all enrollments for this class
+    const { data: enrollments, error: enrollmentsError } = await supabase
+      .from('enrollments')
       .select(`
-        enrollments!inner(
-          students!inner(
-            users!inner(first_name, last_name, email),
-            student_id
-          ),
-          enrollment_date,
-          status
-        ),
-        class_sessions(
-          id,
-          session_number,
-          status,
-          attendance_records(
-            id,
-            status,
-            minutes_late
+        student_id,
+        enrollment_date,
+        status,
+        students!inner(
+          user_id,
+          student_id,
+          users!inner(
+            first_name,
+            last_name,
+            email
           )
         )
       `)
-      .eq('id', classId);
+      .eq('class_instance_id', classId);
     
-    if (error) {
-      console.error('❌ Error fetching student attendance data:', error);
+    if (enrollmentsError) {
+      console.error('❌ Error fetching enrollments:', enrollmentsError);
       return null;
     }
     
+    console.log('📋 Found enrollments:', enrollments?.length || 0);
+    
+    // Filter by student name if provided
+    let filteredEnrollments = enrollments || [];
+    if (studentName) {
+      const searchName = studentName.toLowerCase();
+      filteredEnrollments = enrollments?.filter(enrollment => {
+        const user = enrollment.students.users;
+        const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+        const firstName = user.first_name.toLowerCase();
+        const lastName = user.last_name.toLowerCase();
+        
+        return fullName.includes(searchName) || 
+               firstName.includes(searchName) || 
+               lastName.includes(searchName);
+      }) || [];
+      
+      console.log('🔍 Filtered enrollments for', studentName, ':', filteredEnrollments.length);
+    }
+    
+    // Get all sessions for this class
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('class_sessions')
+      .select(`
+        id,
+        session_number,
+        date,
+        status,
+        attendance_records(
+          id,
+          student_id,
+          status,
+          minutes_late,
+          scanned_at
+        )
+      `)
+      .eq('class_instance_id', classId)
+      .order('session_number');
+    
+    if (sessionsError) {
+      console.error('❌ Error fetching sessions:', sessionsError);
+      return null;
+    }
+    
+    console.log('📅 Found sessions:', sessions?.length || 0);
+    
     // Process the data to calculate attendance statistics
     const processedData = [];
-    if (data && data.length > 0) {
-      const classInstance = data[0];
-      const enrollments = classInstance.enrollments || [];
+    
+    for (const enrollment of filteredEnrollments) {
+      const student = enrollment.students;
+      const user = student.users;
       
-      for (const enrollment of enrollments) {
-        const student = enrollment.students;
-        const user = student.users;
+      // Calculate attendance statistics
+      const totalSessions = sessions?.length || 0;
+      const completedSessions = sessions?.filter(s => s.status === 'completed').length || 0;
+      const cancelledSessions = sessions?.filter(s => s.status === 'cancelled').length || 0;
+      
+      let totalAttendanceRecords = 0;
+      let presentCount = 0;
+      let lateCount = 0;
+      let absentCount = 0;
+      let excusedCount = 0;
+      const sessionDetails = [];
+      
+      // Process each session
+      for (const session of sessions || []) {
+        const attendanceRecords = session.attendance_records || [];
+        const studentRecord = attendanceRecords.find(record => record.student_id === student.user_id);
         
-        // Filter by student name if provided
-        if (studentName) {
-          const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
-          const firstName = user.first_name.toLowerCase();
-          const lastName = user.last_name.toLowerCase();
-          const searchName = studentName.toLowerCase();
+        if (studentRecord) {
+          totalAttendanceRecords++;
+          switch (studentRecord.status) {
+            case 'present':
+              presentCount++;
+              break;
+            case 'late':
+              lateCount++;
+              break;
+            case 'absent':
+              absentCount++;
+              break;
+            case 'excused':
+              excusedCount++;
+              break;
+          }
           
-          if (!fullName.includes(searchName) && !firstName.includes(searchName) && !lastName.includes(searchName)) {
-            continue;
-          }
+          sessionDetails.push({
+            session_number: session.session_number,
+            date: session.date,
+            status: studentRecord.status,
+            minutes_late: studentRecord.minutes_late,
+            scanned_at: studentRecord.scanned_at
+          });
+        } else {
+          // Student has no record for this session (absent)
+          sessionDetails.push({
+            session_number: session.session_number,
+            date: session.date,
+            status: 'absent',
+            minutes_late: 0,
+            scanned_at: null
+          });
         }
-        
-        // Calculate attendance statistics
-        const sessions = classInstance.class_sessions || [];
-        const totalSessions = sessions.length;
-        const completedSessions = sessions.filter(s => s.status === 'completed').length;
-        const cancelledSessions = sessions.filter(s => s.status === 'cancelled').length;
-        
-        let totalAttendanceRecords = 0;
-        let presentCount = 0;
-        let lateCount = 0;
-        let absentCount = 0;
-        let excusedCount = 0;
-        
-        for (const session of sessions) {
-          const attendanceRecords = session.attendance_records || [];
-          for (const record of attendanceRecords) {
-            if (record.student_id === student.user_id) {
-              totalAttendanceRecords++;
-              switch (record.status) {
-                case 'present':
-                  presentCount++;
-                  break;
-                case 'late':
-                  lateCount++;
-                  break;
-                case 'absent':
-                  absentCount++;
-                  break;
-                case 'excused':
-                  excusedCount++;
-                  break;
-              }
-            }
-          }
-        }
-        
-        const attendancePercentage = totalAttendanceRecords > 0 
-          ? Math.round((presentCount / totalAttendanceRecords) * 100 * 100) / 100
-          : 0;
-        
-        processedData.push({
-          first_name: user.first_name,
-          last_name: user.last_name,
-          email: user.email,
-          student_id: student.student_id,
-          enrollment_date: enrollment.enrollment_date,
-          enrollment_status: enrollment.status,
-          total_sessions: totalSessions,
-          completed_sessions: completedSessions,
-          cancelled_sessions: cancelledSessions,
-          total_attendance_records: totalAttendanceRecords,
-          present_count: presentCount,
-          late_count: lateCount,
-          absent_count: absentCount,
-          excused_count: excusedCount,
-          attendance_percentage: attendancePercentage
-        });
       }
+      
+      const attendancePercentage = totalSessions > 0 
+        ? Math.round((presentCount / totalSessions) * 100 * 100) / 100
+        : 0;
+      
+      processedData.push({
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        student_id: student.student_id,
+        enrollment_date: enrollment.enrollment_date,
+        enrollment_status: enrollment.status,
+        total_sessions: totalSessions,
+        completed_sessions: completedSessions,
+        cancelled_sessions: cancelledSessions,
+        total_attendance_records: totalAttendanceRecords,
+        present_count: presentCount,
+        late_count: lateCount,
+        absent_count: absentCount,
+        excused_count: excusedCount,
+        attendance_percentage: attendancePercentage,
+        session_details: sessionDetails
+      });
     }
     
     console.log('✅ Student attendance data fetched:', processedData.length, 'students');
@@ -308,22 +303,30 @@ function extractStudentNameFromQuestion(question) {
   
   // Common patterns for asking about specific students
   const patterns = [
-    /how has (\w+)/i,
-    /how is (\w+)/i,
-    /how did (\w+)/i,
-    /(\w+) attendance/i,
-    /(\w+) performance/i,
-    /(\w+) progress/i,
-    /student (\w+)/i,
-    /(\w+) in this class/i
+    /how has ([a-zA-Z\s]+)/i,
+    /how is ([a-zA-Z\s]+)/i,
+    /how did ([a-zA-Z\s]+)/i,
+    /([a-zA-Z\s]+) attendance/i,
+    /([a-zA-Z\s]+) performance/i,
+    /([a-zA-Z\s]+) progress/i,
+    /student ([a-zA-Z\s]+)/i,
+    /([a-zA-Z\s]+) in this class/i,
+    /([a-zA-Z\s]+) doing/i,
+    /([a-zA-Z\s]+) doing in/i
   ];
   
   for (const pattern of patterns) {
     const match = question.match(pattern);
     if (match && match[1]) {
-      const name = match[1].trim();
+      let name = match[1].trim();
+      
+      // Clean up the name (remove extra words)
+      name = name.replace(/\b(doing|in|this|class|my|the|a|an)\b/gi, '').trim();
+      
       // Filter out common words that aren't names
-      if (!['the', 'this', 'that', 'my', 'our', 'their', 'his', 'her'].includes(name.toLowerCase())) {
+      const commonWords = ['the', 'this', 'that', 'my', 'our', 'their', 'his', 'her', 'doing', 'in', 'class'];
+      if (!commonWords.includes(name.toLowerCase()) && name.length > 1) {
+        console.log('🔍 Extracted name:', name);
         return name;
       }
     }
@@ -926,7 +929,20 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
           databaseContext += `  - Enrollment: ${student.enrollment_date} (${student.enrollment_status})\n`;
           databaseContext += `  - Attendance Rate: ${student.attendance_percentage}%\n`;
           databaseContext += `  - Records: ${student.present_count} present, ${student.late_count} late, ${student.absent_count} absent, ${student.excused_count} excused\n`;
-          databaseContext += `  - Sessions: ${student.total_attendance_records} out of ${student.total_sessions} total sessions\n\n`;
+          databaseContext += `  - Sessions: ${student.total_attendance_records} out of ${student.total_sessions} total sessions\n`;
+          
+          // Add session-by-session details
+          if (student.session_details && student.session_details.length > 0) {
+            databaseContext += `  - Session Details:\n`;
+            student.session_details.forEach(session => {
+              databaseContext += `    * Session ${session.session_number} (${session.date}): ${session.status}`;
+              if (session.minutes_late > 0) {
+                databaseContext += ` (${session.minutes_late} min late)`;
+              }
+              databaseContext += `\n`;
+            });
+          }
+          databaseContext += `\n`;
         });
       }
     } catch (error) {
@@ -975,6 +991,12 @@ IMPORTANT INSTRUCTIONS:
 - Avoid lengthy explanations or examples
 - You can answer questions about both uploaded materials AND student attendance/performance
 - For attendance questions, use the provided database context
+- You can answer specific questions like:
+  * "Who was absent in session 3?"
+  * "How is John doing?"
+  * "Show me Sarah's attendance record"
+  * "Who was late in the last session?"
+- Use session details to answer specific session questions
 - If question is unrelated to materials or attendance, say: "Please ask about the uploaded materials or student attendance."
 - Prioritize accuracy over verbosity`
     };
