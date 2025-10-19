@@ -282,6 +282,18 @@ router.delete('/api/classes/:classId/materials/:materialId', async (req, res) =>
 
     console.log('📁 Found material to delete:', material.file_name);
     console.log('🔗 File URL:', material.file_url);
+    
+    // List files in storage bucket to see what's actually there
+    console.log('📋 Listing files in storage bucket...');
+    const { data: bucketFiles, error: listError } = await supabase.storage
+      .from('class-materials')
+      .list();
+    
+    if (listError) {
+      console.error('❌ Error listing bucket files:', listError);
+    } else {
+      console.log('📋 Files in bucket:', bucketFiles?.map(f => f.name) || []);
+    }
 
     // Extract filename from URL - handle different Supabase URL formats
     let fileName;
@@ -308,17 +320,39 @@ router.delete('/api/classes/:classId/materials/:materialId', async (req, res) =>
     
     // Delete from Supabase Storage
     console.log('🗑️ Attempting to delete from storage bucket "class-materials"');
-    const { error: storageError } = await supabase.storage
+    console.log('📄 Filename to delete:', fileName);
+    console.log('🔗 Original file URL:', material.file_url);
+    
+    const { data: storageData, error: storageError } = await supabase.storage
       .from('class-materials')
       .remove([fileName]);
+
+    console.log('🗑️ Storage deletion result:', { storageData, storageError });
 
     if (storageError) {
       console.error('❌ Storage deletion error:', storageError);
       console.log('📄 Attempted filename:', fileName);
       console.log('🔗 Original URL:', material.file_url);
-      // Continue with database deletion even if storage fails
+      
+      // Try alternative filename extraction
+      console.log('🔄 Trying alternative filename extraction...');
+      const alternativeFileName = material.file_name;
+      console.log('📄 Alternative filename:', alternativeFileName);
+      
+      const { data: altStorageData, error: altStorageError } = await supabase.storage
+        .from('class-materials')
+        .remove([alternativeFileName]);
+      
+      console.log('🗑️ Alternative storage deletion result:', { altStorageData, altStorageError });
+      
+      if (altStorageError) {
+        console.error('❌ Alternative storage deletion also failed:', altStorageError);
+      } else {
+        console.log('✅ File deleted from storage with alternative filename:', alternativeFileName);
+      }
     } else {
       console.log('✅ File deleted from storage:', fileName);
+      console.log('📊 Storage deletion data:', storageData);
     }
 
     // Delete from database
