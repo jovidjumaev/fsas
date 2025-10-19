@@ -963,6 +963,9 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       
       // Temporarily remove the check to see what data is actually being sent to AI
       console.error('DEBUG: studentData result:', studentData ? `${studentData.length} students` : 'null/undefined');
+      if (studentData && studentData.length > 0) {
+        console.error('DEBUG: First student sample:', studentData[0]);
+      }
       
       // Add class identification to context
       if (classOverview) {
