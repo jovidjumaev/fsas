@@ -21,6 +21,7 @@ import ProfessorHeader from '@/components/professor/professor-header';
 import ProfileEditModal from '@/components/profile/profile-edit-modal';
 import PasswordChangeModal from '@/components/profile/password-change-modal';
 import { supabase } from '@/lib/supabase';
+import { io } from 'socket.io-client';
 
 interface ClassData {
   id: string;
@@ -165,10 +166,27 @@ function ClassesPageContent() {
   }, []);
 
   useEffect(() => {
-    fetchClasses();
-    fetchAvailableCourses();
-    fetchAcademicPeriods();
-    fetchUserProfile();
+    if (user) {
+      fetchClasses();
+      fetchAvailableCourses();
+      fetchAcademicPeriods();
+      fetchUserProfile();
+      
+      // Connect to WebSocket for real-time updates
+      const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
+      
+      // Listen for attendance status updates
+      socket.on('attendance_status_updated', (data) => {
+        console.log('📊 Received attendance status update on classes page:', data);
+        
+        // Refresh classes data to get updated attendance rates
+        fetchClasses();
+      });
+      
+      return () => {
+        socket.disconnect();
+      };
+    }
   }, [user]);
 
   useEffect(() => {
