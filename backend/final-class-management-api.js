@@ -8,6 +8,7 @@ const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const QRCode = require('qrcode');
 const crypto = require('crypto');
+const { createEasternDate, formatEasternTime } = require('./eastern-time-utils');
 require('dotenv').config({ path: '.env.local' });
 
 const router = express.Router();
@@ -39,8 +40,39 @@ router.post('/api/class-instances', async (req, res) => {
     } = req.body;
     
     console.log('📚 Creating new class instance:', { 
-      course_id, professor_id, academic_period_id, days_of_week 
+      course_id, professor_id, academic_period_id, days_of_week,
+      start_time, end_time, first_class_date, last_class_date
     });
+    
+    // Validate and normalize times to Eastern Time
+    // The frontend sends times in HH:MM format, which we interpret as Eastern Time
+    console.log('🕐 Processing times in Eastern Time:');
+    console.log(`   Start time: ${start_time} (interpreted as Eastern Time)`);
+    console.log(`   End time: ${end_time} (interpreted as Eastern Time)`);
+    
+    // Validate time format
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(start_time) || !timeRegex.test(end_time)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid time format. Please use HH:MM format (24-hour)'
+      });
+    }
+    
+    // Validate that start time is before end time
+    const [startHour, startMin] = start_time.split(':').map(Number);
+    const [endHour, endMin] = end_time.split(':').map(Number);
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+    
+    if (startMinutes >= endMinutes) {
+      return res.status(400).json({
+        success: false,
+        error: 'Start time must be before end time'
+      });
+    }
+    
+    console.log(`✅ Time validation passed: ${start_time} - ${end_time} Eastern Time`);
     
     // Get the next section number for this course and academic period
     const { data: existingClasses, error: countError } = await supabase

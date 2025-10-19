@@ -1,0 +1,21 @@
+-- =====================================================
+-- EASTERN TIME DOCUMENTATION
+-- =====================================================
+-- All time fields in this database are stored in Eastern Time (EDT/EST)
+-- 
+-- Fields that store Eastern Time:
+-- - class_instances.start_time (HH:MM format, Eastern Time)
+-- - class_instances.end_time (HH:MM format, Eastern Time)
+-- - class_sessions.start_time (HH:MM format, Eastern Time)
+-- - class_sessions.end_time (HH:MM format, Eastern Time)
+-- - class_sessions.date (YYYY-MM-DD format, Eastern Time date)
+--
+-- When creating classes or sessions, the frontend sends times in HH:MM format
+-- which are interpreted as Eastern Time and stored as-is.
+--
+-- When processing these times, use the eastern-time-utils.js functions:
+-- - createEasternDate(date, time) - Create Eastern Time date from strings
+-- - getCurrentEasternTime() - Get current Eastern Time
+-- - formatEasternTime(date) - Format Eastern Time for display
+--
+-- This ensures consistent timezone handling throughout the application.
