@@ -1075,6 +1075,7 @@ CRITICAL INSTRUCTIONS:
 - For attendance questions, use the provided database context (this data is LIVE and up-to-date)
 - The database context shows REAL-TIME data - trust it completely and use it as the source of truth
 - IMPORTANT: Only students with ACTIVE enrollments are included in the data - dropped/inactive students are excluded
+- **MOST IMPORTANT: If STUDENT ATTENDANCE DATA is provided below, you MUST use it. Do NOT say "no data available" if the data is there.**
 
 ATTENDANCE QUESTIONS YOU CAN ANSWER:
 - "Who has the best attendance?" → Look at the STUDENT ATTENDANCE DATA section and find the student with the highest attendance percentage
@@ -1091,6 +1092,8 @@ EXAMPLE RESPONSES:
 - "Who has the best attendance?" → "Jovid Jumaev has the best attendance at 100% (4/4 sessions)."
 - "How is Pratik doing?" → "Pratik Shrestha has 75% attendance (3/4 sessions) with 1 absence."
 - "Who was absent in session 2?" → "Check the session details in the student data for session 2."
+
+CRITICAL: If you see STUDENT ATTENDANCE DATA above, you MUST use it to answer attendance questions. Do NOT say "no data available" if the data is provided above.
 
 IMPORTANT RULES:
 - ALWAYS use the STUDENT ATTENDANCE DATA section to answer attendance questions
