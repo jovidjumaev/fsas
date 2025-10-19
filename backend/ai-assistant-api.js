@@ -995,6 +995,14 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
           }
           databaseContext += `\n`;
         });
+        
+        console.log('🤖 DEBUG: Student attendance data provided to AI:');
+        console.log(`   Students: ${studentData.length}`);
+        studentData.forEach(student => {
+          console.log(`   - ${student.first_name} ${student.last_name}: ${student.attendance_percentage}%`);
+        });
+      } else {
+        console.log('❌ DEBUG: No student attendance data provided to AI');
       }
     } catch (error) {
       console.error('❌ Error fetching database context:', error);
@@ -1044,16 +1052,28 @@ CRITICAL INSTRUCTIONS:
 - For attendance questions, use the provided database context (this data is LIVE and up-to-date)
 - The database context shows REAL-TIME data - trust it completely and use it as the source of truth
 - IMPORTANT: Only students with ACTIVE enrollments are included in the data - dropped/inactive students are excluded
-- You can answer specific questions like:
-  * "Who was absent in session 3?"
-  * "How is John doing?"
-  * "Show me Sarah's attendance record"
-  * "Who was late in the last session?"
-  * "Who has the best attendance?"
-  * "How many classes did [student] miss?"
-  * "Is [student] enrolled in this class?"
-- Use session details to answer specific session questions
+
+ATTENDANCE QUESTIONS YOU CAN ANSWER:
+- "Who has the best attendance?" → Look at the STUDENT ATTENDANCE DATA section and find the student with the highest attendance percentage
+- "Who was absent in session X?" → Check session details for specific session numbers
+- "How is [student name] doing?" → Find the student in the STUDENT ATTENDANCE DATA section
+- "Show me [student name]'s attendance record" → Find the student and show their detailed attendance
+- "Who was late in the last session?" → Check session details for late status
+- "How many classes did [student] miss?" → Calculate from absent_count in student data
+- "Is [student] enrolled in this class?" → Check if student appears in STUDENT ATTENDANCE DATA
+- "Who has the worst attendance?" → Find student with lowest attendance percentage
+- "What's the average attendance?" → Use the overall attendance rate from CLASS OVERVIEW
+
+EXAMPLE RESPONSES:
+- "Who has the best attendance?" → "Jovid Jumaev has the best attendance at 100% (4/4 sessions)."
+- "How is Pratik doing?" → "Pratik Shrestha has 75% attendance (3/4 sessions) with 1 absence."
+- "Who was absent in session 2?" → "Check the session details in the student data for session 2."
+
+IMPORTANT RULES:
+- ALWAYS use the STUDENT ATTENDANCE DATA section to answer attendance questions
+- If STUDENT ATTENDANCE DATA is provided, you CAN answer individual student questions
 - If a student is not in the database context, they are NOT enrolled in this class
+- Use session details to answer specific session questions
 - If question is unrelated to materials or attendance, say: "Please ask about the uploaded materials or student attendance."
 - Prioritize accuracy over verbosity`
     };
