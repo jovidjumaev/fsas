@@ -449,8 +449,8 @@ app.get('/api/professors/:professorId/classes', async (req, res) => {
             let totalAttended = 0;
             
             sessionsWithAttendance.forEach(session => {
-              // Each session should have attendance_count records (one per enrolled student)
-              totalPossibleAttendance += session.attendance_count;
+              // Total possible attendance = number of enrolled students for each session
+              totalPossibleAttendance += enrolledCount;
               
               // Count how many were present/late/excused
               if (session.attendance_records && session.attendance_records.length > 0) {

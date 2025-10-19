@@ -186,8 +186,12 @@ async function getStudentAttendanceData(classId, studentName = null) {
       // Calculate total attendance records for this student
       totalAttendanceRecords = presentCount + lateCount + absentCount + excusedCount;
       
-      const attendancePercentage = totalSessions > 0 
-        ? Math.round(((presentCount + lateCount) / totalSessions) * 100 * 100) / 100
+      // Calculate attendance percentage correctly
+      const totalPossibleAttendance = totalSessions; // Each session counts as 1 possible attendance
+      const totalAttended = presentCount + lateCount + excusedCount;
+      
+      const attendancePercentage = totalPossibleAttendance > 0 
+        ? Math.round((totalAttended / totalPossibleAttendance) * 100)
         : 0;
       
       processedData.push({
@@ -289,8 +293,13 @@ async function getClassOverviewData(classId) {
       }
     }
     
-    const overallAttendancePercentage = totalAttendanceRecords > 0 
-      ? Math.round((presentCount / totalAttendanceRecords) * 100 * 100) / 100
+    // Calculate overall attendance percentage correctly
+    const totalEnrolled = data.enrollments?.[0]?.count || 0;
+    const totalPossibleAttendance = sessionsWithAttendance.length * totalEnrolled;
+    const totalAttended = presentCount + lateCount + excusedCount;
+    
+    const overallAttendancePercentage = totalPossibleAttendance > 0 
+      ? Math.round((totalAttended / totalPossibleAttendance) * 100)
       : 0;
     
     const processedData = {

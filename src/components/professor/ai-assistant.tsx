@@ -594,7 +594,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
               <div className="text-center text-gray-500 dark:text-gray-400 py-8">
                 <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Start a conversation with the AI assistant</p>
-                <p className="text-sm">Ask questions about your uploaded materials</p>
+                <p className="text-sm">Ask anything about this course - student stats, attendance, materials, or upload files</p>
               </div>
             )}
             {isLoading && (

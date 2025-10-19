@@ -1186,6 +1186,28 @@ router.patch('/api/sessions/:sessionId/attendance/:studentNumber', async (req, r
       console.log('✅ Created new attendance record');
     }
     
+    // Update session attendance_count to mark it as professor-initiated
+    const { data: attendanceRecords, error: countError } = await supabase
+      .from('attendance_records')
+      .select('id')
+      .eq('session_id', sessionId);
+    
+    if (!countError && attendanceRecords) {
+      const { error: updateSessionError } = await supabase
+        .from('class_sessions')
+        .update({ 
+          attendance_count: attendanceRecords.length,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', sessionId);
+      
+      if (updateSessionError) {
+        console.error('❌ Error updating session attendance count:', updateSessionError);
+      } else {
+        console.log('✅ Updated session attendance count:', attendanceRecords.length);
+      }
+    }
+    
     res.json({
       success: true,
       message: 'Attendance status updated successfully'
