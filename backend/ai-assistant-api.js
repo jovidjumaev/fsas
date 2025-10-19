@@ -960,14 +960,8 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
         studentData = null;
       }
       
-      // Simple check to see if data is being fetched
-      if (!studentData || studentData.length === 0) {
-        console.error('CRITICAL: No student data returned from getStudentAttendanceData');
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to fetch student attendance data'
-        });
-      }
+      // Temporarily remove the check to see what data is actually being sent to AI
+      console.error('DEBUG: studentData result:', studentData ? `${studentData.length} students` : 'null/undefined');
       
       // Add class identification to context
       if (classOverview) {
