@@ -398,9 +398,11 @@ router.get('/api/attendance/student/:studentId', async (req, res) => {
 router.get('/api/attendance/student/:studentId/today-stats', async (req, res) => {
   try {
     const { studentId } = req.params;
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const easternTime = getCurrentEasternTime();
+    const today = easternTime.toISOString().split('T')[0]; // YYYY-MM-DD format in Eastern Time
     
-    console.log(`📊 Fetching today's stats for student ${studentId} on ${today}`);
+    console.log(`📊 Fetching today's stats for student ${studentId} on ${today} (Eastern Time)`);
+    console.log(`   Eastern time: ${formatEasternTime(easternTime)}`);
     
     // First, get the student's user_id from the student_id (like "5002378")
     const { data: studentRecord, error: studentError } = await supabase

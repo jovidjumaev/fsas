@@ -166,18 +166,18 @@ router.get('/api/professors/:professorId/sessions', async (req, res) => {
     }
     
     if (date_range && date_range !== 'all') {
-      const today = new Date();
-      const startDate = new Date(today);
+      const easternTime = getCurrentEasternTime();
+      const startDate = new Date(easternTime);
       
       switch (date_range) {
         case 'today':
           startDate.setHours(0, 0, 0, 0);
           break;
         case 'week':
-          startDate.setDate(today.getDate() - 7);
+          startDate.setDate(easternTime.getDate() - 7);
           break;
         case 'month':
-          startDate.setMonth(today.getMonth() - 1);
+          startDate.setMonth(easternTime.getMonth() - 1);
           break;
       }
       
@@ -190,13 +190,15 @@ router.get('/api/professors/:professorId/sessions', async (req, res) => {
     
     if (error) throw error;
     
-    // Debug: Log session dates
-    const today = new Date().toISOString().split('T')[0];
-    console.log('🔍 Backend Session Debug:');
-    console.log('  Today\'s date:', today);
+    // Debug: Log session dates using Eastern Time
+    const easternTime = getCurrentEasternTime();
+    const todayDate = easternTime.toISOString().split('T')[0];
+    console.log('🔍 Backend Session Debug (Eastern Time):');
+    console.log('  Eastern time:', formatEasternTime(easternTime));
+    console.log('  Today\'s date (Eastern):', todayDate);
     console.log('  Total sessions found:', sessions.length);
     console.log('  Session dates:', sessions.map(s => ({ id: s.id, date: s.date, code: s.class_instances?.courses?.code })));
-    console.log('  Sessions matching today:', sessions.filter(s => s.date === today).length);
+    console.log('  Sessions matching today:', sessions.filter(s => s.date === todayDate).length);
     
     // Get current enrollment and attendance counts for each session
     const sessionsWithCounts = await Promise.all(sessions.map(async (session) => {

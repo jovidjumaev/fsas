@@ -1,5 +1,6 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
+const { getCurrentEasternTime } = require('./eastern-time-utils');
 const router = express.Router();
 
 // Create Supabase client
@@ -74,8 +75,9 @@ router.get('/api/students/:studentId/classes', async (req, res) => {
       }
     }
 
-    // Get today sessions to compute meets_today reliably
-    const todayIso = new Date().toISOString().split('T')[0];
+    // Get today sessions to compute meets_today reliably using Eastern Time
+    const easternTime = getCurrentEasternTime();
+    const todayIso = easternTime.toISOString().split('T')[0];
     const meetsTodaySet = new Set();
     if (classInstanceIds.length > 0) {
       const { data: todaySessions } = await supabase

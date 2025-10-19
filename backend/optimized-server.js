@@ -7,7 +7,7 @@ const { Server: SocketIOServer } = require('socket.io');
 const { createClient } = require('@supabase/supabase-js');
 const QRCode = require('qrcode');
 const crypto = require('crypto');
-const { getCurrentEasternTime, formatEasternTime } = require('./eastern-time-utils');
+const { getCurrentEasternTime, formatEasternTime, createEasternDate } = require('./eastern-time-utils');
 require('dotenv').config({ path: '.env.local' });
 
 // Import the new class management API
@@ -1323,13 +1323,13 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
     const activeSessions = allSessions.filter(s => s.is_active === true);
     
     // Define Eastern Time for consistent day calculation across the function
-    const now = new Date();
-    const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+    // Get today's date in Eastern Time using centralized utilities
+    const easternTime = getCurrentEasternTime();
     const todayDate = easternTime.toISOString().split('T')[0];
     
-    console.log('🕐 Dashboard Timezone Debug:');
-    console.log('  Server UTC time:', now.toISOString());
-    console.log('  Eastern time:', easternTime.toString());
+    console.log('🕐 Dashboard timezone handling (using centralized utilities):');
+    console.log('  Server UTC time:', new Date().toISOString());
+    console.log('  Eastern time:', formatEasternTime(easternTime));
     console.log('  Eastern day of week:', easternTime.getDay(), '(' + easternTime.toLocaleDateString('en-US', { weekday: 'long' }) + ')');
     console.log('  Eastern date:', todayDate);
     
@@ -1337,17 +1337,19 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
     const isClassToday = (classInstance) => {
       const todayDayOfWeek = easternTime.getDay(); // 0 = Sunday, 1 = Monday, etc.
       
-      console.log('🕐 Timezone Debug (Fixed):');
-      console.log('  Server UTC time:', now.toISOString());
-      console.log('  Eastern time:', easternTime.toString());
-      console.log('  Eastern day of week:', todayDayOfWeek, '(' + easternTime.toLocaleDateString('en-US', { weekday: 'long' }) + ')');
-      console.log('  Eastern date:', todayDate);
+      console.log(`🔍 Checking if class ${classInstance.class_code} meets today:`);
+      console.log(`   Today's day of week: ${todayDayOfWeek} (${easternTime.toLocaleDateString('en-US', { weekday: 'long' })})`);
+      console.log(`   Class days: ${classInstance.days_of_week?.join(', ') || 'none'}`);
       
-      // Check if today is within the class period
-      const firstClassDate = new Date(classInstance.first_class_date);
-      const lastClassDate = new Date(classInstance.last_class_date);
+      // Check if today is within the class period using Eastern Time utilities
+      const firstClassDate = createEasternDate(classInstance.first_class_date, '00:00:00');
+      const lastClassDate = createEasternDate(classInstance.last_class_date, '23:59:59');
+      
+      console.log(`   Class period: ${classInstance.first_class_date} to ${classInstance.last_class_date}`);
+      console.log(`   Today within period: ${easternTime >= firstClassDate && easternTime <= lastClassDate}`);
       
       if (easternTime < firstClassDate || easternTime > lastClassDate) {
+        console.log(`   ❌ Class ${classInstance.class_code} not in period`);
         return false;
       }
       
@@ -1363,7 +1365,10 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
         'Sunday': 0
       };
       
-      return daysOfWeek.some(day => dayMapping[day] === todayDayOfWeek);
+      const meetsToday = daysOfWeek.some(day => dayMapping[day] === todayDayOfWeek);
+      console.log(`   ✅ Class ${classInstance.class_code} meets today: ${meetsToday}`);
+      
+      return meetsToday;
     };
     
     // Get today's classes
