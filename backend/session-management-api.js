@@ -1418,7 +1418,7 @@ router.get('/api/classes/:classId/analytics', async (req, res) => {
     
     console.log('📊 Fetching analytics for class:', classId);
     
-    // Get all completed sessions for this class
+    // Get all completed sessions for this class - only professor-initiated sessions
     const { data: sessions, error: sessionsError } = await supabase
       .from('class_sessions')
       .select(`
@@ -1431,6 +1431,7 @@ router.get('/api/classes/:classId/analytics', async (req, res) => {
       `)
       .eq('class_instances.id', classId)
       .eq('status', 'completed')
+      .gt('attendance_count', 0) // Only sessions with attendance records (professor-initiated)
       .order('date', { ascending: true });
     
     if (sessionsError) throw sessionsError;

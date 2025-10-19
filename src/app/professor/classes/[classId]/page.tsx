@@ -154,6 +154,7 @@ function ClassManagementPageContent() {
     if (classId) {
       fetchClassData();
       fetchStudents();
+      fetchSessions(); // Load sessions data immediately for overview
       
       // Connect to WebSocket for real-time updates
       const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
