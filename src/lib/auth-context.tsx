@@ -98,11 +98,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const fetchUserRole = async (userId: string) => {
+  const fetchUserRole = async (userId: string, retryCount = 0) => {
     try {
-      console.log('🔐 Fetching user role for:', userId);
+      console.log('🔐 Fetching user role for:', userId, retryCount > 0 ? `(retry ${retryCount})` : '');
       
-      // Add timeout to prevent hanging
+      // Add timeout to prevent hanging - increased from 3s to 10s
       const rolePromise = supabase
         .from('users')
         .select('role')
@@ -110,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
       
       const timeoutPromise = new Promise((unused, reject) => 
-        setTimeout(() => reject(new Error('Role fetch timeout')), 3000)
+        setTimeout(() => reject(new Error('Role fetch timeout')), 10000) // Increased to 10 seconds
       );
       
       const { data: userData, error: userError } = await Promise.race([
@@ -120,6 +120,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (userError) {
         console.error('Error fetching user role:', userError);
+        
+        // Retry logic for temporary failures
+        if (retryCount < 2 && (userError.message?.includes('timeout') || userError.message?.includes('network'))) {
+          console.log('🔐 Retrying role fetch in 1 second...');
+          setTimeout(() => fetchUserRole(userId, retryCount + 1), 1000);
+          return;
+        }
+        
         console.log('🔐 Attempting fallback role detection...');
         
         // Fallback: Check if users table exists but couldn't find user
@@ -140,6 +148,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserRole(null);
     } catch (error) {
       console.error('Error fetching user role:', error);
+      
+      // Retry logic for timeout errors
+      if (retryCount < 2 && error.message?.includes('timeout')) {
+        console.log('🔐 Retrying role fetch after timeout...');
+        setTimeout(() => fetchUserRole(userId, retryCount + 1), 1000);
+        return;
+      }
       setUserRole(null);
     }
   };
