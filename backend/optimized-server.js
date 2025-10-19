@@ -1577,14 +1577,15 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
       const classEnrollments = enrollments.filter(e => e.class_instance_id === instance.id);
       const classActiveSessions = activeSessions.filter(s => s.class_instance_id === instance.id);
       const classCompletedSessions = completedSessions.filter(s => s.class_instance_id === instance.id);
-      const isToday = isClassToday(instance);
-      
-      // Find today's session if this is a today class (any status)
+      // Find today's session first
       const todayDate = easternTime.toISOString().split('T')[0];
-      const todaySession = isToday ? allSessions.find(s => 
+      const todaySession = allSessions.find(s => 
         s.class_instance_id === instance.id && 
         s.date === todayDate
-      ) : null;
+      );
+      
+      // Only consider it a "today's class" if there's actually a session scheduled for today
+      const isToday = isClassToday(instance) && todaySession;
       
       // Calculate today-specific attendance rate if session exists, otherwise overall class rate
       let classAttendanceRate = 0;
