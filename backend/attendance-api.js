@@ -101,9 +101,43 @@ router.post('/api/attendance/scan', async (req, res) => {
       .single();
     
     if (enrollmentError || !enrollment) {
+      // Get class information for better error message
+      const { data: classInfo } = await supabase
+        .from('class_instances')
+        .select(`
+          class_code,
+          courses!inner(code, name)
+        `)
+        .eq('id', session.class_instance_id)
+        .single();
+      
+      const className = classInfo ? `${classInfo.courses.code} - ${classInfo.courses.name}` : 'this class';
+      
+      // Check if student is enrolled in any instance of this course
+      const { data: anyEnrollment } = await supabase
+        .from('enrollments')
+        .select(`
+          class_instances!inner(
+            class_code,
+            courses!inner(code, name)
+          )
+        `)
+        .eq('student_id', studentRecord.user_id)
+        .eq('class_instances.courses.code', classInfo?.courses.code)
+        .eq('status', 'active')
+        .single();
+      
+      let errorMessage = `You are not enrolled in ${className} or your enrollment is not active.`;
+      
+      if (anyEnrollment) {
+        errorMessage += ` You are enrolled in ${anyEnrollment.class_instances.courses.code} - ${anyEnrollment.class_instances.courses.name} (${anyEnrollment.class_instances.class_code}), but this QR code is for ${className} (${classInfo.class_code}). Please scan the correct QR code for your class section.`;
+      } else {
+        errorMessage += ' Please contact your professor if you believe this is an error.';
+      }
+      
       return res.status(403).json({
         success: false,
-        error: 'You are not enrolled in this class or your enrollment is not active'
+        error: errorMessage
       });
     }
     

@@ -57,7 +57,7 @@ class QRCodeGenerator {
   }
   
   static get QR_EXPIRY_SECONDS() {
-    return 10;
+    return 300; // 5 minutes - gives students more time to scan
   }
 
   static async generateSecureQR(sessionId) {

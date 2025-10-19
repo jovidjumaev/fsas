@@ -512,7 +512,7 @@ router.get('/api/sessions/:sessionId/qr', async (req, res) => {
       width: 256
     });
 
-    const expiresAt = new Date(timestamp + (10 * 1000)); // 10 seconds
+    const expiresAt = new Date(timestamp + (300 * 1000)); // 5 minutes
 
     // Update session with QR data
     await supabase

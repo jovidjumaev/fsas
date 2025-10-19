@@ -11,7 +11,7 @@ class QRCodeGenerator {
   }
   
   static get QR_EXPIRY_SECONDS() {
-    return 10; // 10 seconds - security feature to prevent cheating
+    return 300; // 5 minutes - gives students more time to scan
   }
 
   /**
