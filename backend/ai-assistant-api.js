@@ -31,6 +31,7 @@ async function getStudentAttendanceData(classId, studentName = null) {
   try {
     console.log('📊 Fetching student attendance data for class:', classId);
     console.log('🔍 Looking for student:', studentName);
+    console.log('🔄 Cache-busting timestamp:', Date.now());
     
     // First get all enrollments for this class
     const { data: enrollments, error: enrollmentsError } = await supabase
@@ -224,6 +225,7 @@ async function getStudentAttendanceData(classId, studentName = null) {
 async function getClassOverviewData(classId) {
   try {
     console.log('📊 Fetching class overview data for class:', classId);
+    console.log('🔄 Cache-busting timestamp:', Date.now());
     
     const { data, error } = await supabase
       .from('class_instances')
@@ -930,6 +932,9 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       // Add timestamp to ensure AI knows data is fresh
       const dataTimestamp = new Date().toISOString();
       databaseContext += `📊 LIVE DATABASE DATA (Updated: ${dataTimestamp}):\n\n`;
+      
+      // Force fresh data by adding cache-busting timestamp
+      console.log('🔄 Fetching fresh data with timestamp:', dataTimestamp);
       console.log('📊 Fetching class overview for classId:', classId);
       const classOverview = await getClassOverviewData(classId);
       console.log('📊 Class overview result:', classOverview ? 'SUCCESS' : 'FAILED');

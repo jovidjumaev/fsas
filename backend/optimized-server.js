@@ -418,7 +418,7 @@ app.get('/api/professors/:professorId/classes', async (req, res) => {
           console.error('Error fetching sessions for class', classInstance.id, sessionsError);
         }
         
-        // Calculate attendance rate from all sessions
+        // Calculate attendance rate from professor-initiated sessions only
         let attendanceRate = 0;
         let totalSessions = 0;
         let activeSessions = 0;
@@ -426,22 +426,44 @@ app.get('/api/professors/:professorId/classes', async (req, res) => {
         if (sessions && sessions.length > 0) {
           const allSessions = sessions;
           const activeSessionsList = sessions.filter(s => s.status === 'active');
-          const completedSessions = sessions.filter(s => s.status === 'completed');
           
           totalSessions = allSessions.length;
           activeSessions = activeSessionsList.length;
           
-          // Get attendance records for all sessions
-          const { data: attendanceRecords, error: attendanceError } = await supabase
-            .from('attendance_records')
-            .select('status')
-            .in('session_id', allSessions.map(s => s.id));
+          // Only calculate attendance rate for sessions where professor took attendance
+          const { data: sessionsWithAttendance, error: sessionsError } = await supabase
+            .from('class_sessions')
+            .select(`
+              id,
+              attendance_count,
+              attendance_records(
+                status
+              )
+            `)
+            .eq('class_instance_id', classInstance.id)
+            .eq('status', 'completed')
+            .gt('attendance_count', 0); // Only sessions where professor took attendance
           
-          if (!attendanceError && attendanceRecords && attendanceRecords.length > 0) {
-            const attendedCount = attendanceRecords.filter(a => 
-              ['present', 'late', 'excused'].includes(a.status)
-            ).length;
-            attendanceRate = Math.round((attendedCount / attendanceRecords.length) * 100);
+          if (!sessionsError && sessionsWithAttendance && sessionsWithAttendance.length > 0) {
+            let totalPossibleAttendance = 0;
+            let totalAttended = 0;
+            
+            sessionsWithAttendance.forEach(session => {
+              // Each session should have attendance_count records (one per enrolled student)
+              totalPossibleAttendance += session.attendance_count;
+              
+              // Count how many were present/late/excused
+              if (session.attendance_records && session.attendance_records.length > 0) {
+                const attendedInSession = session.attendance_records.filter(record => 
+                  ['present', 'late', 'excused'].includes(record.status)
+                ).length;
+                totalAttended += attendedInSession;
+              }
+            });
+            
+            if (totalPossibleAttendance > 0) {
+              attendanceRate = Math.round((totalAttended / totalPossibleAttendance) * 100);
+            }
           }
         }
         
