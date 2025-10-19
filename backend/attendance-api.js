@@ -1,6 +1,11 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const QRCodeGenerator = require('./qr-code-generator.js');
+const { 
+  getCurrentEasternTime, 
+  createEasternDate, 
+  formatEasternTime 
+} = require('./eastern-time-utils');
 require('dotenv').config({ path: '.env.local' });
 
 const router = express.Router();
@@ -163,10 +168,20 @@ router.post('/api/attendance/scan', async (req, res) => {
     
     // Determine if student is late (more than 5 minutes after class start time)
     // Note: This is based on the scheduled class start time, NOT when the professor started the session
-    const sessionStartTime = new Date(`${session.date}T${session.start_time}`);
-    const currentTime = new Date();
+    const currentTime = getCurrentEasternTime();
+    
+    // Create session start time in Eastern Time using utility functions
+    const sessionStartTime = createEasternDate(session.date, session.start_time);
+    
     const minutesLate = Math.floor((currentTime - sessionStartTime) / (1000 * 60));
     const isLate = minutesLate > 5;
+    
+    console.log('🕐 Attendance time calculation:');
+    console.log(`   Current time (UTC): ${new Date().toISOString()}`);
+    console.log(`   Current time (Eastern): ${formatEasternTime(currentTime)}`);
+    console.log(`   Session start time (Eastern): ${formatEasternTime(sessionStartTime)}`);
+    console.log(`   Minutes late: ${minutesLate}`);
+    console.log(`   Is late: ${isLate}`);
     
     // Record attendance
     const { data: attendanceRecord, error: recordError } = await supabase

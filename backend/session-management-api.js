@@ -2,6 +2,13 @@ const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 const QRCodeGenerator = require('./qr-code-generator.js');
+const { 
+  toEasternTime, 
+  createEasternDate, 
+  getCurrentEasternTime, 
+  getMinutesToEasternTime,
+  formatEasternTime 
+} = require('./eastern-time-utils');
 require('dotenv').config({ path: '.env.local' });
 
 const router = express.Router();
@@ -41,9 +48,13 @@ const generateSessionTemplates = async (classInstanceId) => {
     const startTime = classInstance.start_time;
     const endTime = classInstance.end_time;
     
-    // Get academic period dates (use local timezone to avoid date shifting)
-    const periodStart = new Date(classInstance.first_class_date + 'T00:00:00');
-    const periodEnd = new Date(classInstance.last_class_date + 'T00:00:00');
+    // Get academic period dates using Eastern Time utility functions
+    const periodStart = createEasternDate(classInstance.first_class_date, '00:00:00');
+    const periodEnd = createEasternDate(classInstance.last_class_date, '00:00:00');
+    
+    console.log('🕐 Session template generation timezone handling:');
+    console.log(`   Period start (Eastern): ${formatEasternTime(periodStart)}`);
+    console.log(`   Period end (Eastern): ${formatEasternTime(periodEnd)}`);
     
     // Find the first actual class day that matches the schedule
     let firstClassDate = new Date(periodStart);
@@ -372,28 +383,22 @@ async function completeSessionAutomatically(sessionId) {
     }
     
     // VALIDATION: Check if session should actually be completed based on time
-    const now = new Date();
+    const now = getCurrentEasternTime();
     
-    // Create session end time in Eastern Time (assuming all sessions are in Eastern Time)
-    // Use a more robust approach to handle timezone conversion
-    const sessionEndTimeUTC = new Date(`${session.date}T${session.end_time}:00`);
-    
-    // Convert to Eastern Time by adjusting for timezone offset
-    // Eastern Time is UTC-4 (EDT) or UTC-5 (EST) - using EDT for now
-    const easternOffset = -4 * 60; // EDT offset in minutes
-    const sessionEndTime = new Date(sessionEndTimeUTC.getTime() + (easternOffset * 60 * 1000));
+    // Create session end time in Eastern Time using utility functions
+    const sessionEndTime = createEasternDate(session.date, session.end_time);
     
     console.log(`🕐 Auto-completion time check for session ${sessionId}:`);
-    console.log(`   Current time (UTC): ${now.toISOString()}`);
-    console.log(`   Session end time (UTC): ${sessionEndTimeUTC.toISOString()}`);
-    console.log(`   Session end time (Eastern): ${sessionEndTime.toISOString()}`);
+    console.log(`   Current time (UTC): ${new Date().toISOString()}`);
+    console.log(`   Current time (Eastern): ${formatEasternTime(now)}`);
+    console.log(`   Session end time (Eastern): ${formatEasternTime(sessionEndTime)}`);
     
     // Only auto-complete if session end time has passed (with 1-minute grace period)
     const gracePeriod = 1 * 60 * 1000; // 1 minute in milliseconds
     const earliestCompletionTime = new Date(sessionEndTime.getTime() + gracePeriod);
     
     if (now < earliestCompletionTime) {
-      const minutesRemaining = Math.round((sessionEndTime - now) / (1000 * 60));
+      const minutesRemaining = getMinutesToEasternTime(session.end_time, session.date);
       console.log(`⏰ Auto-completion skipped for session ${sessionId}: ${minutesRemaining} minutes remaining`);
       return;
     }
@@ -498,26 +503,17 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
     if (sessionError) throw sessionError;
     
     // VALIDATION: Check if session can be completed
-    const now = new Date();
+    const now = getCurrentEasternTime();
     
-    // Create session times in Eastern Time (assuming all sessions are in Eastern Time)
-    // Use a more robust approach to handle timezone conversion
-    const sessionEndTimeUTC = new Date(`${session.date}T${session.end_time}:00`);
-    const sessionStartTimeUTC = new Date(`${session.date}T${session.start_time}:00`);
-    
-    // Convert to Eastern Time by adjusting for timezone offset
-    // Eastern Time is UTC-4 (EDT) or UTC-5 (EST) - using EDT for now
-    const easternOffset = -4 * 60; // EDT offset in minutes
-    const sessionEndTime = new Date(sessionEndTimeUTC.getTime() + (easternOffset * 60 * 1000));
-    const sessionStartTime = new Date(sessionStartTimeUTC.getTime() + (easternOffset * 60 * 1000));
+    // Create session times in Eastern Time using utility functions
+    const sessionEndTime = createEasternDate(session.date, session.end_time);
+    const sessionStartTime = createEasternDate(session.date, session.start_time);
     
     console.log(`🕐 Time debugging for session ${sessionId}:`);
-    console.log(`   Current time (UTC): ${now.toISOString()}`);
-    console.log(`   Current time (Eastern): ${now.toLocaleString('en-US', { timeZone: 'America/New_York' })}`);
-    console.log(`   Session start time (UTC): ${sessionStartTimeUTC.toISOString()}`);
-    console.log(`   Session end time (UTC): ${sessionEndTimeUTC.toISOString()}`);
-    console.log(`   Session start time (Eastern): ${sessionStartTime.toISOString()}`);
-    console.log(`   Session end time (Eastern): ${sessionEndTime.toISOString()}`);
+    console.log(`   Current time (UTC): ${new Date().toISOString()}`);
+    console.log(`   Current time (Eastern): ${formatEasternTime(now)}`);
+    console.log(`   Session start time (Eastern): ${formatEasternTime(sessionStartTime)}`);
+    console.log(`   Session end time (Eastern): ${formatEasternTime(sessionEndTime)}`);
     
     // Allow completion if:
     // 1. Session has started (current time >= session start time)
@@ -526,7 +522,7 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
     const earliestCompletionTime = new Date(sessionStartTime.getTime() - earlyCompletionWindow);
     
     if (now < earliestCompletionTime) {
-      const minutesUntilStart = Math.round((sessionStartTime - now) / (1000 * 60));
+      const minutesUntilStart = getMinutesToEasternTime(session.start_time, session.date);
       console.log(`❌ Cannot complete session ${sessionId}: ${minutesUntilStart} minutes until session starts`);
       
       return res.status(400).json({

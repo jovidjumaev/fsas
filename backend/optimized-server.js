@@ -7,6 +7,7 @@ const { Server: SocketIOServer } = require('socket.io');
 const { createClient } = require('@supabase/supabase-js');
 const QRCode = require('qrcode');
 const crypto = require('crypto');
+const { getCurrentEasternTime, formatEasternTime } = require('./eastern-time-utils');
 require('dotenv').config({ path: '.env.local' });
 
 // Import the new class management API
@@ -1736,13 +1737,15 @@ app.get('/api/classes/:classId/students', async (req, res) => {
 // Update current academic period based on real time
 app.post('/api/academic-periods/update-current', async (req, res) => {
   try {
-    const now = new Date();
+    const now = getCurrentEasternTime();
     const year = now.getFullYear();
     const month = now.getMonth() + 1; // 1-12
     
-    console.log(`🕐 Updating current period for real date: ${year}-${month.toString().padStart(2, '0')}`);
+    console.log(`🕐 Updating current period for Eastern Time: ${year}-${month.toString().padStart(2, '0')}`);
+    console.log(`   UTC time: ${new Date().toISOString()}`);
+    console.log(`   Eastern time: ${formatEasternTime(now)}`);
     
-    // Determine current period based on real date
+    // Determine current period based on Eastern Time date
     let currentPeriod;
     if (month >= 8 && month <= 12) {
       currentPeriod = { name: `Fall ${year}`, year, semester: 'fall' };
