@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, MessageCircle, FileText, Trash2, Send, Bot, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { supabase } from '@/lib/supabase';
+import { io } from 'socket.io-client';
 
 interface Material {
   id: string;
@@ -52,6 +54,21 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   useEffect(() => {
     loadMaterials();
     createChatSession();
+    
+    // Connect to WebSocket for real-time updates
+    const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
+    
+    // Listen for attendance status updates
+    socket.on('attendance_status_updated', (data) => {
+      console.log('📊 AI Assistant received attendance status update:', data);
+      
+      // Show a toast notification about the update
+      toast.success('Attendance data updated! Ask the AI for fresh information.');
+    });
+    
+    return () => {
+      socket.disconnect();
+    };
   }, [classId]);
 
   // Add global navigation tracking

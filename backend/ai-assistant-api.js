@@ -927,6 +927,9 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
     // Get database context (class overview and student attendance data)
     let databaseContext = '';
     try {
+      // Add timestamp to ensure AI knows data is fresh
+      const dataTimestamp = new Date().toISOString();
+      databaseContext += `📊 LIVE DATABASE DATA (Updated: ${dataTimestamp}):\n\n`;
       console.log('📊 Fetching class overview for classId:', classId);
       const classOverview = await getClassOverviewData(classId);
       console.log('📊 Class overview result:', classOverview ? 'SUCCESS' : 'FAILED');
@@ -1019,13 +1022,16 @@ IMPORTANT INSTRUCTIONS:
 - Use bullet points for multiple items
 - Avoid lengthy explanations or examples
 - You can answer questions about both uploaded materials AND student attendance/performance
-- For attendance questions, use the provided database context
+- For attendance questions, use the provided database context (this data is LIVE and up-to-date)
 - You can answer specific questions like:
   * "Who was absent in session 3?"
   * "How is John doing?"
   * "Show me Sarah's attendance record"
   * "Who was late in the last session?"
+  * "Who has the best attendance?"
+  * "How many classes did [student] miss?"
 - Use session details to answer specific session questions
+- The database context shows REAL-TIME data - trust it completely
 - If question is unrelated to materials or attendance, say: "Please ask about the uploaded materials or student attendance."
 - Prioritize accuracy over verbosity`
     };
