@@ -230,8 +230,6 @@ async function getStudentAttendanceData(classId, studentName = null) {
  */
 async function getClassOverviewData(classId) {
   try {
-    console.log('📊 Fetching class overview data for class:', classId);
-    console.log('🔄 Cache-busting timestamp:', Date.now());
     
     const { data, error } = await supabase
       .from('class_instances')
@@ -891,8 +889,6 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
     const { classId } = req.params;
     const { professorId, sessionId, message } = req.body;
 
-    console.log('🤖 AI Assistant endpoint called:', { classId, professorId, sessionId, message });
-
     // Validate access
     const { data: classInstance, error: classError } = await supabase
       .from('class_instances')
@@ -901,10 +897,7 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       .eq('professor_id', professorId)
       .single();
 
-    console.log('🔍 Class validation result:', { classInstance, classError });
-
     if (classError || !classInstance) {
-      console.error('❌ Access denied:', classError);
       return res.status(403).json({
         success: false,
         error: 'Access denied to this class'
@@ -919,10 +912,7 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       .eq('professor_id', professorId)
       .single();
 
-    console.log('🔍 Session validation result:', { session, sessionError });
-
     if (sessionError || !session) {
-      console.error('❌ Session not found:', sessionError);
       return res.status(404).json({
         success: false,
         error: 'Chat session not found'
@@ -950,14 +940,10 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
 
     // Extract student name from question for targeted queries
     const studentName = extractStudentNameFromQuestion(message);
-    console.log('🔍 Extracted student name from question:', studentName);
-
-    console.log('🤖 Starting database context processing...');
 
     // Get database context (class overview and student attendance data)
     let databaseContext = '';
     try {
-      console.log('🔄 About to call getClassOverviewData...');
       // Add timestamp to ensure AI knows data is fresh
       const dataTimestamp = new Date().toISOString();
       databaseContext += `📊 LIVE DATABASE DATA (Updated: ${dataTimestamp}):\n`;
@@ -965,21 +951,8 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       databaseContext += `✅ Only ACTIVE enrollments are included - dropped/inactive students are excluded.\n\n`;
       
       // Force fresh data by adding cache-busting timestamp
-      console.log('🔄 Fetching fresh data with timestamp:', dataTimestamp);
-      console.log('📊 Fetching class overview for classId:', classId);
       const classOverview = await getClassOverviewData(classId);
-      console.log('📊 Class overview result:', classOverview ? 'SUCCESS' : 'FAILED');
-      
-      console.log('📊 Fetching student data for classId:', classId, 'studentName:', studentName);
       const studentData = await getStudentAttendanceData(classId, studentName);
-      console.log('📊 Student data result:', studentData ? `${studentData.length} students` : 'FAILED');
-      console.log('📊 Student data details:', studentData);
-      if (studentData && studentData.length > 0) {
-        console.log('📊 First student sample:', studentData[0]);
-        console.log('📊 All students:', studentData.map(s => `${s.first_name} ${s.last_name}: ${s.attendance_percentage}%`));
-      } else {
-        console.log('❌ NO STUDENT DATA - THIS IS THE PROBLEM!');
-      }
       
       // Add class identification to context
       if (classOverview) {
@@ -1000,13 +973,7 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
           databaseContext += `• ${student.first_name} ${student.last_name}: ${student.attendance_percentage}% (${student.present_count + student.late_count + student.excused_count}/${student.total_sessions})\n`;
         });
         
-        console.log('🤖 DEBUG: Student attendance data provided to AI:');
-        console.log(`   Students: ${studentData.length}`);
-        studentData.forEach(student => {
-          console.log(`   - ${student.first_name} ${student.last_name}: ${student.attendance_percentage}%`);
-        });
       } else {
-        console.log('❌ DEBUG: No student attendance data provided to AI');
         databaseContext += `\nSTUDENT ATTENDANCE DATA:\n`;
         databaseContext += `❌ No students enrolled in this class or no attendance data available.\n`;
         databaseContext += `This could mean:\n`;
@@ -1018,13 +985,8 @@ router.post('/api/classes/:classId/chat/message', async (req, res) => {
       console.error('❌ Error fetching database context:', error);
     }
     
-    // Log the final database context that will be sent to AI
-    console.log('🤖 Final database context length:', databaseContext.length);
-    console.log('🤖 Database context preview:', databaseContext.substring(0, 500) + '...');
-    
     // CRITICAL CHECK: Only proceed if we have valid database context
     if (!databaseContext || databaseContext.length < 100) {
-      console.error('❌ CRITICAL ERROR: No valid database context - skipping AI call');
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch class data for AI context'
