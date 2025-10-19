@@ -8,7 +8,7 @@ import {
   ArrowLeft, Settings, Users, Calendar, BarChart3, 
   Clock, MapPin, GraduationCap, Pin, PinOff, MoreHorizontal,
   BookOpen, UserPlus, UserMinus, QrCode, Eye, Edit, Trash2,
-  Search, Check, X, Plus, Minus, Play, Square
+  Search, Check, X, Plus, Minus, Play, Square, Bot
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import ProfessorHeader from '@/components/professor/professor-header';
 import ProfileEditModal from '@/components/profile/profile-edit-modal';
 import PasswordChangeModal from '@/components/profile/password-change-modal';
+import { AIAssistant } from '@/components/professor/ai-assistant';
 import { supabase } from '@/lib/supabase';
 
 interface ClassData {
@@ -103,7 +104,7 @@ function ClassManagementPageContent() {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [analyticsSearchQuery, setAnalyticsSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'students' | 'sessions' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'students' | 'sessions' | 'analytics' | 'ai-assistant'>('overview');
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [newStudentEmail, setNewStudentEmail] = useState('');
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -906,7 +907,8 @@ function ClassManagementPageContent() {
               { id: 'overview', label: 'Overview', icon: Settings },
               { id: 'students', label: 'Students', icon: Users },
               { id: 'sessions', label: 'Sessions', icon: Calendar },
-              { id: 'analytics', label: 'Analytics', icon: BarChart3 }
+              { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+              { id: 'ai-assistant', label: 'AI Assistant', icon: Bot }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -1850,6 +1852,15 @@ function ClassManagementPageContent() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'ai-assistant' && (
+          <div className="space-y-6">
+            <AIAssistant 
+              classId={classId} 
+              professorId={classData?.professor_id || ''} 
+            />
           </div>
         )}
       </main>

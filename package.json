@@ -21,7 +21,8 @@
     "db:setup": "node setup-database.js",
     "test-auth": "node test-auth.js",
     "test:auth": "node test-auth.js",
-    "test-password-reset": "node test-password-reset.js"
+    "test-password-reset": "node test-password-reset.js",
+    "test-ai-assistant": "node test-ai-assistant.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
@@ -36,6 +37,7 @@
     "@types/ioredis": "^5.0.0",
     "@types/node": "^20.0.0",
     "@types/qrcode": "^1.5.0",
+    "@types/multer": "^1.4.7",
     "@zxing/library": "^0.20.0",
     "autoprefixer": "^10.4.16",
     "bull": "^4.11.3",
@@ -70,7 +72,12 @@
     "workbox-webpack-plugin": "^7.0.0",
     "xlsx": "^0.18.5",
     "zod": "^3.22.4",
-    "zustand": "^4.4.1"
+    "zustand": "^4.4.1",
+    "openai": "^4.20.0",
+    "multer": "^1.4.5-lts.1",
+    "pdf-parse": "^1.1.1",
+    "mammoth": "^1.6.0",
+    "sonner": "^1.2.4"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.4",
