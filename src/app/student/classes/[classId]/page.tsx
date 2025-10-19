@@ -25,7 +25,7 @@ import {
   RefreshCw,
   Brain
 } from 'lucide-react';
-import { StudentAIAssistant } from '@/components/student/ai-assistant';
+import { StudentAIAssistant } from '@/components/student/ai-assistant-simple';
 
 function ClassDetailContent() {
   const params = useParams();
