@@ -488,18 +488,60 @@ router.post('/api/classes/:classId/materials/upload', upload.single('file'), asy
         const result = await mammoth.extractRawText({ buffer: req.file.buffer });
         extractedText = result.value;
       } else if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
-        // For PPTX files - simplified approach
+        // For PPTX files - extract actual text content
         console.log('📊 Processing PowerPoint file:', req.file.originalname);
         console.log('📊 File size:', req.file.size, 'bytes');
         console.log('📊 MIME type:', req.file.mimetype);
-        extractedText = `PowerPoint presentation: ${req.file.originalname}\n\nThis PowerPoint file has been uploaded successfully. The AI assistant can help answer questions about the presentation content, but detailed text extraction from slides is not available yet.`;
-        console.log('✅ PowerPoint file processed successfully');
+        
+        try {
+          // Write buffer to temporary file for pptx2json processing
+          const fs = require('fs');
+          const path = require('path');
+          const tempPath = path.join(__dirname, 'temp', `temp_${Date.now()}.pptx`);
+          
+          // Ensure temp directory exists
+          const tempDir = path.dirname(tempPath);
+          if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
+          }
+          
+          fs.writeFileSync(tempPath, req.file.buffer);
+          
+          // Extract text using pptx2json
+          const pptx2json = require('pptx2json');
+          const jsonData = await pptx2json(tempPath);
+          
+          // Extract text from slides
+          extractedText = `PowerPoint presentation: ${req.file.originalname}\n\n`;
+          
+          if (jsonData && jsonData.slides) {
+            jsonData.slides.forEach((slide, index) => {
+              extractedText += `Slide ${index + 1}:\n`;
+              if (slide.shapes) {
+                slide.shapes.forEach(shape => {
+                  if (shape.texts && shape.texts.length > 0) {
+                    extractedText += shape.texts.join(' ') + '\n';
+                  }
+                });
+              }
+              extractedText += '\n';
+            });
+          }
+          
+          // Clean up temporary file
+          fs.unlinkSync(tempPath);
+          
+          console.log('✅ PowerPoint text extracted:', extractedText.length, 'characters');
+        } catch (pptxError) {
+          console.error('❌ PowerPoint extraction error:', pptxError);
+          extractedText = `PowerPoint presentation: ${req.file.originalname}\n\nThis PowerPoint file has been uploaded successfully. Text extraction from slides encountered an error, but the AI assistant can still help with general questions about the presentation.`;
+        }
       } else if (req.file.mimetype === 'application/vnd.ms-powerpoint') {
-        // For older PPT files
+        // For older PPT files - limited support
         console.log('📊 Processing legacy PowerPoint file:', req.file.originalname);
         console.log('📊 File size:', req.file.size, 'bytes');
         console.log('📊 MIME type:', req.file.mimetype);
-        extractedText = `PowerPoint presentation: ${req.file.originalname}\n\nThis PowerPoint file has been uploaded successfully. The AI assistant can help answer questions about the presentation content, but detailed text extraction from slides is not available yet.`;
+        extractedText = `PowerPoint presentation: ${req.file.originalname}\n\nThis is a legacy PowerPoint file (.ppt). Text extraction from legacy PowerPoint files is not supported. The AI assistant can help with general questions about the presentation topic.`;
         console.log('✅ Legacy PowerPoint file processed successfully');
       }
     } catch (extractError) {

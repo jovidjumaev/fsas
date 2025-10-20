@@ -183,6 +183,18 @@ router.post('/api/students/:studentId/classes/:classId/ai/chat/message', async (
       });
     }
     
+    // Get student profile information
+    const { data: studentProfile, error: profileError } = await supabase
+      .from('users')
+      .select('first_name, last_name')
+      .eq('id', studentId)
+      .single();
+    
+    let studentName = 'Student';
+    if (!profileError && studentProfile) {
+      studentName = `${studentProfile.first_name || ''} ${studentProfile.last_name || ''}`.trim() || 'Student';
+    }
+    
     // Get class materials for context
     const { data: materials, error: materialsError } = await supabase
       .from('class_materials')
@@ -292,7 +304,9 @@ ${upcomingSessions ? upcomingSessions.map(s => `- Session ${s.session_number}: $
     // Prepare system message with context
     const systemMessage = {
       role: 'system',
-      content: `You are an AI study assistant helping a student with questions about their class materials and academic information.
+      content: `You are an AI study assistant helping ${studentName} with questions about their class materials and academic information.
+
+STUDENT NAME: ${studentName}
 
 AVAILABLE MATERIALS:
 ${contextText || 'No materials uploaded yet.'}
@@ -300,17 +314,19 @@ ${contextText || 'No materials uploaded yet.'}
 ${studentContext}
 
 CRITICAL INSTRUCTIONS:
+- Address the student by their name: ${studentName}
 - Keep responses CONCISE and HELPFUL (max 3-4 sentences)
 - Focus on STUDY-RELATED questions about materials, attendance, and class schedule
 - Use bullet points for multiple items
 - Be encouraging and supportive
 - You can answer questions about:
-  * Class materials and content
+  * Class materials and content (including PowerPoint slide content)
   * Attendance and session information
   * Upcoming class sessions
   * Study tips and explanations
 - If question is unrelated to academics, politely redirect to study topics
-- Prioritize accuracy and helpfulness`
+- Prioritize accuracy and helpfulness
+- Use the student's name naturally in responses`
     };
     
     // Call OpenAI with optimized settings
