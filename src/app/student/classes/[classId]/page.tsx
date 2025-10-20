@@ -23,7 +23,9 @@ import {
   TrendingUp,
   Users,
   RefreshCw,
-  Brain
+  Brain,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { StudentAIAssistant } from '@/components/student/ai-assistant';
 
@@ -40,6 +42,7 @@ function ClassDetailContent() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'present' | 'late' | 'absent' | 'excused' | 'not_marked'>('all');
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const fetchClassDetail = async () => {
     if (!user || !classId) {
@@ -68,6 +71,26 @@ function ClassDetailContent() {
   useEffect(() => {
     fetchClassDetail();
   }, [user, classId]);
+
+  // Dark mode setup
+  useEffect(() => {
+    const savedMode = localStorage.getItem('darkMode') === 'true';
+    setIsDarkMode(savedMode);
+    if (savedMode) {
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    localStorage.setItem('darkMode', String(newMode));
+    if (newMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
 
   // Update time every minute
   useEffect(() => {
@@ -178,6 +201,19 @@ function ClassDetailContent() {
                   {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
+              
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleDarkMode}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                {isDarkMode ? (
+                  <Sun className="w-5 h-5 text-amber-500" />
+                ) : (
+                  <Moon className="w-5 h-5 text-slate-600" />
+                )}
+              </button>
+              
               <Button
                 variant="outline"
                 size="sm"
