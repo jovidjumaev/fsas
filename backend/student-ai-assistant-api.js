@@ -194,26 +194,41 @@ router.post('/api/students/:studentId/classes/:classId/ai/chat/message', async (
       console.error('❌ Error fetching materials:', materialsError);
     }
     
+    // Get class session IDs first
+    const { data: sessionIds, error: sessionIdsError } = await supabase
+      .from('class_sessions')
+      .select('id')
+      .eq('class_instance_id', classId);
+    
+    if (sessionIdsError) {
+      console.error('❌ Error fetching session IDs:', sessionIdsError);
+    }
+    
     // Get student's attendance data
-    const { data: attendanceData, error: attendanceError } = await supabase
-      .from('attendance_records')
-      .select(`
-        status,
-        scanned_at,
-        class_sessions!inner(
-          session_number,
-          date,
-          start_time,
-          end_time
-        )
-      `)
-      .eq('student_id', studentId)
-      .in('session_id', 
-        supabase
-          .from('class_sessions')
-          .select('id')
-          .eq('class_instance_id', classId)
-      );
+    let attendanceData = [];
+    if (sessionIds && sessionIds.length > 0) {
+      const sessionIdList = sessionIds.map(s => s.id);
+      const { data: attendanceRecords, error: attendanceError } = await supabase
+        .from('attendance_records')
+        .select(`
+          status,
+          scanned_at,
+          class_sessions!inner(
+            session_number,
+            date,
+            start_time,
+            end_time
+          )
+        `)
+        .eq('student_id', studentId)
+        .in('session_id', sessionIdList);
+      
+      if (attendanceError) {
+        console.error('❌ Error fetching attendance:', attendanceError);
+      } else {
+        attendanceData = attendanceRecords || [];
+      }
+    }
     
     // Get upcoming sessions
     const { data: upcomingSessions, error: upcomingError } = await supabase
@@ -302,7 +317,7 @@ CRITICAL INSTRUCTIONS:
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: [systemMessage, ...conversationHistory],
-      max_tokens: 200,
+      max_tokens: 150,
       temperature: 0.3,
       presence_penalty: 0.1,
       frequency_penalty: 0.1
@@ -360,9 +375,15 @@ CRITICAL INSTRUCTIONS:
     
   } catch (error) {
     console.error('❌ Chat message error:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     res.status(500).json({
       success: false,
-      error: 'Internal server error'
+      error: 'Internal server error',
+      details: error.message
     });
   }
 });
