@@ -916,10 +916,18 @@ router.post('/api/students/:studentId/classes/:classId/ai/materials/reprocess', 
       });
     }
     
+    // Extract the actual filename from the file URL
+    let actualFileName = material.file_name;
+    if (material.file_url) {
+      const urlParts = material.file_url.split('/');
+      actualFileName = urlParts[urlParts.length - 1];
+      console.log('📄 Using filename from URL:', actualFileName);
+    }
+    
     // Download the file from storage
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('class-materials')
-      .download(material.file_name);
+      .download(actualFileName);
     
     if (downloadError) {
       console.error('❌ Error downloading file:', downloadError);
@@ -949,26 +957,12 @@ router.post('/api/students/:studentId/classes/:classId/ai/materials/reprocess', 
       
       fs.writeFileSync(tempPath, buffer);
       
-      // Extract text using pptx2json
-      const pptx2json = require('pptx2json');
-      const jsonData = await pptx2json(tempPath);
+      // Extract text using pptx-text-parser
+      const pptxTextParser = require('pptx-text-parser');
+      const extractedSlideText = await pptxTextParser(tempPath);
       
-      // Extract text from slides
-      extractedText = `PowerPoint presentation: ${material.file_name}\n\n`;
-      
-      if (jsonData && jsonData.slides) {
-        jsonData.slides.forEach((slide, index) => {
-          extractedText += `Slide ${index + 1}:\n`;
-          if (slide.shapes) {
-            slide.shapes.forEach(shape => {
-              if (shape.texts && shape.texts.length > 0) {
-                extractedText += shape.texts.join(' ') + '\n';
-              }
-            });
-          }
-          extractedText += '\n';
-        });
-      }
+      // Format the extracted text
+      extractedText = `PowerPoint presentation: ${material.file_name}\n\n${extractedSlideText}`;
       
       // Clean up temporary file
       fs.unlinkSync(tempPath);

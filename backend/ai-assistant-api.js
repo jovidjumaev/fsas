@@ -507,26 +507,12 @@ router.post('/api/classes/:classId/materials/upload', upload.single('file'), asy
           
           fs.writeFileSync(tempPath, req.file.buffer);
           
-          // Extract text using pptx2json
-          const pptx2json = require('pptx2json');
-          const jsonData = await pptx2json(tempPath);
+          // Extract text using pptx-text-parser
+          const pptxTextParser = require('pptx-text-parser');
+          const extractedSlideText = await pptxTextParser(tempPath);
           
-          // Extract text from slides
-          extractedText = `PowerPoint presentation: ${req.file.originalname}\n\n`;
-          
-          if (jsonData && jsonData.slides) {
-            jsonData.slides.forEach((slide, index) => {
-              extractedText += `Slide ${index + 1}:\n`;
-              if (slide.shapes) {
-                slide.shapes.forEach(shape => {
-                  if (shape.texts && shape.texts.length > 0) {
-                    extractedText += shape.texts.join(' ') + '\n';
-                  }
-                });
-              }
-              extractedText += '\n';
-            });
-          }
+          // Format the extracted text
+          extractedText = `PowerPoint presentation: ${req.file.originalname}\n\n${extractedSlideText}`;
           
           // Clean up temporary file
           fs.unlinkSync(tempPath);

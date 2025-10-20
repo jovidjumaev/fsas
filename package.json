@@ -63,6 +63,7 @@
     "openai": "^4.20.0",
     "pdf-parse": "^1.1.1",
     "postcss": "^8.4.31",
+    "pptx-text-parser": "^1.1.1",
     "pptx2json": "^0.0.10",
     "qrcode": "^1.5.3",
     "react": "^18.2.0",
