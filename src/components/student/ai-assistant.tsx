@@ -321,7 +321,12 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               placeholder="Ask about your class materials, attendance, or study topics..."
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
               disabled={isSendingMessage || !chatSessionId}
               maxLength={200}
               className="flex-1"
