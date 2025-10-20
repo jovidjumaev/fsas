@@ -31,12 +31,15 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
   const [messages, setMessages] = useState<any[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [activeSubTab, setActiveSubTab] = useState<'chat' | 'flashcards' | 'quiz'>('chat');
+  const [chatSessionId, setChatSessionId] = useState<string | null>(null);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   console.log('🎓 StudentAIAssistant component rendered for class:', classId, 'student:', studentId);
 
   // Load materials on component mount
   useEffect(() => {
     loadMaterials();
+    createChatSession();
   }, [classId, studentId]);
 
   const loadMaterials = async () => {
@@ -64,11 +67,39 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
     }
   };
 
+  const createChatSession = async () => {
+    try {
+      console.log('💬 Creating chat session for class:', classId);
+      
+      const response = await fetch(`/api/students/${studentId}/classes/${classId}/ai/chat/session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionName: `Study Session - ${new Date().toLocaleDateString()}`
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setChatSessionId(data.session.id);
+        console.log('💬 Chat session created:', data.session.id);
+      } else {
+        console.error('❌ Failed to create chat session:', data.error);
+      }
+    } catch (error) {
+      console.error('❌ Error creating chat session:', error);
+    }
+  };
+
   const handleSendMessage = async () => {
-    if (!inputMessage.trim()) return;
+    if (!inputMessage.trim() || !chatSessionId || isSendingMessage) return;
 
     const userMessage = inputMessage.trim();
     setInputMessage('');
+    setIsSendingMessage(true);
     
     // Add user message to UI immediately
     const newUserMessage = {
@@ -79,16 +110,53 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
     };
     setMessages(prev => [...prev, newUserMessage]);
 
-    // Add a simple AI response for testing
-    setTimeout(() => {
-      const aiMessage = {
+    try {
+      console.log('💬 Sending message to AI:', userMessage);
+      
+      const response = await fetch(`/api/students/${studentId}/classes/${classId}/ai/chat/message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: chatSessionId,
+          message: userMessage
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        const aiMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: data.response,
+          timestamp: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        console.log('🤖 AI Response received, tokens used:', data.tokens_used);
+      } else {
+        console.error('❌ Failed to get AI response:', data.error);
+        const errorMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: 'Sorry, I encountered an error. Please try again.',
+          timestamp: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      }
+    } catch (error) {
+      console.error('❌ Error sending message:', error);
+      const errorMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `I received your message: "${userMessage}". This is a test response from the AI Assistant!`,
+        content: 'Sorry, I encountered an error. Please try again.',
         timestamp: new Date().toISOString()
       };
-      setMessages(prev => [...prev, aiMessage]);
-    }, 1000);
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsSendingMessage(false);
+    }
   };
 
   const getSelectedMaterialName = () => {
@@ -199,9 +267,28 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                 <h4 className="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">
                   Start a conversation with your AI study assistant!
                 </h4>
-                <p className="text-gray-500 dark:text-gray-500">
+                <p className="text-gray-500 dark:text-gray-500 mb-4">
                   Ask about class materials, attendance, or study topics.
                 </p>
+                
+                {/* Example Questions */}
+                <div className="text-left max-w-md mx-auto">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Try asking:</p>
+                  <div className="space-y-2 text-sm">
+                    <div className="bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600">
+                      <p className="text-gray-700 dark:text-gray-300">"What's my attendance percentage?"</p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600">
+                      <p className="text-gray-700 dark:text-gray-300">"When is the next class session?"</p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600">
+                      <p className="text-gray-700 dark:text-gray-300">"How many sessions have I missed?"</p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600">
+                      <p className="text-gray-700 dark:text-gray-300">"Explain the main concepts from the uploaded materials"</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
@@ -235,16 +322,16 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
               onChange={(e) => setInputMessage(e.target.value)}
               placeholder="Ask about your class materials, attendance, or study topics..."
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              disabled={isLoading}
+              disabled={isSendingMessage || !chatSessionId}
               maxLength={200}
               className="flex-1"
             />
             <Button 
               onClick={handleSendMessage} 
-              disabled={!inputMessage.trim() || isLoading}
+              disabled={!inputMessage.trim() || isSendingMessage || !chatSessionId}
               className="px-6"
             >
-              {isLoading ? (
+              {isSendingMessage ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
                 <Send className="w-4 h-4" />
