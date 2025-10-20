@@ -866,4 +866,153 @@ router.post('/api/students/:studentId/classes/:classId/ai/quiz/submit', async (r
   }
 });
 
+/**
+ * Re-process a material to extract text (for fixing PowerPoint files)
+ * POST /api/students/:studentId/classes/:classId/ai/materials/reprocess
+ */
+router.post('/api/students/:studentId/classes/:classId/ai/materials/reprocess', async (req, res) => {
+  try {
+    const { studentId, classId } = req.params;
+    const { materialId } = req.body;
+    
+    console.log('🔄 Re-processing material:', materialId);
+    
+    // Verify student enrollment
+    const { data: enrollment, error: enrollmentError } = await supabase
+      .from('enrollments')
+      .select('id')
+      .eq('student_id', studentId)
+      .eq('class_instance_id', classId)
+      .eq('status', 'active')
+      .single();
+    
+    if (enrollmentError || !enrollment) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied - not enrolled in this class'
+      });
+    }
+    
+    // Get the material
+    const { data: material, error: materialError } = await supabase
+      .from('class_materials')
+      .select('*')
+      .eq('id', materialId)
+      .eq('class_instance_id', classId)
+      .single();
+    
+    if (materialError || !material) {
+      return res.status(404).json({
+        success: false,
+        error: 'Material not found'
+      });
+    }
+    
+    // Only process PowerPoint files
+    if (material.file_type !== 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
+      return res.status(400).json({
+        success: false,
+        error: 'Only PowerPoint files can be re-processed'
+      });
+    }
+    
+    // Download the file from storage
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from('class-materials')
+      .download(material.file_name);
+    
+    if (downloadError) {
+      console.error('❌ Error downloading file:', downloadError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to download file for processing'
+      });
+    }
+    
+    // Convert blob to buffer
+    const arrayBuffer = await fileData.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    let extractedText = '';
+    
+    try {
+      // Write buffer to temporary file for pptx2json processing
+      const fs = require('fs');
+      const path = require('path');
+      const tempPath = path.join(__dirname, 'temp', `reprocess_${Date.now()}.pptx`);
+      
+      // Ensure temp directory exists
+      const tempDir = path.dirname(tempPath);
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      fs.writeFileSync(tempPath, buffer);
+      
+      // Extract text using pptx2json
+      const pptx2json = require('pptx2json');
+      const jsonData = await pptx2json(tempPath);
+      
+      // Extract text from slides
+      extractedText = `PowerPoint presentation: ${material.file_name}\n\n`;
+      
+      if (jsonData && jsonData.slides) {
+        jsonData.slides.forEach((slide, index) => {
+          extractedText += `Slide ${index + 1}:\n`;
+          if (slide.shapes) {
+            slide.shapes.forEach(shape => {
+              if (shape.texts && shape.texts.length > 0) {
+                extractedText += shape.texts.join(' ') + '\n';
+              }
+            });
+          }
+          extractedText += '\n';
+        });
+      }
+      
+      // Clean up temporary file
+      fs.unlinkSync(tempPath);
+      
+      console.log('✅ PowerPoint text re-extracted:', extractedText.length, 'characters');
+    } catch (pptxError) {
+      console.error('❌ PowerPoint re-extraction error:', pptxError);
+      extractedText = `PowerPoint presentation: ${material.file_name}\n\nThis PowerPoint file has been uploaded successfully. Text extraction from slides encountered an error, but the AI assistant can still help with general questions about the presentation.`;
+    }
+    
+    // Update the material with new extracted text
+    const { data: updatedMaterial, error: updateError } = await supabase
+      .from('class_materials')
+      .update({ 
+        extracted_text: extractedText,
+        is_processed: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', materialId)
+      .select()
+      .single();
+    
+    if (updateError) {
+      console.error('❌ Error updating material:', updateError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to update material with extracted text'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Material re-processed successfully',
+      material: updatedMaterial,
+      extracted_text_length: extractedText.length
+    });
+    
+  } catch (error) {
+    console.error('❌ Re-process material error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
 module.exports = router;
