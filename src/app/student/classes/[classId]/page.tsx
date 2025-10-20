@@ -350,7 +350,11 @@ function ClassDetailContent() {
 
         {/* Tab Content */}
         {activeTab === 'ai-assistant' ? (
-          <StudentAIAssistant classId={classId} studentId={user.id} />
+          <div className="p-6 bg-blue-100 border-2 border-blue-500 rounded-lg">
+            <h2 className="text-xl font-bold text-blue-800">🧠 AI Assistant Tab is Working!</h2>
+            <p className="text-blue-600 mt-2">This proves the tab is rendering correctly.</p>
+            <StudentAIAssistant classId={classId} studentId={user.id} />
+          </div>
         ) : (
           <>
             {/* Attendance Filter */}
