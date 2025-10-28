@@ -463,8 +463,8 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
         <Card className="p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                <BookOpen className="w-5 h-5 text-green-600 dark:text-green-400" />
+              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Study Flashcards</h3>
@@ -474,7 +474,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
             <Button 
               onClick={generateFlashcards}
               disabled={!selectedMaterial || isGeneratingFlashcards || materials.length === 0}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
             >
               {isGeneratingFlashcards ? (
                 <>
@@ -503,103 +503,138 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {/* Card Counter */}
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Card {currentCardIndex + 1} of {flashcards.length}
-                </p>
-                <Badge variant="outline" className="text-xs">
-                  {flashcards[currentCardIndex] && flashcardStudyStatus[flashcards[currentCardIndex].id] === 'known' && 'Known'}
-                  {flashcards[currentCardIndex] && flashcardStudyStatus[flashcards[currentCardIndex].id] === 'unknown' && 'Unknown'}
-                </Badge>
+                <div className="flex items-center space-x-4">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Card {currentCardIndex + 1} of {flashcards.length}
+                  </p>
+                  {flashcards[currentCardIndex] && flashcardStudyStatus[flashcards[currentCardIndex].id] && (
+                    <Badge 
+                      variant="outline" 
+                      className={`text-xs ${
+                        flashcardStudyStatus[flashcards[currentCardIndex].id] === 'known' 
+                          ? 'border-green-500 text-green-700 bg-green-50 dark:border-green-400 dark:text-green-300 dark:bg-green-900/30'
+                          : 'border-orange-500 text-orange-700 bg-orange-50 dark:border-orange-400 dark:text-orange-300 dark:bg-orange-900/30'
+                      }`}
+                    >
+                      {flashcardStudyStatus[flashcards[currentCardIndex].id] === 'known' ? '✓ Known' : '? Needs Review'}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Click card to flip</p>
               </div>
 
               {/* Flashcard Display */}
               <div 
                 onClick={handleFlipCard}
-                className="relative h-64 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800 rounded-lg shadow-lg cursor-pointer transition-all duration-300 hover:shadow-xl"
+                className="relative min-h-[320px] bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-lg cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.01] transform"
               >
-                <div className="absolute inset-0 flex items-center justify-center p-8">
+                <div className="flex flex-col items-center justify-center p-10 h-full">
                   {isFlipped ? (
-                    <div className="text-center">
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Answer:</h4>
-                      <p className="text-gray-800 dark:text-gray-200 text-lg">
+                    <div className="text-center max-w-2xl w-full">
+                      <div className="inline-flex items-center space-x-2 mb-6">
+                        <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                          <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <h4 className="text-xl font-bold text-gray-900 dark:text-white">Answer</h4>
+                      </div>
+                      <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
                         {flashcards[currentCardIndex]?.back_text}
                       </p>
                     </div>
                   ) : (
-                    <div className="text-center">
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Question:</h4>
-                      <p className="text-gray-800 dark:text-gray-200 text-lg">
+                    <div className="text-center max-w-2xl w-full">
+                      <div className="inline-flex items-center space-x-2 mb-6">
+                        <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                          <HelpCircle className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <h4 className="text-xl font-bold text-gray-900 dark:text-white">Question</h4>
+                      </div>
+                      <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
                         {flashcards[currentCardIndex]?.front_text}
                       </p>
                     </div>
                   )}
                 </div>
-                <div className="absolute bottom-4 right-4 text-gray-400 dark:text-gray-500">
+                <div className="absolute bottom-6 right-6 flex items-center space-x-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors">
                   <RotateCcw className="w-5 h-5" />
+                  <span className="text-xs font-medium">Click to flip</span>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-between space-x-3">
-                <Button
-                  onClick={handlePreviousCard}
-                  disabled={currentCardIndex === 0}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  <ChevronLeft className="w-4 h-4 mr-2" />
-                  Previous
-                </Button>
-
-                <div className="flex space-x-2">
+              <div className="flex flex-col space-y-4">
+                {/* Navigation and Study Status */}
+                <div className="flex items-center justify-between space-x-3">
                   <Button
-                    onClick={handleMarkAsKnown}
-                    disabled={flashcards.length === 0}
+                    onClick={handlePreviousCard}
+                    disabled={currentCardIndex === 0}
                     variant="outline"
-                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                    size="lg"
+                    className="flex-1 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
-                    <Check className="w-4 h-4 mr-2" />
-                    Known
+                    <ChevronLeft className="w-5 h-5 mr-2" />
+                    Previous
                   </Button>
+
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={handleMarkAsKnown}
+                      disabled={flashcards.length === 0}
+                      variant="outline"
+                      size="lg"
+                      className="border-green-300 text-green-700 bg-green-50 hover:bg-green-100 hover:border-green-400 dark:border-green-600 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/40"
+                    >
+                      <Check className="w-5 h-5 mr-2" />
+                      Known
+                    </Button>
+                    <Button
+                      onClick={handleMarkAsUnknown}
+                      disabled={flashcards.length === 0}
+                      variant="outline"
+                      size="lg"
+                      className="border-orange-300 text-orange-700 bg-orange-50 hover:bg-orange-100 hover:border-orange-400 dark:border-orange-600 dark:text-orange-400 dark:bg-orange-900/20 dark:hover:bg-orange-900/40"
+                    >
+                      <X className="w-5 h-5 mr-2" />
+                      Unknown
+                    </Button>
+                  </div>
+
                   <Button
-                    onClick={handleMarkAsUnknown}
-                    disabled={flashcards.length === 0}
+                    onClick={handleNextCard}
+                    disabled={currentCardIndex === flashcards.length - 1}
                     variant="outline"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    size="lg"
+                    className="flex-1 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
-                    <X className="w-4 h-4 mr-2" />
-                    Unknown
+                    Next
+                    <ChevronRight className="w-5 h-5 ml-2" />
                   </Button>
                 </div>
 
-                <Button
-                  onClick={handleNextCard}
-                  disabled={currentCardIndex === flashcards.length - 1}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  Next
-                  <ChevronRight className="w-4 h-4 ml-2" />
-                </Button>
-              </div>
-
-              {/* Progress Indicator */}
-              <div className="flex space-x-1 justify-center">
-                {flashcards.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`h-2 w-8 rounded ${
-                      index === currentCardIndex
-                        ? 'bg-green-600'
-                        : index < currentCardIndex
-                        ? 'bg-green-300 dark:bg-green-700'
-                        : 'bg-gray-200 dark:bg-gray-700'
-                    }`}
-                  />
-                ))}
+                {/* Progress Indicator */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>Study Progress</span>
+                    <span>{Math.round(((currentCardIndex + 1) / flashcards.length) * 100)}%</span>
+                  </div>
+                  <div className="flex space-x-1.5 justify-center">
+                    {flashcards.map((_, index) => (
+                      <div
+                        key={index}
+                        className={`h-2.5 flex-1 max-w-12 rounded-full transition-all ${
+                          index === currentCardIndex
+                            ? 'bg-blue-600 dark:bg-blue-500'
+                            : index < currentCardIndex
+                            ? 'bg-blue-400 dark:bg-blue-700'
+                            : 'bg-gray-200 dark:bg-gray-700'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           )}
