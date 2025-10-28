@@ -584,30 +584,64 @@ router.post('/api/students/:studentId/classes/:classId/ai/quiz/generate', async 
     }
     
     // Generate quiz questions using AI
-    const prompt = `Create ${count} multiple choice quiz questions from this material. Each question should have 4 options with one correct answer.
+    const prompt = `You are a quiz creator. Create exactly ${count} multiple choice quiz questions from the following material. Each question must have exactly 4 options with one correct answer (0-indexed).
 
 Material: ${material.file_name}
-Content: ${material.extracted_text}
+Content: ${material.extracted_text.substring(0, 4000)}
 
-Format your response as JSON array:
-[
-  {
-    "question": "Question text here",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "correct_answer": 0,
-    "explanation": "Why this answer is correct"
-  }
-]`;
+IMPORTANT: Return ONLY valid JSON array format, no markdown code blocks. Example:
+[{"question": "What is X?", "options": ["A", "B", "C", "D"], "correct_answer": 0, "explanation": "X is..."}, {"question": "Define Y", "options": ["E", "F", "G", "H"], "correct_answer": 1, "explanation": "Y is..."}]`;
     
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1500,
-      temperature: 0.3
+      messages: [
+        { 
+          role: 'system', 
+          content: 'You are a helpful quiz assistant that returns ONLY valid JSON arrays. No markdown, no explanations, just JSON.' 
+        },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 2500,
+      temperature: 0.7
     });
     
     const aiResponse = completion.choices[0].message.content;
-    const questions = JSON.parse(aiResponse);
+    
+    // Try to parse JSON, handling markdown code blocks
+    let questions;
+    try {
+      // Remove markdown code blocks if present
+      let jsonText = aiResponse.trim();
+      if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/^```[a-z]*\n/, '').replace(/\n```$/, '');
+      }
+      
+      questions = JSON.parse(jsonText);
+      
+      // Validate questions structure
+      if (!Array.isArray(questions) || questions.length === 0) {
+        throw new Error('Invalid quiz question format');
+      }
+      
+      // Validate each question has required fields
+      questions = questions.filter(q => 
+        q.question && 
+        Array.isArray(q.options) && q.options.length === 4 && 
+        typeof q.correct_answer === 'number' && q.correct_answer >= 0 && q.correct_answer < 4
+      );
+      
+      if (questions.length === 0) {
+        throw new Error('No valid quiz questions generated');
+      }
+    } catch (parseError) {
+      console.error('❌ Error parsing AI response:', parseError);
+      console.error('AI Response:', aiResponse);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to parse quiz data from AI',
+        details: parseError.message
+      });
+    }
     
     // Create quiz session
     const { data: quizSession, error: sessionError } = await supabase
