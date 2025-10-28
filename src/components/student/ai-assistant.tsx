@@ -198,6 +198,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
 
     try {
       setIsGeneratingFlashcards(true);
+      setFlashcardStudyStatus({}); // Clear previous study status
       console.log('🃏 Generating flashcards for material:', selectedMaterial);
       
       const response = await fetch(`/api/students/${studentId}/classes/${classId}/ai/flashcards/generate`, {
@@ -288,6 +289,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
 
     try {
       setIsGeneratingQuiz(true);
+      setQuizResults(null); // Clear previous results immediately
       console.log('📝 Generating quiz for material:', selectedMaterial);
       
       const response = await fetch(`/api/students/${studentId}/classes/${classId}/ai/quiz/generate`, {
@@ -308,7 +310,6 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
         setQuizQuestions(data.questions);
         setCurrentQuestionIndex(0);
         setSelectedAnswers({});
-        setQuizResults(null);
         console.log('✅ Quiz generated:', data.questions.length);
       } else {
         console.error('❌ Failed to generate quiz:', data.error);
@@ -599,20 +600,20 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                 </>
               ) : (
                 <>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Generate Flashcards
+              <Upload className="w-4 h-4 mr-2" />
+              Generate Flashcards
                 </>
               )}
             </Button>
           </div>
           
           {flashcards.length === 0 ? (
-            <div className="text-center py-12">
-              <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
-              <h4 className="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">
+          <div className="text-center py-12">
+            <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
+            <h4 className="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">
                 {materials.length === 0 ? 'No Flashcards Available' : 'Ready to Study?'}
-              </h4>
-              <p className="text-gray-500 dark:text-gray-500 mb-4">
+            </h4>
+            <p className="text-gray-500 dark:text-gray-500 mb-4">
                 {materials.length === 0 
                   ? 'No materials available. Ask your professor to upload study materials first.'
                   : 'Select a material and click "Generate Flashcards" to create study cards!'}
@@ -672,8 +673,8 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                         {flashcards[currentCardIndex]?.front_text}
                       </p>
                     </div>
-                  )}
-                </div>
+            )}
+          </div>
                 <div className="absolute bottom-6 right-6 flex items-center space-x-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors">
                   <RotateCcw className="w-5 h-5" />
                   <span className="text-xs font-medium">Click to flip</span>
@@ -752,6 +753,29 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                   </div>
                 </div>
               </div>
+
+              {/* Generate New Flashcards Button */}
+              <div className="text-center pt-4">
+                <Button
+                  onClick={generateFlashcards}
+                  disabled={isGeneratingFlashcards || materials.length === 0}
+                  variant="outline"
+                  size="lg"
+                  className="border-blue-600 text-blue-600 hover:bg-blue-50 hover:border-blue-700 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                >
+                  {isGeneratingFlashcards ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                      Generating New Flashcards...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5 mr-2" />
+                      Generate New Flashcards
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           )}
         </Card>
@@ -771,7 +795,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
               </div>
             </div>
             {quizQuestions.length === 0 && (
-              <Button 
+            <Button 
                 onClick={generateQuiz}
                 disabled={!selectedMaterial || isGeneratingQuiz || materials.length === 0}
                 className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600"
@@ -783,21 +807,21 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                   </>
                 ) : (
                   <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Generate Quiz
+              <Upload className="w-4 h-4 mr-2" />
+              Generate Quiz
                   </>
                 )}
-              </Button>
+            </Button>
             )}
           </div>
           
           {quizQuestions.length === 0 ? (
-            <div className="text-center py-12">
-              <HelpCircle className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
-              <h4 className="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">
+          <div className="text-center py-12">
+            <HelpCircle className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
+            <h4 className="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">
                 {materials.length === 0 ? 'No Quiz Available' : 'Ready to Test Your Knowledge?'}
-              </h4>
-              <p className="text-gray-500 dark:text-gray-500 mb-4">
+            </h4>
+            <p className="text-gray-500 dark:text-gray-500 mb-4">
                 {materials.length === 0 
                   ? 'No materials available. Ask your professor to upload study materials first.'
                   : 'Select a material and click "Generate Quiz" to create practice questions!'}
@@ -870,6 +894,28 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                   );
                 })}
               </div>
+
+              {/* Generate New Quiz Button */}
+              <div className="text-center">
+                <Button
+                  onClick={generateQuiz}
+                  disabled={isGeneratingQuiz || materials.length === 0}
+                  className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600"
+                  size="lg"
+                >
+                  {isGeneratingQuiz ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                      Generating New Quiz...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5 mr-2" />
+                      Generate New Quiz
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="space-y-6">
@@ -913,8 +959,8 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                               }`}>
                                 {selectedAnswers[currentQuestion.id] === index && (
                                   <div className="w-3 h-3 rounded-full bg-white"></div>
-                                )}
-                              </div>
+            )}
+          </div>
                               <span className="font-medium text-gray-900 dark:text-white">
                                 {String.fromCharCode(65 + index)}. {option}
                               </span>
