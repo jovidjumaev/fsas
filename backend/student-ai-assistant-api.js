@@ -448,28 +448,60 @@ router.post('/api/students/:studentId/classes/:classId/ai/flashcards/generate', 
     }
     
     // Generate flashcards using AI
-    const prompt = `Create ${count} study flashcards from this material. Each flashcard should have a clear question on the front and a concise answer on the back.
+    const prompt = `You are a study assistant. Create exactly ${count} study flashcards from the following material. Each flashcard should have a clear question on the front and a detailed answer on the back.
 
 Material: ${material.file_name}
-Content: ${material.extracted_text}
+Content: ${material.extracted_text.substring(0, 4000)}
 
-Format your response as JSON array:
-[
-  {
-    "front": "Question here",
-    "back": "Answer here"
-  }
-]`;
+Return ONLY a JSON array. No markdown, no code blocks, no explanations. Just the JSON array. Example:
+[{"front": "What is the main concept?", "back": "The main concept is..."}, {"front": "Define X", "back": "X is defined as..."}]`;
     
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1000,
-      temperature: 0.3
+      messages: [
+        { 
+          role: 'system', 
+          content: 'You are a helpful assistant that returns ONLY valid JSON arrays. No markdown, no explanations, just JSON.' 
+        },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 2000,
+      temperature: 0.7
     });
     
     const aiResponse = completion.choices[0].message.content;
-    const flashcards = JSON.parse(aiResponse);
+    
+    // Try to parse JSON, handling markdown code blocks
+    let flashcards;
+    try {
+      // Remove markdown code blocks if present
+      let jsonText = aiResponse.trim();
+      if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/^```[a-z]*\n/, '').replace(/\n```$/, '');
+      }
+      
+      flashcards = JSON.parse(jsonText);
+      
+      // Validate flashcards structure
+      if (!Array.isArray(flashcards) || flashcards.length === 0) {
+        throw new Error('Invalid flashcard format');
+      }
+      
+      // Validate each flashcard has required fields
+      flashcards = flashcards.filter(card => card.front && card.back);
+      
+      if (flashcards.length === 0) {
+        throw new Error('No valid flashcards generated');
+      }
+    } catch (parseError) {
+      console.error('❌ Error parsing AI response:', parseError);
+      console.error('AI Response:', aiResponse);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to parse flashcard data from AI',
+        details: parseError.message
+      });
+    }
     
     // Save flashcards to database
     const flashcardData = flashcards.map(card => ({
@@ -502,7 +534,8 @@ Format your response as JSON array:
     console.error('❌ Flashcard generation error:', error);
     res.status(500).json({
       success: false,
-      error: 'Internal server error'
+      error: 'Internal server error',
+      details: error.message
     });
   }
 });
