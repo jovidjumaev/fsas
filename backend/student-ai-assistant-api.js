@@ -52,6 +52,7 @@ router.get('/api/students/:studentId/classes/:classId/materials', async (req, re
         file_name,
         file_type,
         file_size,
+        file_url,
         uploaded_at,
         is_processed
       `)

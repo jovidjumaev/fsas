@@ -21,7 +21,8 @@ import {
   ChevronRight,
   RotateCcw,
   Check,
-  X
+  X,
+  Download
 } from 'lucide-react';
 
 interface StudentAIAssistantProps {
@@ -190,6 +191,27 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
   const getSelectedMaterialName = () => {
     const material = materials.find(m => m.id === selectedMaterial);
     return material ? material.file_name : 'Select Material';
+  };
+
+  const getSelectedMaterial = () => {
+    return materials.find(m => m.id === selectedMaterial);
+  };
+
+  const handleDownloadMaterial = () => {
+    const material = getSelectedMaterial();
+    if (material && material.file_url) {
+      // Create a temporary link element and click it to trigger download
+      const link = document.createElement('a');
+      link.href = material.file_url;
+      link.download = material.file_name;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      console.log('📥 Downloading material:', material.file_name);
+    } else {
+      console.error('❌ Material or file URL not available');
+    }
   };
 
   // Flashcards functions
@@ -419,6 +441,17 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                   </option>
                 ))}
               </select>
+            )}
+            {materials.length > 0 && getSelectedMaterial()?.file_url && (
+              <Button
+                onClick={handleDownloadMaterial}
+                variant="outline"
+                size="sm"
+                className="border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-900/30"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download
+              </Button>
             )}
             <Badge variant="outline" className="text-xs">
               {materials.length} materials available
