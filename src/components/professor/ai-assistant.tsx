@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Upload, MessageCircle, FileText, Trash2, Send, Bot, User } from 'lucide-react';
+import { Upload, MessageCircle, FileText, Trash2, Send, Bot, User, BarChart3, Users, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { supabase } from '@/lib/supabase';
@@ -33,6 +33,60 @@ interface AIAssistantProps {
   professorId: string;
 }
 
+interface QuizInsightsTotals {
+  totalStudents: number;
+  studentsAttempted: number;
+  studentsNotAttempted: number;
+  averageScore: number | null;
+  totalCompletedAttempts: number;
+}
+
+interface QuizInsightsStudent {
+  studentId: string;
+  studentNumber?: string | null;
+  firstName: string;
+  lastName: string;
+  email: string;
+  hasAttempted: boolean;
+  latestAttempt: {
+    quizSessionId: string;
+    materialId: string;
+    materialName: string;
+    scorePercentage: number;
+    correctAnswers: number;
+    totalQuestions: number;
+    completedAt: string | null;
+    isCompleted: boolean;
+  } | null;
+}
+
+interface QuizInsightsMaterial {
+  materialId: string;
+  materialName: string;
+  uploadedAt: string | null;
+  totalAttempts: number;
+  startedAttempts: number;
+  completedAttempts: number;
+  studentsAttempted: number;
+  studentsNotAttempted: number;
+  averageScore: number | null;
+  maxScore: number | null;
+  minScore: number | null;
+  lastCompletedAt: string | null;
+  averageQuestionAccuracy: number | null;
+  questionSamples?: {
+    totalQuestions: number;
+    totalQuestionAttempts: number;
+  };
+}
+
+interface QuizInsights {
+  totals: QuizInsightsTotals;
+  students: QuizInsightsStudent[];
+  materials: QuizInsightsMaterial[];
+  generatedAt: string;
+}
+
 export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -43,6 +97,9 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   const [totalTokensUsed, setTotalTokensUsed] = useState(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [materialToDelete, setMaterialToDelete] = useState<string | null>(null);
+  const [quizInsights, setQuizInsights] = useState<QuizInsights | null>(null);
+  const [isQuizLoading, setIsQuizLoading] = useState(false);
+  const [quizError, setQuizError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom when new messages arrive
@@ -70,6 +127,10 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
       socket.disconnect();
     };
   }, [classId]);
+
+  useEffect(() => {
+    loadQuizInsights();
+  }, [classId, professorId]);
 
   // Add global navigation tracking
   useEffect(() => {
@@ -146,6 +207,51 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
       console.error('❌ Error loading materials:', error);
       console.log('❌ URL after materials error:', window.location.href);
       toast.error('Error loading materials');
+    }
+  };
+
+  const loadQuizInsights = async () => {
+    if (!professorId || !classId) return;
+
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+
+    setIsQuizLoading(true);
+    setQuizError(null);
+
+    try {
+      const response = await fetch(
+        `${baseUrl}/api/professors/${professorId}/classes/${classId}/ai/quiz-insights`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setQuizInsights({
+          totals: data.data?.totals || {
+            totalStudents: 0,
+            studentsAttempted: 0,
+            studentsNotAttempted: 0,
+            averageScore: null,
+            totalCompletedAttempts: 0,
+          },
+          students: data.data?.students || [],
+          materials: data.data?.materials || [],
+          generatedAt: data.data?.generatedAt || new Date().toISOString()
+        });
+      } else {
+        throw new Error(data.error || 'Failed to load quiz insights');
+      }
+    } catch (error: any) {
+      console.error('❌ Error loading quiz insights:', error);
+      const message = error?.message || 'Failed to load quiz insights';
+      setQuizError(message);
+      toast.error(message);
+    } finally {
+      setIsQuizLoading(false);
     }
   };
 
@@ -460,6 +566,28 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     return '📁';
   };
 
+  const formatScore = (score?: number | null) => {
+    if (score === null || score === undefined) return '—';
+    const rounded = Math.round(score);
+    return `${rounded}%`;
+  };
+
+  const formatDate = (value?: string | null) => {
+    if (!value) return '—';
+    try {
+      return new Date(value).toLocaleDateString();
+    } catch {
+      return '—';
+    }
+  };
+
+  const getStudentInitials = (student: QuizInsightsStudent) => {
+    const first = student.firstName?.[0] || '';
+    const last = student.lastName?.[0] || '';
+    const initials = `${first}${last}`.toUpperCase();
+    return initials || 'S';
+  };
+
   return (
     <div className="space-y-6 dark:bg-gray-900 dark:text-gray-100">
       {/* Materials Section */}
@@ -527,6 +655,224 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
             </div>
           ) : (
             <p className="text-gray-500 dark:text-gray-400 text-sm">No materials uploaded yet.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Quiz Insights Section */}
+      <Card className="dark:bg-gray-800 dark:border-gray-700">
+        <CardHeader className="dark:bg-gray-800 dark:border-gray-700 flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 dark:text-gray-100">
+              <BarChart3 className="h-5 w-5" />
+              Quiz Insights
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={loadQuizInsights}
+              disabled={isQuizLoading}
+              className="text-sm text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:hover:text-blue-200"
+            >
+              Refresh
+            </Button>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Snapshot of student quiz activity generated on{' '}
+            {quizInsights?.generatedAt ? new Date(quizInsights.generatedAt).toLocaleString() : '—'}
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4 dark:bg-gray-800">
+          {isQuizLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex items-center gap-3 text-gray-500 dark:text-gray-300">
+                <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <span>Loading quiz insights…</span>
+              </div>
+            </div>
+          ) : quizError ? (
+            <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50/70 p-4 text-red-700 dark:border-red-800 dark:bg-red-900/40 dark:text-red-200">
+              <AlertTriangle className="h-5 w-5" />
+              <div>
+                <p className="text-sm font-medium">Unable to load quiz insights.</p>
+                <p className="text-xs text-red-600 dark:text-red-300">{quizError}</p>
+              </div>
+            </div>
+          ) : quizInsights ? (
+            <>
+              {/* Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30 p-4">
+                  <p className="text-xs uppercase font-semibold text-blue-600 dark:text-blue-200 mb-1">
+                    Total Students
+                  </p>
+                  <p className="text-2xl font-bold text-blue-700 dark:text-blue-100">
+                    {quizInsights.totals.totalStudents}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-emerald-50 dark:bg-emerald-900/30 p-4">
+                  <p className="text-xs uppercase font-semibold text-emerald-600 dark:text-emerald-200 mb-1">
+                    Attempted
+                  </p>
+                  <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-100">
+                    {quizInsights.totals.studentsAttempted}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-900/30 p-4">
+                  <p className="text-xs uppercase font-semibold text-amber-600 dark:text-amber-200 mb-1">
+                    Not Attempted
+                  </p>
+                  <p className="text-2xl font-bold text-amber-700 dark:text-amber-100">
+                    {quizInsights.totals.studentsNotAttempted}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-slate-50 dark:bg-slate-800 p-4">
+                  <p className="text-xs uppercase font-semibold text-slate-500 dark:text-slate-300 mb-1">
+                    Avg. Score
+                  </p>
+                  <p className="text-2xl font-bold text-slate-800 dark:text-white">
+                    {formatScore(quizInsights.totals.averageScore)}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {quizInsights.totals.totalCompletedAttempts} completed attempts
+                  </p>
+                </div>
+              </div>
+
+              {/* Material performance */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-slate-500 dark:text-slate-300" />
+                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Performance by Material
+                  </h3>
+                </div>
+                {quizInsights.materials.length > 0 ? (
+                  <div className="space-y-3">
+                    {quizInsights.materials.map((material) => (
+                      <div
+                        key={material.materialId}
+                        className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/60 p-4"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-800 dark:text-white">
+                              {material.materialName}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              Uploaded {formatDate(material.uploadedAt)}
+                              {material.lastCompletedAt
+                                ? ` • Last completed ${formatDate(material.lastCompletedAt)}`
+                                : ''}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-200">
+                              Avg: {formatScore(material.averageScore)}
+                            </Badge>
+                            <Badge variant="secondary" className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                              Attempts: {material.completedAttempts}/{material.totalAttempts}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-600 dark:text-slate-300">
+                          <div className="flex justify-between sm:block">
+                            <span className="font-medium block">Students Attempted</span>
+                            <span>{material.studentsAttempted}</span>
+                          </div>
+                          <div className="flex justify-between sm:block">
+                            <span className="font-medium block">Students Not Attempted</span>
+                            <span>{material.studentsNotAttempted}</span>
+                          </div>
+                          <div className="flex justify-between sm:block">
+                            <span className="font-medium block">Question Accuracy</span>
+                            <span>{material.averageQuestionAccuracy !== null ? `${Math.round(material.averageQuestionAccuracy)}%` : '—'}</span>
+                          </div>
+                        </div>
+                        {material.averageScore !== null && material.averageScore < 60 && (
+                          <div className="mt-3 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50/70 px-3 py-2 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+                            <AlertTriangle className="h-4 w-4" />
+                            Students may be struggling with this material.
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    No quiz activity recorded yet.
+                  </p>
+                )}
+              </div>
+
+              {/* Student overview */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4 text-slate-500 dark:text-slate-300" />
+                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Student Progress
+                  </h3>
+                </div>
+                {quizInsights.students.length > 0 ? (
+                  <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                    {quizInsights.students.map((student) => (
+                      <div
+                        key={student.studentId}
+                        className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/60 p-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white dark:bg-blue-500">
+                            {getStudentInitials(student)}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-slate-800 dark:text-white">
+                              {student.firstName} {student.lastName}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {student.email}
+                              {student.studentNumber ? ` • ${student.studentNumber}` : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {student.hasAttempted && student.latestAttempt ? (
+                            <>
+                              <div className="text-right">
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  Latest Score
+                                </p>
+                                <p className="text-sm font-semibold text-slate-800 dark:text-white">
+                                  {formatScore(student.latestAttempt.scorePercentage)}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  {student.latestAttempt.correctAnswers}/
+                                  {student.latestAttempt.totalQuestions} correct
+                                </p>
+                              </div>
+                              <Badge variant="secondary" className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                {student.latestAttempt.materialName}
+                              </Badge>
+                            </>
+                          ) : (
+                            <Badge variant="destructive" className="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
+                              Not attempted
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    No enrolled students found.
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Quiz insights will appear once students begin using the AI assistant quizzes.
+            </p>
           )}
         </CardContent>
       </Card>

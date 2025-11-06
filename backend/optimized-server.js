@@ -31,6 +31,9 @@ const aiAssistantAPI = require('./ai-assistant-api.js');
 // Import the student AI assistant API
 const studentAIAssistantAPI = require('./student-ai-assistant-api.js');
 
+// Import the professor quiz insights API
+const { router: professorQuizInsightsAPI } = require('./professor-quiz-insights-api.js');
+
 // Import the student dashboard API (commented out - using frontend service instead)
 // const studentDashboardAPI = require('./student-dashboard-api.js');
 
@@ -165,6 +168,7 @@ app.use('/', studentClassesAPI);
 app.use('/', studentClassDetailAPI);
 app.use('/', aiAssistantAPI);
 app.use('/', studentAIAssistantAPI);
+app.use('/', professorQuizInsightsAPI);
 // app.use('/', studentDashboardAPI); // Commented out - using frontend service instead
 
 // =====================================================
