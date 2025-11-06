@@ -108,6 +108,7 @@ function buildQuizInsights(enrollments = [], quizSessions = [], quizQuestions = 
         minScore: null,
         latestCompletedAt: null,
         startedAttempts: 0,
+        recentAttempts: [],
       };
 
     materialInfo.totalAttempts += 1;
@@ -129,77 +130,83 @@ function buildQuizInsights(enrollments = [], quizSessions = [], quizQuestions = 
       }
     }
 
+    materialInfo.recentAttempts.push({
+      quizSessionId: session.id,
+      studentId,
+      startedAt: session.started_at || session.startedAt || null,
+      completedAt: session.completed_at || null,
+      isCompleted: Boolean(session.is_completed),
+      scorePercentage: session.is_completed ? toNumber(session.score_percentage) : null,
+      correctAnswers: session.is_completed ? toNumber(session.correct_answers) : null,
+      totalQuestions: toNumber(session.total_questions),
+    });
+
+    if (session.is_completed) {
+      materialInfo.uniqueStudents.add(studentId);
+    }
+
     if (session.started_at || session.startedAt || session.is_completed) {
       materialInfo.startedAttempts += 1;
     }
 
-    materialInfo.uniqueStudents.add(studentId);
     materialSummaries.set(materialId, materialInfo);
   });
 
   const studentSummaries = studentProfiles.map((profile) => {
     const sessions = sessionsByStudent.get(profile.studentId) || [];
-
-    const latestSession = sessions
+    const sortedSessions = sessions
       .slice()
       .sort((a, b) => {
         const aTs = getTimestamp(a.completed_at) || getTimestamp(a.started_at) || 0;
         const bTs = getTimestamp(b.completed_at) || getTimestamp(b.started_at) || 0;
         return bTs - aTs;
-      })[0];
+      });
+
+    const attemptHistory = sortedSessions.map((session) => ({
+      quizSessionId: session.id,
+      materialId: session.material_id,
+      materialName: materialLookup.get(session.material_id)?.fileName || 'Unknown material',
+      scorePercentage: session.is_completed ? toNumber(session.score_percentage) : null,
+      correctAnswers: session.is_completed ? toNumber(session.correct_answers) : null,
+      totalQuestions: toNumber(session.total_questions),
+      startedAt: session.started_at || session.startedAt || null,
+      completedAt: session.completed_at || null,
+      isCompleted: Boolean(session.is_completed),
+    }));
 
     const attemptsByMaterial = new Map();
-    sessions.forEach((session) => {
-      if (!session.material_id) {
+    attemptHistory.forEach((attempt) => {
+      if (!attempt.materialId) {
         return;
       }
 
-      const existing = attemptsByMaterial.get(session.material_id);
       const referenceTs =
-        getTimestamp(session.completed_at) || getTimestamp(session.started_at) || 0;
-
+        getTimestamp(attempt.completedAt) || getTimestamp(attempt.startedAt) || 0;
+      const existing = attemptsByMaterial.get(attempt.materialId);
       if (!existing || referenceTs > existing._ts) {
-        attemptsByMaterial.set(session.material_id, {
-          materialId: session.material_id,
-          materialName: materialLookup.get(session.material_id)?.fileName || 'Unknown material',
-          quizSessionId: session.id,
-          totalQuestions: toNumber(session.total_questions),
-          correctAnswers: toNumber(session.correct_answers),
-          scorePercentage: toNumber(session.score_percentage),
-          startedAt: session.started_at || session.startedAt || null,
-          completedAt: session.completed_at || null,
-          isCompleted: Boolean(session.is_completed),
+        attemptsByMaterial.set(attempt.materialId, {
+          ...attempt,
           _ts: referenceTs,
         });
       }
     });
 
-    const attempts = Array.from(attemptsByMaterial.values()).map((attempt) => {
-      // Remove internal helper key before returning
+    const materialSnapshots = Array.from(attemptsByMaterial.values()).map((attempt) => {
       const { _ts, ...publicAttempt } = attempt;
       return publicAttempt;
     });
 
-    const latestSummary = latestSession
-      ? {
-          quizSessionId: latestSession.id,
-          materialId: latestSession.material_id,
-          materialName:
-            materialLookup.get(latestSession.material_id)?.fileName || 'Unknown material',
-          scorePercentage: toNumber(latestSession.score_percentage),
-          correctAnswers: toNumber(latestSession.correct_answers),
-          totalQuestions: toNumber(latestSession.total_questions),
-          startedAt: latestSession.started_at || latestSession.startedAt || null,
-          completedAt: latestSession.completed_at || null,
-          isCompleted: Boolean(latestSession.is_completed),
-        }
-      : null;
+    const latestCompleted = attemptHistory.find((attempt) => attempt.isCompleted);
+    const latestEntry = latestCompleted || attemptHistory[0] || null;
+
+    const hasCompletedAttempt = attemptHistory.some((attempt) => attempt.isCompleted);
 
     return {
       ...profile,
-      hasAttempted: attempts.length > 0,
-      attempts,
-      latestAttempt: latestSummary,
+      hasAttempted: hasCompletedAttempt,
+      latestAttempt: latestEntry,
+      materialSnapshots,
+      attemptHistory,
     };
   });
 
@@ -255,6 +262,14 @@ function buildQuizInsights(enrollments = [], quizSessions = [], quizQuestions = 
         totalQuestions: questionStats.totalQuestions,
         totalQuestionAttempts: questionStats.totalAttempts,
       },
+      recentAttempts: material.recentAttempts
+        .slice()
+        .sort((a, b) => {
+          const aTs = getTimestamp(a.completedAt) || getTimestamp(a.startedAt) || 0;
+          const bTs = getTimestamp(b.completedAt) || getTimestamp(b.startedAt) || 0;
+          return bTs - aTs;
+        })
+        .slice(0, 10),
     };
   });
 
