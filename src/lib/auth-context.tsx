@@ -12,6 +12,9 @@ import {
   formatErrorForUser
 } from './error-handler';
 
+const supabaseClient = supabase as any;
+const supabaseAdminClient = supabaseAdmin as any;
+
 interface AuthContextType {
   user: User | null;
   userRole: 'student' | 'professor' | null;
@@ -103,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('🔐 Fetching user role for:', userId, retryCount > 0 ? `(retry ${retryCount})` : '');
       
       // Add timeout to prevent hanging - increased from 3s to 15s for better stability
-      const rolePromise = supabase
+      const rolePromise = supabaseClient
         .from('users')
         .select('role')
         .eq('id', userId)
@@ -148,11 +151,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.warn('🔐 No role found for user');
       // Don't set to null - keep existing role
       console.log('🔐 Keeping existing role to prevent UI disruption');
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error fetching user role:', error);
       
       // Retry logic for timeout errors - reduced retries
-      if (retryCount < 1 && error.message?.includes('timeout')) {
+      if (
+        retryCount < 1 &&
+        error instanceof Error &&
+        error.message?.includes('timeout')
+      ) {
         console.log('🔐 Retrying role fetch after timeout...');
         setTimeout(() => fetchUserRole(userId, retryCount + 1), 2000);
         return;
@@ -506,11 +513,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Check if email already exists in users table
       console.log('🔍 Checking if email already exists in users table...');
-      const { data: existingUser, error: userCheckError } = await supabase
+      const { data: existingUser, error: userCheckError } = await supabaseClient
         .from('users')
         .select('id, role, first_name, last_name')
         .eq('email', email.toLowerCase())
-        .single();
+        .maybeSingle();
       
       if (userCheckError && userCheckError.code !== 'PGRST116') { // PGRST116 = no rows found
         console.error('❌ Error checking users table:', userCheckError);
@@ -639,17 +646,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Check if user profile was created by trigger
-      const { data: userProfile, error: userProfileError } = await supabase
+      const { data: userProfile, error: userProfileError } = await supabaseClient
         .from('users')
         .select('*')
         .eq('id', authData.user.id)
-        .single();
+        .maybeSingle();
 
       if (userProfileError || !userProfile) {
         console.log('AuthContext: User profile not created by trigger, creating manually...');
         
         // Create user profile manually using admin client to bypass RLS
-        const { error: userError } = await supabaseAdmin
+        const { error: userError } = await supabaseAdminClient
           .from('users')
           .insert({
             id: authData.user.id,
@@ -681,39 +688,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (role === 'student') {
           console.log('🎓 Creating student record...');
           
-          // Generate a student ID if none provided
-          let studentId = additionalData.studentNumber;
-          if (!studentId || studentId.trim() === '') {
-            // Generate a unique student ID
-            const timestamp = Date.now();
-            const random = Math.floor(Math.random() * 1000);
-            studentId = `500${timestamp.toString().slice(-6)}${random.toString().padStart(3, '0')}`;
-            console.log('🔢 Generated student ID:', studentId);
-          }
-          
-          const { data: studentData, error: studentError } = await supabaseAdmin
+          const { data: existingStudent, error: existingStudentError } = await supabaseAdminClient
             .from('students')
-            .insert({
-              user_id: authData.user.id,
-              student_id: studentId,
-              enrollment_year: new Date().getFullYear(),
-              major: additionalData.major || 'Computer Science',
-              created_at: new Date().toISOString()
-            })
-            .select()
-            .single();
+            .select('user_id')
+            .eq('user_id', authData.user.id)
+            .maybeSingle();
 
-          if (studentError) {
-            console.error('❌ Failed to create student record:', studentError);
-            // This is critical - fail the registration if student record creation fails
-            throw new Error(`Failed to create student record: ${studentError.message}`);
+          if (existingStudentError && existingStudentError.code !== 'PGRST116') {
+            throw new Error(`Failed to verify existing student record: ${existingStudentError.message}`);
           }
-          
-          console.log('✅ Student record created successfully:', studentData);
+
+          if (existingStudent) {
+            console.log('ℹ️ Student record already exists, skipping insert');
+          } else {
+            // Generate a student ID if none provided
+            let studentId = additionalData.studentNumber;
+            if (!studentId || studentId.trim() === '') {
+              // Generate a unique student ID
+              const timestamp = Date.now();
+              const random = Math.floor(Math.random() * 1000);
+              studentId = `500${timestamp.toString().slice(-6)}${random.toString().padStart(3, '0')}`;
+              console.log('🔢 Generated student ID:', studentId);
+            }
+            
+            const { data: studentData, error: studentError } = await supabaseAdminClient
+              .from('students')
+              .insert({
+                user_id: authData.user.id,
+                student_id: studentId,
+                enrollment_year: new Date().getFullYear(),
+                major: additionalData.major || 'Computer Science',
+                created_at: new Date().toISOString()
+              })
+              .select()
+              .maybeSingle();
+
+            if (studentError) {
+              if (studentError.code === '23505') {
+                console.warn('⚠️ Duplicate student record detected during insert, continuing');
+              } else {
+                console.error('❌ Failed to create student record:', studentError);
+                // This is critical - fail the registration if student record creation fails
+                throw new Error(`Failed to create student record: ${studentError.message}`);
+              }
+            } else {
+              console.log('✅ Student record created successfully:', studentData);
+            }
+          }
         } else if (role === 'professor') {
           console.log('👨‍🏫 Creating professor record...');
           
-          const { data: professorData, error: professorError } = await supabaseAdmin
+          const { data: professorData, error: professorError } = await supabaseAdminClient
             .from('professors')
             .insert({
               user_id: authData.user.id,
@@ -734,13 +759,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           console.log('✅ Professor record created successfully:', professorData);
         }
-      } catch (roleError) {
+      } catch (roleError: unknown) {
         console.error('❌ Role-specific record creation failed:', roleError);
         
         // Clean up: Delete the user if role-specific record creation failed
         console.log('🧹 Cleaning up user record due to role creation failure...');
         try {
-          await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+          await supabaseAdminClient.auth.admin.deleteUser(authData.user.id);
           console.log('✅ User record cleaned up successfully');
         } catch (cleanupError) {
           console.error('❌ Failed to clean up user record:', cleanupError);
@@ -749,7 +774,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Return error to user
         return {
           success: false,
-          error: `Registration failed: ${roleError.message}\n\n💡 Please try again or contact support if this persists.`
+          error: `Registration failed: ${
+            roleError instanceof Error ? roleError.message : 'Unknown error'
+          }\n\n💡 Please try again or contact support if this persists.`
         };
       }
 
@@ -777,9 +804,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(authData.user);
       setUserRole(role);
       return { success: true };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Sign up error:', error);
-      return { success: false, error: 'An unexpected error occurred' };
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+      return { success: false, error: message };
     }
   };
 
@@ -845,11 +873,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Simplified approach: Check users table first, then try password reset
       console.log('🔐 AuthContext: Checking users table for user...');
       
-      const { data: userData, error: userError } = await supabaseAdmin
+      const { data: userData, error: userError } = await supabaseAdminClient
         .from('users')
         .select('id, email, role')
         .eq('email', email.trim().toLowerCase())
-        .single();
+        .maybeSingle();
 
       let userRole = null;
       
@@ -891,9 +919,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('✅ AuthContext: Password reset email sent successfully');
       return { success: true };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('🔐 AuthContext: Password reset error:', error);
-      return { success: false, error: 'An unexpected error occurred. Please try again.' };
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
+      return { success: false, error: message };
     }
   };
 

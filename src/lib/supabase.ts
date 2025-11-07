@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/types/database';
 
 // Get environment variables with fallbacks
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zdtxqzpgggolbebrsymp.supabase.co';
@@ -26,13 +25,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Supabase configuration is missing');
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true,
-    // Enable email confirmation for new users
-    confirmEmailChange: true
+    detectSessionInUrl: true
   },
   global: {
     headers: {
@@ -50,7 +47,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 });
 
 // Server-side client with service role key
-export const supabaseAdmin = createClient<Database>(
+export const supabaseAdmin = createClient(
   supabaseUrl,
   supabaseServiceKey,
   {

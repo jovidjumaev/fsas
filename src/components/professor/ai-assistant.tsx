@@ -245,7 +245,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         console.log('📋 Failed to load materials, URL:', window.location.href);
         toast.error('Failed to load materials');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('❌ Error loading materials:', error);
       console.log('❌ URL after materials error:', window.location.href);
       toast.error('Error loading materials');
@@ -287,9 +287,10 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
       } else {
         throw new Error(data.error || 'Failed to load quiz insights');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Error loading quiz insights:', error);
-      const message = error?.message || 'Failed to load quiz insights';
+      const message =
+        error instanceof Error ? error.message : 'Failed to load quiz insights';
       setQuizError(message);
       toast.error(message);
     } finally {
@@ -321,7 +322,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
       } else {
         toast.error('Failed to create chat session');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error creating chat session:', error);
       toast.error('Error creating chat session');
     }
@@ -337,7 +338,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
       if (data.success) {
         setMessages(data.messages);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error loading chat history:', error);
     }
   };
@@ -406,7 +407,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         console.log('❌ Upload failed, URL after failed upload:', window.location.href);
         toast.error(data.error || 'Failed to upload file');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('❌ Error uploading file:', error);
       console.log('❌ URL after upload error:', window.location.href);
       toast.error('Error uploading file');
@@ -480,7 +481,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         // Remove the user message if sending failed
         setMessages(prev => prev.slice(0, -1));
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error sending message:', error);
       toast.error('Error sending message');
       // Remove the user message if sending failed
@@ -576,14 +577,15 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         console.log('❌ Delete failed, URL after failed delete:', window.location.href);
         toast.error(data.error || 'Failed to delete file');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('❌ Error deleting material:', error);
       console.log('❌ URL after error:', window.location.href);
       
-      if (error.name === 'AbortError') {
+      if (error instanceof DOMException && error.name === 'AbortError') {
         toast.error('Delete request timed out. Please try again.');
       } else {
-        toast.error('Failed to delete file: ' + error.message);
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        toast.error('Failed to delete file: ' + message);
       }
     } finally {
       console.log('🏁 Delete process finished, final URL:', window.location.href);
@@ -1330,8 +1332,10 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
                   <Input
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    onKeyUp={handleKeyUp}
+                    {...({
+                      onKeyDown: handleKeyDown,
+                      onKeyUp: handleKeyUp
+                    } as any)}
                     placeholder="Ask a concise question about your materials..."
                     disabled={isLoading}
                     className="flex-1"
