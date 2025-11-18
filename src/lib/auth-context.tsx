@@ -645,16 +645,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('AuthContext: Waiting for user profile creation...');
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Check if user profile was created by trigger
-      const { data: userProfile, error: userProfileError } = await supabaseClient
+      // Check if user profile was created by trigger using admin client to bypass RLS
+      const { data: userProfile, error: userProfileError } = await supabaseAdminClient
         .from('users')
         .select('*')
         .eq('id', authData.user.id)
         .maybeSingle();
 
-      if (userProfileError || !userProfile) {
+      if (userProfileError && userProfileError.code !== 'PGRST116') {
+        console.error('AuthContext: Error checking user profile:', userProfileError);
+        const parsedError = parseSupabaseError(userProfileError, 'user profile check');
+        return {
+          success: false,
+          error: formatErrorForUser(parsedError)
+        };
+      }
+
+      if (!userProfile) {
         console.log('AuthContext: User profile not created by trigger, creating manually...');
-        
+
         // Create user profile manually using admin client to bypass RLS
         const { error: userError } = await supabaseAdminClient
           .from('users')
@@ -667,20 +676,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
 
         if (userError) {
-          logDetailedError('Create User Profile', userError, {
-            userId: authData.user.id,
-            email: authData.user.email,
-            role,
-            firstName: additionalData.firstName,
-            lastName: additionalData.lastName
-          });
-          
-          const parsedError = parseSupabaseError(userError, 'user profile creation');
-          return { 
-            success: false, 
-            error: formatErrorForUser(parsedError)
-          };
+          // Check if it's a duplicate key error (record was created by trigger after our check)
+          if (userError.code === '23505') {
+            console.log('ℹ️ User profile already exists (created by trigger), continuing...');
+          } else {
+            logDetailedError('Create User Profile', userError, {
+              userId: authData.user.id,
+              email: authData.user.email,
+              role,
+              firstName: additionalData.firstName,
+              lastName: additionalData.lastName
+            });
+
+            const parsedError = parseSupabaseError(userError, 'user profile creation');
+            return {
+              success: false,
+              error: formatErrorForUser(parsedError)
+            };
+          }
         }
+      } else {
+        console.log('✅ User profile already exists (created by trigger)');
       }
 
       // Create role-specific data with proper error handling
@@ -737,27 +753,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } else if (role === 'professor') {
           console.log('👨‍🏫 Creating professor record...');
-          
-          const { data: professorData, error: professorError } = await supabaseAdminClient
-            .from('professors')
-            .insert({
-              user_id: authData.user.id,
-              employee_id: additionalData.employeeId,
-              title: additionalData.title || 'Professor',
-              office_location: additionalData.office_location || '',
-              phone: additionalData.phone || '',
-              created_at: new Date().toISOString()
-            })
-            .select()
-            .single();
 
-          if (professorError) {
-            console.error('❌ Failed to create professor record:', professorError);
-            // This is critical - fail the registration if professor record creation fails
-            throw new Error(`Failed to create professor record: ${professorError.message}`);
+          const { data: existingProfessor, error: existingProfessorError } = await supabaseAdminClient
+            .from('professors')
+            .select('user_id')
+            .eq('user_id', authData.user.id)
+            .maybeSingle();
+
+          if (existingProfessorError && existingProfessorError.code !== 'PGRST116') {
+            throw new Error(`Failed to verify existing professor record: ${existingProfessorError.message}`);
           }
-          
-          console.log('✅ Professor record created successfully:', professorData);
+
+          if (existingProfessor) {
+            console.log('ℹ️ Professor record already exists, skipping insert');
+          } else {
+            const { data: professorData, error: professorError } = await supabaseAdminClient
+              .from('professors')
+              .insert({
+                user_id: authData.user.id,
+                employee_id: additionalData.employeeId,
+                title: additionalData.title || 'Professor',
+                office_location: additionalData.office_location || '',
+                phone: additionalData.phone || '',
+                created_at: new Date().toISOString()
+              })
+              .select()
+              .single();
+
+            if (professorError) {
+              if (professorError.code === '23505') {
+                console.warn('⚠️ Duplicate professor record detected during insert, continuing');
+              } else {
+                console.error('❌ Failed to create professor record:', professorError);
+                // This is critical - fail the registration if professor record creation fails
+                throw new Error(`Failed to create professor record: ${professorError.message}`);
+              }
+            } else {
+              console.log('✅ Professor record created successfully:', professorData);
+            }
+          }
         }
       } catch (roleError: unknown) {
         console.error('❌ Role-specific record creation failed:', roleError);
