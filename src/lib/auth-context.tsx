@@ -866,14 +866,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Clear all browser storage to ensure no session persists
     if (typeof window !== 'undefined') {
+      // Preserve theme preference before clearing
+      const darkMode = localStorage.getItem('darkMode');
+
       // Clear localStorage
       localStorage.removeItem('supabase.auth.token');
       localStorage.clear();
 
+      // Restore theme preference
+      if (darkMode !== null) {
+        localStorage.setItem('darkMode', darkMode);
+      }
+
       // Clear sessionStorage
       sessionStorage.clear();
 
-      logger.log('🔐 AuthContext: Browser storage cleared');
+      logger.log('🔐 AuthContext: Browser storage cleared (theme preserved)');
     }
 
     // Clear all SWR caches

@@ -23,12 +23,16 @@ export class SignOutService {
 
   /**
    * Clear all browser storage to prevent session persistence
+   * but preserve user preferences like theme
    */
   static clearBrowserStorage() {
     logger.debug('Clearing browser storage');
 
     if (typeof window !== 'undefined') {
-      // Clear all localStorage items related to Supabase
+      // Preserve user preferences
+      const darkMode = localStorage.getItem('darkMode');
+
+      // Clear all localStorage items related to Supabase/auth
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -37,6 +41,11 @@ export class SignOutService {
         }
       }
       keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      // Restore preserved preferences
+      if (darkMode !== null) {
+        localStorage.setItem('darkMode', darkMode);
+      }
 
       // Clear sessionStorage completely
       sessionStorage.clear();
@@ -47,7 +56,7 @@ export class SignOutService {
       });
     }
 
-    logger.debug('Browser storage cleared');
+    logger.debug('Browser storage cleared (preferences preserved)');
   }
 
   /**
