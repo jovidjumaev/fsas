@@ -863,7 +863,7 @@ router.get('/api/students/:studentId/classes/:classId/ai/quiz/history', async (r
       .eq('student_id', studentId)
       .eq('class_instance_id', classId)
       .eq('is_completed', true)
-      .order('completed_at', { ascending: true });
+      .order('completed_at', { ascending: false });
 
     // Filter by material if provided
     if (materialId && materialId !== 'all') {
