@@ -22,6 +22,8 @@ import ProfileEditModal from '@/components/profile/profile-edit-modal';
 import PasswordChangeModal from '@/components/profile/password-change-modal';
 import { supabase } from '@/lib/supabase';
 import { io } from 'socket.io-client';
+import { createLogger } from '../../../lib/logger';
+const logger = createLogger('page');
 
 interface ClassData {
   id: string;
@@ -177,7 +179,7 @@ function ClassesPageContent() {
       
       // Listen for attendance status updates
       socket.on('attendance_status_updated', (data) => {
-        console.log('📊 Received attendance status update on classes page:', data);
+        logger.log('📊 Received attendance status update on classes page:', data);
         
         // Refresh classes data to get updated attendance rates
         fetchClasses();
@@ -249,13 +251,13 @@ function ClassesPageContent() {
     try {
       if (!user?.id) return;
       
-      console.log('🔍 Fetching classes for user:', user.id);
-      console.log('🔍 API URL:', `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/classes`);
+      logger.log('🔍 Fetching classes for user:', user.id);
+      logger.log('🔍 API URL:', `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/classes`);
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/classes`);
       
-      console.log('🔍 Classes response status:', response.status);
-      console.log('🔍 Classes response ok:', response.ok);
+      logger.log('🔍 Classes response status:', response.status);
+      logger.log('🔍 Classes response ok:', response.ok);
       
       if (!response.ok) {
         throw new Error('Failed to fetch classes');
@@ -263,13 +265,13 @@ function ClassesPageContent() {
       
       const data = await response.json();
       
-      console.log('🔍 Classes API Response:', data);
-      console.log('🔍 Classes data:', data.data);
-      console.log('🔍 Classes count:', data.data?.length || 0);
+      logger.log('🔍 Classes API Response:', data);
+      logger.log('🔍 Classes data:', data.data);
+      logger.log('🔍 Classes count:', data.data?.length || 0);
       
       setClasses(data.data || []);
     } catch (error) {
-      console.error('Error fetching classes:', error);
+      logger.error('Error fetching classes:', error);
       // Fallback to empty array if API fails
       setClasses([]);
     } finally {
@@ -287,7 +289,7 @@ function ClassesPageContent() {
       const data = await response.json();
       setAvailableCourses(data.data || []);
     } catch (error) {
-      console.error('Error fetching available courses:', error);
+      logger.error('Error fetching available courses:', error);
       setAvailableCourses([]);
     }
   };
@@ -308,7 +310,7 @@ function ClassesPageContent() {
       const data = await response.json();
       setAcademicPeriods(data.data || []);
     } catch (error) {
-      console.error('Error fetching academic periods:', error);
+      logger.error('Error fetching academic periods:', error);
       setAcademicPeriods([]);
     }
   };
@@ -434,7 +436,7 @@ function ClassesPageContent() {
       }
       
       const result = await response.json();
-      console.log('Class created successfully:', result);
+      logger.log('Class created successfully:', result);
       
       // Reset form
       setCreateForm({
@@ -451,7 +453,7 @@ function ClassesPageContent() {
       setShowCreateForm(false);
       await fetchClasses();
     } catch (error) {
-      console.error('Error creating class:', error);
+      logger.error('Error creating class:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       alert(`Error creating class: ${errorMessage}`);
     }
@@ -483,12 +485,12 @@ function ClassesPageContent() {
       }
       
       const result = await response.json();
-      console.log('Pin toggled:', result);
+      logger.log('Pin toggled:', result);
       
       // Refresh classes to show updated pin status
       await fetchClasses();
     } catch (error) {
-      console.error('Error toggling pin:', error);
+      logger.error('Error toggling pin:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       alert(`Error toggling pin: ${errorMessage}`);
     }
@@ -536,8 +538,8 @@ function ClassesPageContent() {
     if (!user) return;
     
     try {
-      console.log('🔍 Fetching user profile for user ID:', user.id);
-      console.log('🔍 User metadata:', user.user_metadata);
+      logger.log('🔍 Fetching user profile for user ID:', user.id);
+      logger.log('🔍 User metadata:', user.user_metadata);
       
       const { data, error } = await supabase
         .from('users' as any)
@@ -546,8 +548,8 @@ function ClassesPageContent() {
         .single();
       
       if (error) {
-        console.error('Error fetching user profile:', error);
-        console.log('🔍 Falling back to user metadata');
+        logger.error('Error fetching user profile:', error);
+        logger.log('🔍 Falling back to user metadata');
         
         // Create a basic profile from user metadata
         const fallbackProfile = {
@@ -560,7 +562,7 @@ function ClassesPageContent() {
           title: user.user_metadata?.title || ''
         };
         
-        console.log('🔍 Using fallback profile:', fallbackProfile);
+        logger.log('🔍 Using fallback profile:', fallbackProfile);
         setUserProfile(fallbackProfile);
         return;
       }
@@ -573,10 +575,10 @@ function ClassesPageContent() {
         title: user.user_metadata?.title || ''
       };
       
-      console.log('✅ User profile fetched:', completeProfile);
+      logger.log('✅ User profile fetched:', completeProfile);
       setUserProfile(completeProfile);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      logger.error('Error fetching user profile:', error);
     }
   };
 
@@ -584,14 +586,14 @@ function ClassesPageContent() {
     if (!user) return;
     
     try {
-      console.log('Attempting to save profile data:', profileData);
-      console.log('User ID:', user.id);
+      logger.log('Attempting to save profile data:', profileData);
+      logger.log('User ID:', user.id);
       
       // Check if names changed and handle name change tracking
       const namesChanged = profileData.first_name !== userProfile?.first_name || profileData.last_name !== userProfile?.last_name;
       
       if (namesChanged) {
-        console.log('Names changed, checking name change limits...');
+        logger.log('Names changed, checking name change limits...');
         
         // Import and use the name change service
         const { NameChangeService } = await import('@/lib/name-change-service');
@@ -617,7 +619,7 @@ function ClassesPageContent() {
           throw new Error(nameChangeResult.message);
         }
         
-        console.log('Name change recorded successfully:', nameChangeResult);
+        logger.log('Name change recorded successfully:', nameChangeResult);
       }
       
       // Separate data for users table (only basic fields that exist)
@@ -634,14 +636,14 @@ function ClassesPageContent() {
         .eq('id', user.id);
       
       if (usersError) {
-        console.error('Error updating users table:', usersError);
+        logger.error('Error updating users table:', usersError);
         throw new Error(`Failed to save profile: ${usersError.message}`);
       }
       
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, ...profileData }));
     } catch (error) {
-      console.error('Error saving profile:', error);
+      logger.error('Error saving profile:', error);
       throw error;
     }
   };
@@ -685,19 +687,19 @@ function ClassesPageContent() {
         throw new Error(result.error || 'Password change failed');
       }
     } catch (error) {
-      console.error('Error changing password:', error);
+      logger.error('Error changing password:', error);
       throw error;
     }
   };
 
   const handleAvatarUpload = async (file: File) => {
     if (!user) {
-      console.error('No user found for avatar upload');
+      logger.error('No user found for avatar upload');
       throw new Error('User not authenticated');
     }
     
     try {
-      console.log('Starting avatar upload for user:', user.id);
+      logger.log('Starting avatar upload for user:', user.id);
       
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -716,7 +718,7 @@ function ClassesPageContent() {
       const fileName = `${user.id}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
       
-      console.log('Uploading file to path:', filePath);
+      logger.log('Uploading file to path:', filePath);
       
       // Upload file to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -727,18 +729,18 @@ function ClassesPageContent() {
         });
       
       if (uploadError) {
-        console.error('Storage upload error:', uploadError);
+        logger.error('Storage upload error:', uploadError);
         throw new Error(`Failed to upload file: ${uploadError.message}`);
       }
       
-      console.log('File uploaded successfully:', uploadData);
+      logger.log('File uploaded successfully:', uploadData);
       
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
       
-      console.log('Public URL generated:', publicUrl);
+      logger.log('Public URL generated:', publicUrl);
       
       // Update user profile with avatar URL
       const { data: updateData, error: updateError } = await supabase
@@ -751,30 +753,30 @@ function ClassesPageContent() {
         .select();
       
       if (updateError) {
-        console.error('Database update error:', updateError);
+        logger.error('Database update error:', updateError);
         throw new Error(`Failed to update profile: ${updateError.message}`);
       }
       
-      console.log('Profile updated successfully:', updateData);
+      logger.log('Profile updated successfully:', updateData);
       
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, avatar_url: publicUrl }));
       
-      console.log('Avatar upload completed successfully');
+      logger.log('Avatar upload completed successfully');
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      logger.error('Error uploading avatar:', error);
       throw error;
     }
   };
 
   const handleAvatarDelete = async () => {
     if (!user) {
-      console.error('No user found for avatar deletion');
+      logger.error('No user found for avatar deletion');
       throw new Error('User not authenticated');
     }
     
     try {
-      console.log('Starting avatar deletion for user:', user.id);
+      logger.log('Starting avatar deletion for user:', user.id);
       
       // Get current avatar URL to extract file path
       const currentAvatarUrl = userProfile?.avatar_url;
@@ -787,7 +789,7 @@ function ClassesPageContent() {
       const fileName = urlParts[urlParts.length - 1];
       const filePath = `avatars/${fileName}`;
       
-      console.log('Deleting file from path:', filePath);
+      logger.log('Deleting file from path:', filePath);
       
       // Delete file from Supabase Storage
       const { error: deleteError } = await supabase.storage
@@ -795,11 +797,11 @@ function ClassesPageContent() {
         .remove([filePath]);
       
       if (deleteError) {
-        console.error('Storage deletion error:', deleteError);
+        logger.error('Storage deletion error:', deleteError);
         throw new Error(`Failed to delete file: ${deleteError.message}`);
       }
       
-      console.log('File deleted successfully from storage');
+      logger.log('File deleted successfully from storage');
       
       // Update user profile to remove avatar URL
       const { data: updateData, error: updateError } = await supabase
@@ -812,18 +814,18 @@ function ClassesPageContent() {
         .select();
       
       if (updateError) {
-        console.error('Database update error:', updateError);
+        logger.error('Database update error:', updateError);
         throw new Error(`Failed to update profile: ${updateError.message}`);
       }
       
-      console.log('Profile updated successfully:', updateData);
+      logger.log('Profile updated successfully:', updateData);
       
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, avatar_url: null }));
       
-      console.log('Avatar deletion completed successfully');
+      logger.log('Avatar deletion completed successfully');
     } catch (error) {
-      console.error('Error deleting avatar:', error);
+      logger.error('Error deleting avatar:', error);
       throw error;
     }
   };
@@ -897,7 +899,7 @@ function ClassesPageContent() {
           // Show success notification
           showNotification('success', 'Class deleted successfully!', 'The class and all its data have been permanently removed.');
         } catch (error) {
-          console.error('Error deleting class:', error);
+          logger.error('Error deleting class:', error);
           const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
           showNotification('error', 'Failed to delete class', errorMessage);
         }

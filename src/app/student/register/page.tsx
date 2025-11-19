@@ -11,6 +11,8 @@ import { EmailConfirmationModal } from '@/components/email-confirmation-modal';
 import { GraduationCap, Mail, Lock, User, Hash, BookOpen, ArrowRight, AlertCircle, Zap, Moon, Sun, Eye, EyeOff } from 'lucide-react';
 import { PasswordInputWithStrength } from '@/components/ui/password-strength-indicator';
 import { ErrorDisplay } from '@/components/ui/error-display';
+import { createLogger } from '../../../lib/logger';
+const logger = createLogger('page');
 
 export default function StudentRegisterPage() {
   const [formData, setFormData] = useState({
@@ -109,7 +111,7 @@ export default function StudentRegisterPage() {
 
       // Email validation (domain and uniqueness) will be handled by auth context
 
-      console.log('🎓 Student registration attempt:', { 
+      logger.log('🎓 Student registration attempt:', { 
         email: formData.email, 
         studentNumber: formData.studentNumber 
       });
@@ -127,11 +129,11 @@ export default function StudentRegisterPage() {
       );
 
       if (result.success) {
-        console.log('✅ Student registration successful');
+        logger.log('✅ Student registration successful');
         
         // Check if email confirmation is required
         if (result.requiresEmailConfirmation) {
-          console.log('📧 Email confirmation required');
+          logger.log('📧 Email confirmation required');
           setShowEmailModal(true);
           return;
         }
@@ -139,11 +141,11 @@ export default function StudentRegisterPage() {
         // Redirect to dashboard if email is already confirmed
         router.push('/student/dashboard');
       } else {
-        console.error('❌ Student registration failed:', result.error);
+        logger.error('❌ Student registration failed:', result.error);
         setError(result.error || 'Registration failed. Please try again.');
       }
     } catch (err: any) {
-      console.error('❌ Student registration error:', err);
+      logger.error('❌ Student registration error:', err);
       
       // Extract specific error message
       let errorMessage = 'Registration failed. Please try again.';

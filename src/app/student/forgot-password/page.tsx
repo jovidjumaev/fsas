@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/lib/auth-context';
 import { Mail, ArrowLeft, CheckCircle, Moon, Sun, Zap, GraduationCap } from 'lucide-react';
 import { ErrorDisplay } from '@/components/ui/error-display';
+import { createLogger } from '../../../lib/logger';
+const logger = createLogger('page');
 
 export default function StudentForgotPassword() {
   const [email, setEmail] = useState('');
@@ -63,7 +65,7 @@ export default function StudentForgotPassword() {
         setError(result.error || 'Failed to send reset email. Please try again.');
       }
     } catch (err) {
-      console.error('Password reset error:', err);
+      logger.error('Password reset error:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);

@@ -1,3 +1,6 @@
+const { createLogger } = require('./lib/logger');
+const logger = createLogger('Backend');
+
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const QRCodeGenerator = require('./qr-code-generator.js');
@@ -28,7 +31,7 @@ router.post('/api/attendance/scan', async (req, res) => {
   try {
     const { qrData, studentId } = req.body;
     
-    console.log('📱 Processing QR code scan for student:', studentId);
+    logger.log('📱 Processing QR code scan for student:', studentId);
     
     if (!qrData || !studentId) {
       return res.status(400).json({
@@ -176,12 +179,12 @@ router.post('/api/attendance/scan', async (req, res) => {
     const minutesLate = Math.floor((currentTime - sessionStartTime) / (1000 * 60));
     const isLate = minutesLate > 5;
     
-    console.log('🕐 Attendance time calculation:');
-    console.log(`   Current time (UTC): ${new Date().toISOString()}`);
-    console.log(`   Current time (Eastern): ${formatEasternTime(currentTime)}`);
-    console.log(`   Session start time (Eastern): ${formatEasternTime(sessionStartTime)}`);
-    console.log(`   Minutes late: ${minutesLate}`);
-    console.log(`   Is late: ${isLate}`);
+    logger.log('🕐 Attendance time calculation:');
+    logger.log(`   Current time (UTC): ${new Date().toISOString()}`);
+    logger.log(`   Current time (Eastern): ${formatEasternTime(currentTime)}`);
+    logger.log(`   Session start time (Eastern): ${formatEasternTime(sessionStartTime)}`);
+    logger.log(`   Minutes late: ${minutesLate}`);
+    logger.log(`   Is late: ${isLate}`);
     
     // Record attendance
     const { data: attendanceRecord, error: recordError } = await supabase
@@ -199,7 +202,7 @@ router.post('/api/attendance/scan', async (req, res) => {
       .single();
     
     if (recordError) {
-      console.error('❌ Error recording attendance:', recordError);
+      logger.error('❌ Error recording attendance:', recordError);
       return res.status(500).json({
         success: false,
         error: 'Failed to record attendance'
@@ -214,7 +217,7 @@ router.post('/api/attendance/scan', async (req, res) => {
       })
       .eq('id', sessionId);
     
-    console.log('✅ Attendance recorded successfully:', {
+    logger.log('✅ Attendance recorded successfully:', {
       studentId,
       sessionId,
       status: attendanceRecord.status,
@@ -256,7 +259,7 @@ router.post('/api/attendance/scan', async (req, res) => {
         timestamp: new Date().toISOString()
       });
       
-      console.log('📡 Real-time attendance update emitted to session room and professor dashboard');
+      logger.log('📡 Real-time attendance update emitted to session room and professor dashboard');
     }
     
     // Create notification for the student
@@ -283,12 +286,12 @@ router.post('/api/attendance/scan', async (req, res) => {
         });
       
       if (notificationError) {
-        console.error('❌ Error creating attendance notification:', notificationError);
+        logger.error('❌ Error creating attendance notification:', notificationError);
       } else {
-        console.log('✅ Attendance notification created for student:', studentId);
+        logger.log('✅ Attendance notification created for student:', studentId);
       }
     } catch (notificationErr) {
-      console.error('❌ Error in attendance notification creation:', notificationErr);
+      logger.error('❌ Error in attendance notification creation:', notificationErr);
     }
     
     res.json({
@@ -310,7 +313,7 @@ router.post('/api/attendance/scan', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error processing QR scan:', error);
+    logger.error('❌ Error processing QR scan:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -335,7 +338,7 @@ router.get('/api/attendance/student/:studentId', async (req, res) => {
       .single();
     
     if (studentError || !studentRecord) {
-      console.error('❌ Student record not found:', studentError);
+      logger.error('❌ Student record not found:', studentError);
       return res.status(404).json({
         success: false,
         error: 'Student record not found',
@@ -370,7 +373,7 @@ router.get('/api/attendance/student/:studentId', async (req, res) => {
     const { data: attendanceRecords, error } = await query;
     
     if (error) {
-      console.error('❌ Error fetching attendance records:', error);
+      logger.error('❌ Error fetching attendance records:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch attendance records'
@@ -383,7 +386,7 @@ router.get('/api/attendance/student/:studentId', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error fetching student attendance:', error);
+    logger.error('❌ Error fetching student attendance:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -401,8 +404,8 @@ router.get('/api/attendance/student/:studentId/today-stats', async (req, res) =>
     const easternTime = getCurrentEasternTime();
     const today = easternTime.toISOString().split('T')[0]; // YYYY-MM-DD format in Eastern Time
     
-    console.log(`📊 Fetching today's stats for student ${studentId} on ${today} (Eastern Time)`);
-    console.log(`   Eastern time: ${formatEasternTime(easternTime)}`);
+    logger.log(`📊 Fetching today's stats for student ${studentId} on ${today} (Eastern Time)`);
+    logger.log(`   Eastern time: ${formatEasternTime(easternTime)}`);
     
     // First, get the student's user_id from the student_id (like "5002378")
     const { data: studentRecord, error: studentError } = await supabase
@@ -412,7 +415,7 @@ router.get('/api/attendance/student/:studentId/today-stats', async (req, res) =>
       .single();
     
     if (studentError || !studentRecord) {
-      console.error('❌ Student record not found:', studentError);
+      logger.error('❌ Student record not found:', studentError);
       return res.status(404).json({
         success: false,
         error: 'Student record not found',
@@ -420,7 +423,7 @@ router.get('/api/attendance/student/:studentId/today-stats', async (req, res) =>
       });
     }
     
-    console.log(`📊 Found student user_id: ${studentRecord.user_id}`);
+    logger.log(`📊 Found student user_id: ${studentRecord.user_id}`);
     
     // Get today's attendance records using the user_id
     // Filter out test records by requiring valid session ID, device fingerprint, and realistic data
@@ -447,8 +450,8 @@ router.get('/api/attendance/student/:studentId/today-stats', async (req, res) =>
       .lte('class_sessions.date', today);  // Exclude records with future session dates
     
     if (error) {
-      console.error('❌ Error fetching today\'s stats:', error);
-      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      logger.error('❌ Error fetching today\'s stats:', error);
+      logger.error('❌ Error details:', JSON.stringify(error, null, 2));
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch today\'s statistics',
@@ -456,16 +459,16 @@ router.get('/api/attendance/student/:studentId/today-stats', async (req, res) =>
       });
     }
     
-    console.log(`📊 Found ${todayRecords?.length || 0} valid records for today (excluding test data)`);
+    logger.log(`📊 Found ${todayRecords?.length || 0} valid records for today (excluding test data)`);
     
     // Log the filtered records for debugging
     if (todayRecords && todayRecords.length > 0) {
-      console.log('📊 Valid records found:');
+      logger.log('📊 Valid records found:');
       todayRecords.forEach((record, index) => {
-        console.log(`   ${index + 1}. ${record.scanned_at} - ${record.status} (Session: ${record.session_id}, Device: ${record.device_fingerprint?.substring(0, 20)}...)`);
+        logger.log(`   ${index + 1}. ${record.scanned_at} - ${record.status} (Session: ${record.session_id}, Device: ${record.device_fingerprint?.substring(0, 20)}...)`);
       });
     } else {
-      console.log('📊 No valid records found for today');
+      logger.log('📊 No valid records found for today');
     }
     
     // Calculate today's statistics
@@ -475,7 +478,7 @@ router.get('/api/attendance/student/:studentId/today-stats', async (req, res) =>
     const absentCount = todayRecords?.filter(r => r.status === 'absent').length || 0;
     const excusedCount = todayRecords?.filter(r => r.status === 'excused').length || 0;
     
-    console.log(`📊 Stats: Scans=${scansToday}, Present=${presentCount}, Late=${lateCount}, Absent=${absentCount}, Excused=${excusedCount}`);
+    logger.log(`📊 Stats: Scans=${scansToday}, Present=${presentCount}, Late=${lateCount}, Absent=${absentCount}, Excused=${excusedCount}`);
     
     res.json({
       success: true,
@@ -489,8 +492,8 @@ router.get('/api/attendance/student/:studentId/today-stats', async (req, res) =>
     });
     
   } catch (error) {
-    console.error('❌ Error in /api/attendance/student/:studentId/today-stats:', error);
-    console.error('❌ Error stack:', error.stack);
+    logger.error('❌ Error in /api/attendance/student/:studentId/today-stats:', error);
+    logger.error('❌ Error stack:', error.stack);
     res.status(500).json({
       success: false,
       error: 'Internal server error',
@@ -522,7 +525,7 @@ router.get('/api/attendance/student/:studentId/stats', async (req, res) => {
       .eq('student_id', studentId);
     
     if (error) {
-      console.error('❌ Error fetching attendance stats:', error);
+      logger.error('❌ Error fetching attendance stats:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch attendance statistics'
@@ -570,7 +573,7 @@ router.get('/api/attendance/student/:studentId/stats', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error calculating attendance stats:', error);
+    logger.error('❌ Error calculating attendance stats:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'

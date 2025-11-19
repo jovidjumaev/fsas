@@ -21,6 +21,8 @@ import ProfessorHeader from '@/components/professor/professor-header';
 import ProfileEditModal from '@/components/profile/profile-edit-modal';
 import PasswordChangeModal from '@/components/profile/password-change-modal';
 import { supabase } from '@/lib/supabase';
+import { createLogger } from '../../../lib/logger';
+const logger = createLogger('page');
 
 interface SessionData {
   id: string;
@@ -87,7 +89,7 @@ function SessionsPageContent() {
       const data = await response.json();
       setSessions(data.sessions || []);
     } catch (error) {
-      console.error('Error fetching sessions:', error);
+      logger.error('Error fetching sessions:', error);
       setSessions([]);
     } finally {
       setIsLoading(false);
@@ -105,7 +107,7 @@ function SessionsPageContent() {
       const data = await response.json();
       setClasses(data.class_instances || []);
     } catch (error) {
-      console.error('Error fetching classes:', error);
+      logger.error('Error fetching classes:', error);
       setClasses([]);
     }
   }, [user]);
@@ -115,7 +117,7 @@ function SessionsPageContent() {
     if (!user) return;
     
     try {
-      console.log('🔍 Fetching user profile for user ID:', user.id);
+      logger.log('🔍 Fetching user profile for user ID:', user.id);
       
       const { data, error } = await supabase
         .from('users' as any)
@@ -124,7 +126,7 @@ function SessionsPageContent() {
         .single();
       
       if (error) {
-        console.error('Error fetching user profile:', error);
+        logger.error('Error fetching user profile:', error);
         // Create a basic profile from user metadata
         const fallbackProfile = {
           first_name: user.user_metadata?.first_name || 'User',
@@ -148,10 +150,10 @@ function SessionsPageContent() {
         title: user.user_metadata?.title || ''
       };
       
-      console.log('✅ User profile fetched:', completeProfile);
+      logger.log('✅ User profile fetched:', completeProfile);
       setUserProfile(completeProfile);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      logger.error('Error fetching user profile:', error);
     }
   };
 
@@ -203,14 +205,14 @@ function SessionsPageContent() {
         .eq('id', user.id);
       
       if (usersError) {
-        console.error('Error updating users table:', usersError);
+        logger.error('Error updating users table:', usersError);
         throw new Error(`Failed to save profile: ${usersError.message}`);
       }
       
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, ...profileData }));
     } catch (error) {
-      console.error('Error saving profile:', error);
+      logger.error('Error saving profile:', error);
       throw error;
     }
   };
@@ -255,7 +257,7 @@ function SessionsPageContent() {
         throw new Error(result.error || 'Password change failed');
       }
     } catch (error) {
-      console.error('Error changing password:', error);
+      logger.error('Error changing password:', error);
       throw error;
     }
   };
@@ -263,12 +265,12 @@ function SessionsPageContent() {
   // Handle avatar upload
   const handleAvatarUpload = async (file: File) => {
     if (!user) {
-      console.error('No user found for avatar upload');
+      logger.error('No user found for avatar upload');
       throw new Error('User not authenticated');
     }
     
     try {
-      console.log('Starting avatar upload for user:', user.id);
+      logger.log('Starting avatar upload for user:', user.id);
       
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -287,7 +289,7 @@ function SessionsPageContent() {
       const fileName = `${user.id}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
       
-      console.log('Uploading file to path:', filePath);
+      logger.log('Uploading file to path:', filePath);
       
       // Upload file to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -298,18 +300,18 @@ function SessionsPageContent() {
         });
       
       if (uploadError) {
-        console.error('Storage upload error:', uploadError);
+        logger.error('Storage upload error:', uploadError);
         throw new Error(`Failed to upload file: ${uploadError.message}`);
       }
       
-      console.log('File uploaded successfully:', uploadData);
+      logger.log('File uploaded successfully:', uploadData);
       
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
       
-      console.log('Public URL generated:', publicUrl);
+      logger.log('Public URL generated:', publicUrl);
       
       // Update user profile with avatar URL
       const { data: updateData, error: updateError } = await supabase
@@ -322,18 +324,18 @@ function SessionsPageContent() {
         .select();
       
       if (updateError) {
-        console.error('Database update error:', updateError);
+        logger.error('Database update error:', updateError);
         throw new Error(`Failed to update profile: ${updateError.message}`);
       }
       
-      console.log('Profile updated successfully:', updateData);
+      logger.log('Profile updated successfully:', updateData);
       
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, avatar_url: publicUrl }));
       
-      console.log('Avatar upload completed successfully');
+      logger.log('Avatar upload completed successfully');
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      logger.error('Error uploading avatar:', error);
       throw error;
     }
   };
@@ -341,12 +343,12 @@ function SessionsPageContent() {
   // Handle avatar delete
   const handleAvatarDelete = async () => {
     if (!user) {
-      console.error('No user found for avatar deletion');
+      logger.error('No user found for avatar deletion');
       throw new Error('User not authenticated');
     }
     
     try {
-      console.log('Starting avatar deletion for user:', user.id);
+      logger.log('Starting avatar deletion for user:', user.id);
       
       // Get current avatar URL to extract file path
       const currentAvatarUrl = userProfile?.avatar_url;
@@ -359,7 +361,7 @@ function SessionsPageContent() {
       const fileName = urlParts[urlParts.length - 1];
       const filePath = `avatars/${fileName}`;
       
-      console.log('Deleting file from path:', filePath);
+      logger.log('Deleting file from path:', filePath);
       
       // Delete file from Supabase Storage
       const { error: deleteError } = await supabase.storage
@@ -367,11 +369,11 @@ function SessionsPageContent() {
         .remove([filePath]);
       
       if (deleteError) {
-        console.error('Storage deletion error:', deleteError);
+        logger.error('Storage deletion error:', deleteError);
         throw new Error(`Failed to delete file: ${deleteError.message}`);
       }
       
-      console.log('File deleted successfully from storage');
+      logger.log('File deleted successfully from storage');
       
       // Update user profile to remove avatar URL
       const { data: updateData, error: updateError } = await supabase
@@ -384,18 +386,18 @@ function SessionsPageContent() {
         .select();
       
       if (updateError) {
-        console.error('Database update error:', updateError);
+        logger.error('Database update error:', updateError);
         throw new Error(`Failed to update profile: ${updateError.message}`);
       }
       
-      console.log('Profile updated successfully:', updateData);
+      logger.log('Profile updated successfully:', updateData);
       
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, avatar_url: null }));
       
-      console.log('Avatar deletion completed successfully');
+      logger.log('Avatar deletion completed successfully');
     } catch (error) {
-      console.error('Error deleting avatar:', error);
+      logger.error('Error deleting avatar:', error);
       throw error;
     }
   };
@@ -416,7 +418,7 @@ function SessionsPageContent() {
       if (!response.ok) throw new Error('Failed to activate session');
       await fetchSessions();
     } catch (error) {
-      console.error('Error activating session:', error);
+      logger.error('Error activating session:', error);
       alert('Failed to activate session. Please try again.');
     }
   }, [fetchSessions]);
@@ -458,9 +460,9 @@ function SessionsPageContent() {
       
       // Automatically switch to completed tab to show the completed session
       setActiveTab('completed');
-      console.log('✅ Session completed, switched to completed tab');
+      logger.log('✅ Session completed, switched to completed tab');
     } catch (error) {
-      console.error('Error completing session:', error);
+      logger.error('Error completing session:', error);
       alert(`Failed to complete session: ${error.message}`);
     }
   }, [fetchSessions, sessions]);
@@ -477,7 +479,7 @@ function SessionsPageContent() {
     const tabParam = searchParams.get('tab');
     if (tabParam && ['today', 'active', 'upcoming', 'completed', 'all'].includes(tabParam)) {
       setActiveTab(tabParam as TabType);
-      console.log('🔄 Switched to tab from URL:', tabParam);
+      logger.log('🔄 Switched to tab from URL:', tabParam);
     }
   }, [searchParams]);
 
@@ -485,13 +487,13 @@ function SessionsPageContent() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        console.log('🔄 Page became visible, refreshing sessions data');
+        logger.log('🔄 Page became visible, refreshing sessions data');
         fetchSessions();
       }
     };
 
     const handleFocus = () => {
-      console.log('🔄 Window focused, refreshing sessions data');
+      logger.log('🔄 Window focused, refreshing sessions data');
       fetchSessions();
     };
 
@@ -512,12 +514,12 @@ function SessionsPageContent() {
     socketRef.current = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
     
     socketRef.current.on('connect', () => {
-      console.log('🔌 Connected to WebSocket for sessions updates');
+      logger.log('🔌 Connected to WebSocket for sessions updates');
     });
 
     // Listen for session status updates
     socketRef.current.on('session_status_update', (data: { sessionId: string; status: string }) => {
-      console.log('📡 Received session status update:', data);
+      logger.log('📡 Received session status update:', data);
       
       // Update the specific session in the state
       setSessions(prevSessions => 
@@ -531,26 +533,26 @@ function SessionsPageContent() {
       // If session was completed and we're on active tab, switch to completed
       if (data.status === 'completed' && activeTab === 'active') {
         setActiveTab('completed');
-        console.log('🔄 Session completed, switched to completed tab');
+        logger.log('🔄 Session completed, switched to completed tab');
       }
     });
 
     // Listen for session activation updates
     socketRef.current.on('session_activated', (data: { sessionId: string }) => {
-      console.log('📡 Session activated:', data.sessionId);
+      logger.log('📡 Session activated:', data.sessionId);
       fetchSessions(); // Refresh all sessions data
     });
 
     // Listen for session completion updates
     socketRef.current.on('session_completed', (data: { sessionId: string }) => {
-      console.log('📡 Session completed:', data.sessionId);
+      logger.log('📡 Session completed:', data.sessionId);
       fetchSessions(); // Refresh all sessions data
     });
 
     return () => {
       if (socketRef.current) {
         socketRef.current.disconnect();
-        console.log('🔌 Disconnected from WebSocket');
+        logger.log('🔌 Disconnected from WebSocket');
       }
     };
   }, [user, fetchSessions, activeTab]);

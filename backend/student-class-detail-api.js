@@ -1,3 +1,6 @@
+const { createLogger } = require('./lib/logger');
+const logger = createLogger('Backend');
+
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const router = express.Router();
@@ -16,7 +19,7 @@ router.get('/api/students/:studentId/classes/:classId', async (req, res) => {
   try {
     const { studentId, classId } = req.params;
     
-    console.log('🔍 Getting class details for student:', studentId, 'class:', classId);
+    logger.log('🔍 Getting class details for student:', studentId, 'class:', classId);
     
     // Get class details from class_instances table
     const { data: classData, error: classError } = await supabase
@@ -51,7 +54,7 @@ router.get('/api/students/:studentId/classes/:classId', async (req, res) => {
       .single();
     
     if (classError || !classData) {
-      console.error('❌ Error fetching class:', classError);
+      logger.error('❌ Error fetching class:', classError);
       return res.status(404).json({
         success: false,
         error: 'Class not found'
@@ -67,7 +70,7 @@ router.get('/api/students/:studentId/classes/:classId', async (req, res) => {
       .single();
     
     if (enrollmentError || !enrollment) {
-      console.error('❌ Error fetching enrollment:', enrollmentError);
+      logger.error('❌ Error fetching enrollment:', enrollmentError);
       return res.status(404).json({
         success: false,
         error: 'Enrollment not found'
@@ -94,7 +97,7 @@ router.get('/api/students/:studentId/classes/:classId', async (req, res) => {
       .order('date', { ascending: true });
     
     if (sessionsError) {
-      console.error('❌ Error fetching class sessions:', sessionsError);
+      logger.error('❌ Error fetching class sessions:', sessionsError);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch class sessions'
@@ -166,7 +169,7 @@ router.get('/api/students/:studentId/classes/:classId', async (req, res) => {
       .eq('class_sessions.class_instance_id', enrollment.class_instance_id);
     
     if (attendanceError) {
-      console.error('❌ Error fetching attendance records:', attendanceError);
+      logger.error('❌ Error fetching attendance records:', attendanceError);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch attendance records'
@@ -258,7 +261,7 @@ router.get('/api/students/:studentId/classes/:classId', async (req, res) => {
       upcoming_sessions: upcomingSessions
     };
     
-    console.log('✅ Class details fetched successfully:', {
+    logger.log('✅ Class details fetched successfully:', {
       class: response.class.class_name,
       pastSessions: pastSessions.length,
       upcomingSessions: upcomingSessions.length,
@@ -268,7 +271,7 @@ router.get('/api/students/:studentId/classes/:classId', async (req, res) => {
     res.json(response);
     
   } catch (error) {
-    console.error('❌ Error fetching class details:', error);
+    logger.error('❌ Error fetching class details:', error);
     res.status(500).json({
       success: false,
       error: error.message

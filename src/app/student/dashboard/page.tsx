@@ -17,6 +17,8 @@ import { ClassCard } from '@/components/student/class-card';
 import { supabase } from '@/lib/supabase';
 import { StudentDashboardService } from '@/lib/student-dashboard-service';
 import { useStudentDashboard } from '@/hooks/use-student-dashboard';
+import { createLogger } from '../../../lib/logger';
+const logger = createLogger('page');
 import { 
   GraduationCap,
   QrCode, 
@@ -106,8 +108,8 @@ function StudentDashboardContent() {
     if (!user) return;
     
     try {
-      console.log('🔍 Fetching user profile for user ID:', user.id);
-      console.log('🔍 User metadata:', user.user_metadata);
+      logger.log('🔍 Fetching user profile for user ID:', user.id);
+      logger.log('🔍 User metadata:', user.user_metadata);
       
       const { data, error } = await supabase
         .from('users' as any)
@@ -116,8 +118,8 @@ function StudentDashboardContent() {
         .single();
       
       if (error) {
-        console.error('Error fetching user profile:', error);
-        console.log('🔍 Falling back to user metadata');
+        logger.error('Error fetching user profile:', error);
+        logger.log('🔍 Falling back to user metadata');
         
         // Create a basic profile from user metadata
         const fallbackProfile = {
@@ -130,7 +132,7 @@ function StudentDashboardContent() {
           title: user.user_metadata?.title || ''
         };
         
-        console.log('🔍 Using fallback profile:', fallbackProfile);
+        logger.log('🔍 Using fallback profile:', fallbackProfile);
         setUserProfile(fallbackProfile);
         return;
       }
@@ -143,10 +145,10 @@ function StudentDashboardContent() {
         title: user.user_metadata?.title || ''
       };
       
-      console.log('✅ User profile fetched:', completeProfile);
+      logger.log('✅ User profile fetched:', completeProfile);
       setUserProfile(completeProfile);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      logger.error('Error fetching user profile:', error);
     }
   };
 
@@ -158,7 +160,7 @@ function StudentDashboardContent() {
       const namesChanged = profileData.first_name !== userProfile?.first_name || profileData.last_name !== userProfile?.last_name;
       
       if (namesChanged) {
-        console.log('Names changed, checking name change limits...');
+        logger.log('Names changed, checking name change limits...');
         
         // Import and use the name change service
         const { NameChangeService } = await import('@/lib/name-change-service');
@@ -184,7 +186,7 @@ function StudentDashboardContent() {
           throw new Error(nameChangeResult.message);
         }
         
-        console.log('Name change recorded successfully:', nameChangeResult);
+        logger.log('Name change recorded successfully:', nameChangeResult);
       }
       
       // Separate data for users table (only basic fields that exist)
@@ -210,7 +212,7 @@ function StudentDashboardContent() {
         .eq('id', user.id);
       
       if (usersError) {
-        console.error('Error updating users table:', usersError);
+        logger.error('Error updating users table:', usersError);
         throw new Error(`Failed to save profile: ${usersError.message}`);
       }
       
@@ -221,7 +223,7 @@ function StudentDashboardContent() {
       //   });
       //   
       //   if (authError) {
-      //     console.warn('Warning: Could not update auth metadata:', authError.message);
+      //     logger.warn('Warning: Could not update auth metadata:', authError.message);
       //     // Don't throw error here, as the main update succeeded
       //   }
       // }
@@ -229,7 +231,7 @@ function StudentDashboardContent() {
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, ...profileData }));
     } catch (error) {
-      console.error('Error saving profile:', error);
+      logger.error('Error saving profile:', error);
       throw error;
     }
   };
@@ -273,19 +275,19 @@ function StudentDashboardContent() {
         throw new Error(result.error || 'Password change failed');
       }
     } catch (error) {
-      console.error('Error changing password:', error);
+      logger.error('Error changing password:', error);
       throw error;
     }
   };
 
   const handleAvatarUpload = async (file: File) => {
     if (!user) {
-      console.error('No user found for avatar upload');
+      logger.error('No user found for avatar upload');
       throw new Error('User not authenticated');
     }
     
     try {
-      console.log('Starting avatar upload for user:', user.id);
+      logger.log('Starting avatar upload for user:', user.id);
       
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -304,7 +306,7 @@ function StudentDashboardContent() {
       const fileName = `${user.id}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
       
-      console.log('Uploading file to path:', filePath);
+      logger.log('Uploading file to path:', filePath);
       
       // Upload file to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -315,18 +317,18 @@ function StudentDashboardContent() {
         });
       
       if (uploadError) {
-        console.error('Storage upload error:', uploadError);
+        logger.error('Storage upload error:', uploadError);
         throw new Error(`Failed to upload file: ${uploadError.message}`);
       }
       
-      console.log('File uploaded successfully:', uploadData);
+      logger.log('File uploaded successfully:', uploadData);
       
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
       
-      console.log('Public URL generated:', publicUrl);
+      logger.log('Public URL generated:', publicUrl);
       
       // Update user profile with avatar URL
       const { data: updateData, error: updateError } = await supabase
@@ -339,30 +341,30 @@ function StudentDashboardContent() {
         .select();
       
       if (updateError) {
-        console.error('Database update error:', updateError);
+        logger.error('Database update error:', updateError);
         throw new Error(`Failed to update profile: ${updateError.message}`);
       }
       
-      console.log('Profile updated successfully:', updateData);
+      logger.log('Profile updated successfully:', updateData);
       
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, avatar_url: publicUrl }));
       
-      console.log('Avatar upload completed successfully');
+      logger.log('Avatar upload completed successfully');
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      logger.error('Error uploading avatar:', error);
       throw error;
     }
   };
 
   const handleAvatarDelete = async () => {
     if (!user) {
-      console.error('No user found for avatar deletion');
+      logger.error('No user found for avatar deletion');
       throw new Error('User not authenticated');
     }
     
     try {
-      console.log('Starting avatar deletion for user:', user.id);
+      logger.log('Starting avatar deletion for user:', user.id);
       
       // Get current avatar URL to extract file path
       const currentAvatarUrl = userProfile?.avatar_url;
@@ -375,7 +377,7 @@ function StudentDashboardContent() {
       const fileName = urlParts[urlParts.length - 1];
       const filePath = `avatars/${fileName}`;
       
-      console.log('Deleting file from path:', filePath);
+      logger.log('Deleting file from path:', filePath);
       
       // Delete file from Supabase Storage
       const { error: deleteError } = await supabase.storage
@@ -383,11 +385,11 @@ function StudentDashboardContent() {
         .remove([filePath]);
       
       if (deleteError) {
-        console.error('Storage deletion error:', deleteError);
+        logger.error('Storage deletion error:', deleteError);
         throw new Error(`Failed to delete file: ${deleteError.message}`);
       }
       
-      console.log('File deleted successfully from storage');
+      logger.log('File deleted successfully from storage');
       
       // Update user profile to remove avatar URL
       const { data: updateData, error: updateError } = await supabase
@@ -400,18 +402,18 @@ function StudentDashboardContent() {
         .select();
       
       if (updateError) {
-        console.error('Database update error:', updateError);
+        logger.error('Database update error:', updateError);
         throw new Error(`Failed to update profile: ${updateError.message}`);
       }
       
-      console.log('Profile updated successfully:', updateData);
+      logger.log('Profile updated successfully:', updateData);
       
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, avatar_url: null }));
       
-      console.log('Avatar deletion completed successfully');
+      logger.log('Avatar deletion completed successfully');
     } catch (error) {
-      console.error('Error deleting avatar:', error);
+      logger.error('Error deleting avatar:', error);
       throw error;
     }
   };

@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { createLogger } from '../../lib/logger';
+const logger = createLogger('ai-assistant-simple');
 import { 
   MessageCircle, 
   BookOpen, 
@@ -28,7 +30,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
   const [messages, setMessages] = useState<any[]>([]);
   const [inputMessage, setInputMessage] = useState('');
 
-  console.log('🎓 StudentAIAssistant component rendered for class:', classId, 'student:', studentId);
+  logger.log('🎓 StudentAIAssistant component rendered for class:', classId, 'student:', studentId);
 
   // Load materials on component mount
   useEffect(() => {
@@ -38,12 +40,12 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
   const loadMaterials = async () => {
     try {
       setIsLoading(true);
-      console.log('📚 Loading materials for class:', classId);
+      logger.log('📚 Loading materials for class:', classId);
       
       const response = await fetch(`/api/students/${studentId}/classes/${classId}/materials`);
       const data = await response.json();
       
-      console.log('📚 Materials response:', data);
+      logger.log('📚 Materials response:', data);
       
       if (data.success) {
         setMaterials(data.materials);
@@ -51,10 +53,10 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
           setSelectedMaterial(data.materials[0].id);
         }
       } else {
-        console.error('❌ Failed to load materials:', data.error);
+        logger.error('❌ Failed to load materials:', data.error);
       }
     } catch (error) {
-      console.error('❌ Error loading materials:', error);
+      logger.error('❌ Error loading materials:', error);
     } finally {
       setIsLoading(false);
     }

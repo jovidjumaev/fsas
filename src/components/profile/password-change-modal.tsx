@@ -5,6 +5,8 @@ import { Key, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Input } from '../ui/input';
+import { createLogger } from '../../lib/logger';
+const logger = createLogger('password-change-modal');
 
 interface PasswordChangeModalProps {
   isOpen: boolean;
@@ -89,7 +91,7 @@ export default function PasswordChangeModal({
       setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setErrors({});
     } catch (error) {
-      console.error('Error changing password:', error);
+      logger.error('Error changing password:', error);
       setErrors({ submit: 'Failed to change password. Please check your current password and try again.' });
     } finally {
       setIsLoading(false);

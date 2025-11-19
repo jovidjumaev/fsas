@@ -1,3 +1,6 @@
+const { createLogger } = require('./lib/logger');
+const logger = createLogger('Backend');
+
 // =====================================================
 // EASTERN TIME UTILITY FUNCTIONS
 // =====================================================
@@ -36,7 +39,7 @@ function createEasternDate(date, time) {
   
   // Check if the date is valid
   if (isNaN(easternDate.getTime())) {
-    console.error(`❌ Invalid date created: ${easternDateString}`);
+    logger.error(`❌ Invalid date created: ${easternDateString}`);
     return new Date(); // Return current time as fallback
   }
   
@@ -106,7 +109,7 @@ function getMinutesToEasternTime(targetTime, date = null) {
   
   // Check if target date is valid
   if (isNaN(targetDateTime.getTime())) {
-    console.error(`❌ Invalid target date: ${targetDate}T${targetTime}:00`);
+    logger.error(`❌ Invalid target date: ${targetDate}T${targetTime}:00`);
     return 0; // Return 0 as fallback
   }
   

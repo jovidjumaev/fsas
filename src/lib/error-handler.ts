@@ -1,3 +1,6 @@
+import { createLogger } from './logger';
+const logger = createLogger('error-handler');
+
 /**
  * Comprehensive Error Handling for Authentication and Database Operations
  * Provides user-friendly error messages and detailed logging
@@ -15,7 +18,7 @@ export interface DetailedError {
  * Parse and enhance Supabase/PostgreSQL errors
  */
 export function parseSupabaseError(error: any, context: string): DetailedError {
-  console.error(`❌ Error in ${context}:`, error);
+  logger.error(`❌ Error in ${context}:`, error);
 
   // Extract error information
   const code = error?.code || error?.error_code || '';
@@ -171,22 +174,22 @@ export function logDetailedError(
   error: any,
   additionalInfo?: Record<string, any>
 ) {
-  console.group(`❌ Error in ${context}`);
-  console.error('Error:', error);
-  console.error('Message:', error?.message);
-  console.error('Code:', error?.code || error?.error_code);
-  console.error('Details:', error?.details || error?.hint);
-  console.error('Status:', error?.status || error?.statusCode);
+  logger.group(`❌ Error in ${context}`);
+  logger.error('Error:', error);
+  logger.error('Message:', error?.message);
+  logger.error('Code:', error?.code || error?.error_code);
+  logger.error('Details:', error?.details || error?.hint);
+  logger.error('Status:', error?.status || error?.statusCode);
   
   if (additionalInfo) {
-    console.error('Additional Info:', additionalInfo);
+    logger.error('Additional Info:', additionalInfo);
   }
   
   if (error?.stack) {
-    console.error('Stack:', error.stack);
+    logger.error('Stack:', error.stack);
   }
   
-  console.groupEnd();
+  logger.groupEnd();
 }
 
 /**
@@ -194,7 +197,7 @@ export function logDetailedError(
  */
 export async function testDatabaseConnection(supabase: any): Promise<DetailedError | null> {
   try {
-    console.log('🔍 Testing database connection...');
+    logger.log('🔍 Testing database connection...');
     
     // Test 1: Check if we can query the users table
     const { data, error } = await supabase
@@ -203,14 +206,14 @@ export async function testDatabaseConnection(supabase: any): Promise<DetailedErr
       .limit(1);
     
     if (error) {
-      console.error('❌ Database connection test failed:', error);
+      logger.error('❌ Database connection test failed:', error);
       return parseSupabaseError(error, 'Database Connection Test');
     }
     
-    console.log('✅ Database connection test passed');
+    logger.log('✅ Database connection test passed');
     return null;
   } catch (error) {
-    console.error('❌ Unexpected error during database test:', error);
+    logger.error('❌ Unexpected error during database test:', error);
     return {
       message: 'Database connection test failed',
       userMessage: 'Cannot connect to the database. Please try again later.',
@@ -263,15 +266,15 @@ export async function retryOperation<T>(
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      console.log(`🔄 Attempt ${attempt}/${maxAttempts}...`);
+      logger.log(`🔄 Attempt ${attempt}/${maxAttempts}...`);
       return await operation();
     } catch (error) {
       lastError = error;
-      console.error(`❌ Attempt ${attempt} failed:`, error);
+      logger.error(`❌ Attempt ${attempt} failed:`, error);
       
       if (attempt < maxAttempts && isRetryableError(error)) {
         const delay = delayMs * Math.pow(2, attempt - 1); // Exponential backoff
-        console.log(`⏳ Waiting ${delay}ms before retry...`);
+        logger.log(`⏳ Waiting ${delay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       } else {
         break;

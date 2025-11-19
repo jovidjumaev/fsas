@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { createLogger } from './logger';
+const logger = createLogger('student-attendance-service');
 
 export interface AttendanceRecord {
   id: string;
@@ -32,7 +34,7 @@ export class StudentAttendanceService {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        console.error('No active auth session - attendance records blocked by RLS');
+        logger.error('No active auth session - attendance records blocked by RLS');
         return [];
       }
       
@@ -51,7 +53,7 @@ export class StudentAttendanceService {
         .order('created_at', { ascending: false });
       
       if (error) {
-        console.error('Error fetching attendance records:', error);
+        logger.error('Error fetching attendance records:', error);
         throw new Error('Failed to fetch attendance records');
       }
       
@@ -75,7 +77,7 @@ export class StudentAttendanceService {
         .in('id', sessionIds);
       
       if (sessionsError) {
-        console.error('❌ Error fetching sessions:', sessionsError);
+        logger.error('❌ Error fetching sessions:', sessionsError);
         throw new Error('Failed to fetch sessions');
       }
       
@@ -91,7 +93,7 @@ export class StudentAttendanceService {
         .in('id', classInstanceIds);
       
       if (classInstancesError) {
-        console.error('❌ Error fetching class instances:', classInstancesError);
+        logger.error('❌ Error fetching class instances:', classInstancesError);
         throw new Error('Failed to fetch class instances');
       }
       
@@ -103,7 +105,7 @@ export class StudentAttendanceService {
         .in('id', courseIds);
       
       if (coursesError) {
-        console.error('❌ Error fetching courses:', coursesError);
+        logger.error('❌ Error fetching courses:', coursesError);
         throw new Error('Failed to fetch courses');
       }
       
@@ -115,7 +117,7 @@ export class StudentAttendanceService {
         .in('user_id', professorIds);
       
       if (professorsError) {
-        console.error('❌ Error fetching professors:', professorsError);
+        logger.error('❌ Error fetching professors:', professorsError);
       }
       
       // Get user details for professors
@@ -125,7 +127,7 @@ export class StudentAttendanceService {
         .in('id', professorIds);
       
       if (usersError) {
-        console.error('Error fetching users:', usersError);
+        logger.error('Error fetching users:', usersError);
       }
 
       // Create lookup maps for efficient data access
@@ -173,7 +175,7 @@ export class StudentAttendanceService {
 
       return transformedRecords;
     } catch (error) {
-      console.error('Error fetching student attendance records:', error);
+      logger.error('Error fetching student attendance records:', error);
       throw error;
     }
   }
@@ -204,7 +206,7 @@ export class StudentAttendanceService {
         attendanceRate
       };
     } catch (error) {
-      console.error('Error fetching student attendance stats:', error);
+      logger.error('Error fetching student attendance stats:', error);
       throw error;
     }
   }

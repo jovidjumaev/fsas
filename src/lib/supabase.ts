@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { createLogger } from './logger';
+const logger = createLogger('supabase');
 
 // Get environment variables with fallbacks
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zdtxqzpgggolbebrsymp.supabase.co';
@@ -6,7 +8,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOi
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkdHhxenBnZ2dvbGJlYnJzeW1wIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODUwNDI5MSwiZXhwIjoyMDc0MDgwMjkxfQ.CURDVpLekSL0iOnSEurdVwzWKCi5ldQQcgEkR1g3hqU';
 
 // Debug environment variables
-console.log('🔧 Supabase Config Debug (Updated):', {
+logger.log('🔧 Supabase Config Debug (Updated):', {
   timestamp: new Date().toISOString(),
   supabaseUrl,
   supabaseAnonKeyLength: supabaseAnonKey?.length,
@@ -19,9 +21,9 @@ console.log('🔧 Supabase Config Debug (Updated):', {
 
 // Validate environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ Missing Supabase environment variables');
-  console.error('Supabase URL:', supabaseUrl);
-  console.error('Supabase Key exists:', !!supabaseAnonKey);
+  logger.error('❌ Missing Supabase environment variables');
+  logger.error('Supabase URL:', supabaseUrl);
+  logger.error('Supabase Key exists:', !!supabaseAnonKey);
   throw new Error('Supabase configuration is missing');
 }
 

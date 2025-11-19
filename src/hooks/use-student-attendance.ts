@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { StudentAttendanceService, AttendanceRecord, AttendanceStats } from '@/lib/student-attendance-service';
+import { createLogger } from '../lib/logger';
+const logger = createLogger('use-student-attendance');
 
 interface UseStudentAttendanceReturn {
   attendanceRecords: AttendanceRecord[];
@@ -43,7 +45,7 @@ export function useStudentAttendance(user: User | null): UseStudentAttendanceRet
       setAttendanceRecords(records);
       setStats(attendanceStats);
     } catch (err) {
-      console.error('Error fetching student attendance:', err);
+      logger.error('Error fetching student attendance:', err);
       setError(err instanceof Error ? err.message : 'An unknown error occurred.');
       setAttendanceRecords([]);
       setStats({

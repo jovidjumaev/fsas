@@ -1,3 +1,6 @@
+const { createLogger } = require('./lib/logger');
+const logger = createLogger('Backend');
+
 // =====================================================
 // FINAL CLASS MANAGEMENT API ENDPOINTS
 // =====================================================
@@ -39,16 +42,16 @@ router.post('/api/class-instances', async (req, res) => {
       max_students 
     } = req.body;
     
-    console.log('📚 Creating new class instance:', { 
+    logger.log('📚 Creating new class instance:', { 
       course_id, professor_id, academic_period_id, days_of_week,
       start_time, end_time, first_class_date, last_class_date
     });
     
     // Validate and normalize times to Eastern Time
     // The frontend sends times in HH:MM format, which we interpret as Eastern Time
-    console.log('🕐 Processing times in Eastern Time:');
-    console.log(`   Start time: ${start_time} (interpreted as Eastern Time)`);
-    console.log(`   End time: ${end_time} (interpreted as Eastern Time)`);
+    logger.log('🕐 Processing times in Eastern Time:');
+    logger.log(`   Start time: ${start_time} (interpreted as Eastern Time)`);
+    logger.log(`   End time: ${end_time} (interpreted as Eastern Time)`);
     
     // Validate time format
     const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
@@ -72,7 +75,7 @@ router.post('/api/class-instances', async (req, res) => {
       });
     }
     
-    console.log(`✅ Time validation passed: ${start_time} - ${end_time} Eastern Time`);
+    logger.log(`✅ Time validation passed: ${start_time} - ${end_time} Eastern Time`);
     
     // Get the next section number for this course and academic period
     const { data: existingClasses, error: countError } = await supabase
@@ -89,7 +92,7 @@ router.post('/api/class-instances', async (req, res) => {
       ? existingClasses[0].section_number + 1 
       : 1;
 
-    console.log('📊 Next section number:', nextSectionNumber);
+    logger.log('📊 Next section number:', nextSectionNumber);
 
     // Generate a unique class code
     const generateClassCode = () => {
@@ -102,12 +105,12 @@ router.post('/api/class-instances', async (req, res) => {
     };
 
     const classCode = generateClassCode();
-    console.log('🔑 Generated class code:', classCode);
+    logger.log('🔑 Generated class code:', classCode);
 
     // Calculate enrollment deadline (2 weeks from first class date)
     const enrollmentDeadline = new Date(first_class_date);
     enrollmentDeadline.setDate(enrollmentDeadline.getDate() + 14);
-    console.log('📅 Enrollment deadline:', enrollmentDeadline.toISOString().split('T')[0]);
+    logger.log('📅 Enrollment deadline:', enrollmentDeadline.toISOString().split('T')[0]);
 
     // Create class instance
     const { data: classInstance, error: createError } = await supabase
@@ -140,13 +143,13 @@ router.post('/api/class-instances', async (req, res) => {
     try {
       const { generateSessionTemplates } = require('./session-management-api.js');
       await generateSessionTemplates(classInstance.id);
-      console.log('✅ Session templates generated successfully');
+      logger.log('✅ Session templates generated successfully');
     } catch (sessionError) {
-      console.error('⚠️ Warning: Could not generate session templates:', sessionError);
+      logger.error('⚠️ Warning: Could not generate session templates:', sessionError);
       // Don't fail the request, just log the error
     }
     
-    console.log('✅ Class instance created successfully:', classInstance.id);
+    logger.log('✅ Class instance created successfully:', classInstance.id);
     
     // Create corresponding class record for bulk enrollment compatibility
     try {
@@ -175,13 +178,13 @@ router.post('/api/class-instances', async (req, res) => {
           .single();
         
         if (classError) {
-          console.error('⚠️ Warning: Could not create corresponding class record:', classError);
+          logger.error('⚠️ Warning: Could not create corresponding class record:', classError);
         } else {
-          console.log('✅ Corresponding class record created:', newClass.id);
+          logger.log('✅ Corresponding class record created:', newClass.id);
         }
       }
     } catch (syncError) {
-      console.error('⚠️ Warning: Could not sync class record:', syncError);
+      logger.error('⚠️ Warning: Could not sync class record:', syncError);
     }
     
     res.json({
@@ -190,7 +193,7 @@ router.post('/api/class-instances', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Class instance creation error:', error);
+    logger.error('❌ Class instance creation error:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -265,7 +268,7 @@ router.get('/api/professors/:professorId/class-instances', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error fetching class instances:', error);
+    logger.error('Error fetching class instances:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -322,7 +325,7 @@ router.get('/api/class-instances/:instanceId', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error fetching class instance details:', error);
+    logger.error('Error fetching class instance details:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -351,7 +354,7 @@ router.put('/api/class-instances/:instanceId', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error updating class instance:', error);
+    logger.error('Error updating class instance:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -390,7 +393,7 @@ router.get('/api/class-instances/:instanceId/sessions', async (req, res) => {
       .eq('status', 'active');
     
     if (enrollmentError) {
-      console.error('Error fetching enrollments:', enrollmentError);
+      logger.error('Error fetching enrollments:', enrollmentError);
     }
     
     const totalEnrolled = enrollments?.length || 0;
@@ -405,7 +408,7 @@ router.get('/api/class-instances/:instanceId/sessions', async (req, res) => {
           .eq('session_id', session.id);
         
         if (attendanceError) {
-          console.error('Error fetching attendance records for session', session.id, attendanceError);
+          logger.error('Error fetching attendance records for session', session.id, attendanceError);
         }
         
         // Count attended students (present + late + excused)
@@ -445,7 +448,7 @@ router.get('/api/class-instances/:instanceId/sessions', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error fetching sessions:', error);
+    logger.error('Error fetching sessions:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -481,7 +484,7 @@ router.put('/api/sessions/:sessionId', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error updating session:', error);
+    logger.error('Error updating session:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -567,7 +570,7 @@ router.get('/api/sessions/:sessionId/qr', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error generating QR code:', error);
+    logger.error('Error generating QR code:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to generate QR code'
@@ -656,7 +659,7 @@ router.post('/api/class-instances/:instanceId/enroll', async (req, res) => {
         })),
         timestamp: new Date().toISOString()
       });
-      console.log('📡 Real-time enrollment update emitted for AI Assistant');
+      logger.log('📡 Real-time enrollment update emitted for AI Assistant');
     }
     
     res.json({
@@ -666,7 +669,7 @@ router.post('/api/class-instances/:instanceId/enroll', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error enrolling students:', error);
+    logger.error('Error enrolling students:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -759,7 +762,7 @@ router.post('/api/enroll/self', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error in self-enrollment:', error);
+    logger.error('Error in self-enrollment:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -770,11 +773,11 @@ router.post('/api/enroll/self', async (req, res) => {
 // Unenroll student from class instance
 router.post('/api/class-instances/:instanceId/unenroll', async (req, res) => {
   try {
-    console.log('🔔 INSTANCE UNENROLLMENT ENDPOINT CALLED:', req.params.instanceId);
+    logger.log('🔔 INSTANCE UNENROLLMENT ENDPOINT CALLED:', req.params.instanceId);
     const { instanceId } = req.params;
     const { student_id } = req.body;
     
-    console.log('📝 Instance unenrollment request:', { instanceId, student_id });
+    logger.log('📝 Instance unenrollment request:', { instanceId, student_id });
     
     const { data, error } = await supabase
       .from('enrollments')
@@ -794,12 +797,12 @@ router.post('/api/class-instances/:instanceId/unenroll', async (req, res) => {
         studentId: student_id,
         timestamp: new Date().toISOString()
       });
-      console.log('📡 Real-time unenrollment update emitted for AI Assistant');
+      logger.log('📡 Real-time unenrollment update emitted for AI Assistant');
     }
     
     // Create notification for the unenrolled student
     try {
-      console.log('🔔 Creating unenrollment notification for student:', student_id);
+      logger.log('🔔 Creating unenrollment notification for student:', student_id);
       
       // Get class and professor information for the notification
       const { data: classInfo, error: classError } = await supabase
@@ -846,13 +849,13 @@ router.post('/api/class-instances/:instanceId/unenroll', async (req, res) => {
           .insert(notificationData);
         
         if (notificationError) {
-          console.error('❌ Error creating unenrollment notification:', notificationError);
+          logger.error('❌ Error creating unenrollment notification:', notificationError);
         } else {
-          console.log('✅ Unenrollment notification created successfully');
+          logger.log('✅ Unenrollment notification created successfully');
         }
       }
     } catch (notificationErr) {
-      console.error('❌ Error in unenrollment notification creation:', notificationErr);
+      logger.error('❌ Error in unenrollment notification creation:', notificationErr);
     }
     
     res.json({
@@ -861,7 +864,7 @@ router.post('/api/class-instances/:instanceId/unenroll', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error unenrolling student:', error);
+    logger.error('Error unenrolling student:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -950,7 +953,7 @@ router.post('/api/sessions/:sessionId/attendance', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error recording attendance:', error);
+    logger.error('Error recording attendance:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -992,7 +995,7 @@ router.put('/api/attendance/:recordId', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error updating attendance:', error);
+    logger.error('Error updating attendance:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1026,7 +1029,7 @@ router.get('/api/sessions/:sessionId/attendance', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error fetching attendance:', error);
+    logger.error('Error fetching attendance:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1107,7 +1110,7 @@ router.get('/api/class-instances/:instanceId/analytics', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error fetching analytics:', error);
+    logger.error('Error fetching analytics:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1159,7 +1162,7 @@ router.get('/api/students/:studentId/attendance-history', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error fetching student attendance history:', error);
+    logger.error('Error fetching student attendance history:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1185,7 +1188,7 @@ router.post('/api/refresh-analytics', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error refreshing analytics:', error);
+    logger.error('Error refreshing analytics:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1211,7 +1214,7 @@ router.get('/api/courses', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error fetching courses:', error);
+    logger.error('Error fetching courses:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1237,7 +1240,7 @@ router.get('/api/academic-periods', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error fetching academic periods:', error);
+    logger.error('Error fetching academic periods:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1274,7 +1277,7 @@ router.patch('/api/class-instances/:classInstanceId/pin', async (req, res) => {
       });
     }
     
-    console.log('📌 Pin status toggled for class:', classInstanceId, 'New status:', data);
+    logger.log('📌 Pin status toggled for class:', classInstanceId, 'New status:', data);
     
     res.json({
       success: true,
@@ -1283,7 +1286,7 @@ router.patch('/api/class-instances/:classInstanceId/pin', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Pin toggle error:', error);
+    logger.error('❌ Pin toggle error:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1334,7 +1337,7 @@ router.get('/api/class-instances/:classInstanceId/students', async (req, res) =>
     });
     
   } catch (error) {
-    console.error('❌ Error fetching class students:', error);
+    logger.error('❌ Error fetching class students:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1415,7 +1418,7 @@ router.post('/api/class-instances/:classInstanceId/enroll', async (req, res) => 
       .single();
     
     if (classError) {
-      console.error('❌ Error fetching class info:', classError);
+      logger.error('❌ Error fetching class info:', classError);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch class information'
@@ -1460,15 +1463,15 @@ router.post('/api/class-instances/:classInstanceId/enroll', async (req, res) => 
         });
       
       if (notificationError) {
-        console.error('❌ Error creating enrollment notification:', notificationError);
+        logger.error('❌ Error creating enrollment notification:', notificationError);
       } else {
-        console.log('✅ Enrollment notification created for student:', student.users?.email);
+        logger.log('✅ Enrollment notification created for student:', student.users?.email);
       }
     } catch (notificationErr) {
-      console.error('❌ Error in notification creation:', notificationErr);
+      logger.error('❌ Error in notification creation:', notificationErr);
     }
     
-    console.log('✅ Student enrolled successfully:', student.users?.email);
+    logger.log('✅ Student enrolled successfully:', student.users?.email);
     
     res.json({
       success: true,
@@ -1486,7 +1489,7 @@ router.post('/api/class-instances/:classInstanceId/enroll', async (req, res) => 
     });
     
   } catch (error) {
-    console.error('❌ Error enrolling student:', error);
+    logger.error('❌ Error enrolling student:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1533,7 +1536,7 @@ router.get('/api/students/all', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error fetching all students:', error);
+    logger.error('❌ Error fetching all students:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch students'
@@ -1623,7 +1626,7 @@ router.get('/api/students/search', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error searching students:', error);
+    logger.error('❌ Error searching students:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to search students'
@@ -1839,14 +1842,14 @@ router.post('/api/class-instances/:classInstanceId/bulk-enroll', async (req, res
             .insert(notificationsToCreate);
           
           if (notificationError) {
-            console.error('❌ Error creating bulk enrollment notifications:', notificationError);
+            logger.error('❌ Error creating bulk enrollment notifications:', notificationError);
           } else {
-            console.log(`✅ Bulk enrollment notifications created for ${notificationsToCreate.length} students`);
+            logger.log(`✅ Bulk enrollment notifications created for ${notificationsToCreate.length} students`);
           }
         }
       }
     } catch (notificationErr) {
-      console.error('❌ Error in bulk notification creation:', notificationErr);
+      logger.error('❌ Error in bulk notification creation:', notificationErr);
     }
 
     let message = `Successfully enrolled ${totalNewEnrollments} student${totalNewEnrollments !== 1 ? 's' : ''}`;
@@ -1869,8 +1872,8 @@ router.post('/api/class-instances/:classInstanceId/bulk-enroll', async (req, res
     });
 
   } catch (error) {
-    console.error('❌ Error bulk enrolling students:', error);
-    console.error('Error details:', {
+    logger.error('❌ Error bulk enrolling students:', error);
+    logger.error('Error details:', {
       message: error.message,
       code: error.code,
       details: error.details,
@@ -1887,14 +1890,14 @@ router.post('/api/class-instances/:classInstanceId/bulk-enroll', async (req, res
 // Unenroll a student from a class instance
 router.post('/api/class-instances/:classInstanceId/unenroll', async (req, res) => {
   try {
-    console.log('🔔 UNENROLLMENT ENDPOINT CALLED:', req.params.classInstanceId);
+    logger.log('🔔 UNENROLLMENT ENDPOINT CALLED:', req.params.classInstanceId);
     const { classInstanceId } = req.params;
     const { student_id, professor_id } = req.body;
     
-    console.log('📝 Unenrollment request:', { classInstanceId, student_id, professor_id });
+    logger.log('📝 Unenrollment request:', { classInstanceId, student_id, professor_id });
     
     if (!student_id || !professor_id) {
-      console.log('❌ Missing required fields');
+      logger.log('❌ Missing required fields');
       return res.status(400).json({
         success: false,
         error: 'Student ID and professor ID are required'
@@ -1912,7 +1915,7 @@ router.post('/api/class-instances/:classInstanceId/unenroll', async (req, res) =
     
     // Create notification for the unenrolled student
     try {
-      console.log('🔔 Creating unenrollment notification for student:', student_id);
+      logger.log('🔔 Creating unenrollment notification for student:', student_id);
       
       // Get class and professor information for the notification
       const { data: classInfo, error: classError } = await supabase
@@ -1959,16 +1962,16 @@ router.post('/api/class-instances/:classInstanceId/unenroll', async (req, res) =
           .insert(notificationData);
         
         if (notificationError) {
-          console.error('❌ Error creating unenrollment notification:', notificationError);
+          logger.error('❌ Error creating unenrollment notification:', notificationError);
         } else {
-          console.log('✅ Unenrollment notification created successfully');
+          logger.log('✅ Unenrollment notification created successfully');
         }
       }
     } catch (notificationErr) {
-      console.error('❌ Error in unenrollment notification creation:', notificationErr);
+      logger.error('❌ Error in unenrollment notification creation:', notificationErr);
     }
     
-    console.log('✅ Student unenrolled successfully:', student_id);
+    logger.log('✅ Student unenrolled successfully:', student_id);
     
     res.json({
       success: true,
@@ -1976,7 +1979,7 @@ router.post('/api/class-instances/:classInstanceId/unenroll', async (req, res) =
     });
     
   } catch (error) {
-    console.error('❌ Error unenrolling student:', error);
+    logger.error('❌ Error unenrolling student:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -2021,7 +2024,7 @@ router.delete('/api/class-instances/:classInstanceId', async (req, res) => {
       .eq('class_instance_id', classInstanceId);
 
     if (sessionsQueryError) {
-      console.error('Error fetching sessions for deletion:', sessionsQueryError);
+      logger.error('Error fetching sessions for deletion:', sessionsQueryError);
       return res.status(500).json({ error: 'Failed to fetch class sessions for deletion' });
     }
 
@@ -2035,7 +2038,7 @@ router.delete('/api/class-instances/:classInstanceId', async (req, res) => {
         .in('session_id', sessionIds);
 
       if (attendanceError) {
-        console.error('Error deleting attendance records:', attendanceError);
+        logger.error('Error deleting attendance records:', attendanceError);
         // Continue with deletion even if attendance records fail
       }
     }
@@ -2047,7 +2050,7 @@ router.delete('/api/class-instances/:classInstanceId', async (req, res) => {
       .eq('class_instance_id', classInstanceId);
 
     if (sessionsError) {
-      console.error('Error deleting class sessions:', sessionsError);
+      logger.error('Error deleting class sessions:', sessionsError);
       // Continue with deletion even if sessions fail
     }
 
@@ -2058,7 +2061,7 @@ router.delete('/api/class-instances/:classInstanceId', async (req, res) => {
       .eq('class_instance_id', classInstanceId);
 
     if (enrollmentsError) {
-      console.error('Error deleting enrollments:', enrollmentsError);
+      logger.error('Error deleting enrollments:', enrollmentsError);
       // Continue with deletion even if enrollments fail
     }
 
@@ -2078,7 +2081,7 @@ router.delete('/api/class-instances/:classInstanceId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error deleting class instance:', error);
+    logger.error('❌ Error deleting class instance:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -2141,7 +2144,7 @@ router.patch('/api/class-instances/:classInstanceId/status', async (req, res) =>
     });
 
   } catch (error) {
-    console.error('❌ Error updating class status:', error);
+    logger.error('❌ Error updating class status:', error);
     res.status(500).json({
       success: false,
       error: error.message

@@ -1,3 +1,6 @@
+const { createLogger } = require('./lib/logger');
+const logger = createLogger('Backend');
+
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { getCurrentEasternTime } = require('./eastern-time-utils');
@@ -52,7 +55,7 @@ router.get('/api/students/:studentId/classes', async (req, res) => {
       .eq('status', 'active');
     
     if (enrollmentError) {
-      console.error('❌ Error fetching student classes:', enrollmentError);
+      logger.error('❌ Error fetching student classes:', enrollmentError);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch student classes'
@@ -254,7 +257,7 @@ router.get('/api/students/:studentId/classes', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error in /api/students/:studentId/classes:', error);
+    logger.error('❌ Error in /api/students/:studentId/classes:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -285,7 +288,7 @@ router.get('/api/students/:studentId/classes/stats', async (req, res) => {
       .eq('class_instances.is_active', true);
     
     if (enrollmentError) {
-      console.error('❌ Error fetching enrollment stats:', enrollmentError);
+      logger.error('❌ Error fetching enrollment stats:', enrollmentError);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch enrollment statistics'
@@ -338,7 +341,7 @@ router.get('/api/students/:studentId/classes/stats', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error in /api/students/:studentId/classes/stats:', error);
+    logger.error('❌ Error in /api/students/:studentId/classes/stats:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'

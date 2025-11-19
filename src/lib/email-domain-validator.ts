@@ -1,3 +1,6 @@
+import { createLogger } from './logger';
+const logger = createLogger('email-domain-validator');
+
 /**
  * Email Domain Validator
  * Restricts registration to only @furman.edu email addresses
@@ -14,7 +17,7 @@ export interface EmailDomainResult {
  */
 export function validateEmailDomain(email: string): EmailDomainResult {
   try {
-    console.log('📧 Validating email domain for:', email);
+    logger.log('📧 Validating email domain for:', email);
     
     // Check if email is valid format first
     const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -47,18 +50,18 @@ export function validateEmailDomain(email: string): EmailDomainResult {
     );
 
     if (!isAllowed) {
-      console.log('❌ Email domain not allowed:', domain);
+      logger.log('❌ Email domain not allowed:', domain);
       return {
         isValid: false,
         error: 'Only @furman.edu email addresses are allowed for registration.\n\n💡 Please use your official Furman University email address.'
       };
     }
 
-    console.log('✅ Email domain is valid:', domain);
+    logger.log('✅ Email domain is valid:', domain);
     return { isValid: true };
 
   } catch (error) {
-    console.error('❌ Error validating email domain:', error);
+    logger.error('❌ Error validating email domain:', error);
     return {
       isValid: false,
       error: 'Unable to validate email address. Please try again.'

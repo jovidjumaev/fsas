@@ -1,3 +1,6 @@
+const { createLogger } = require('./lib/logger');
+const logger = createLogger('Backend');
+
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config({ path: '.env.local' });
@@ -307,7 +310,7 @@ router.get(
         .single();
 
       if (classError) {
-        console.error('❌ Error fetching class instance:', classError);
+        logger.error('❌ Error fetching class instance:', classError);
         return res.status(500).json({
           success: false,
           error: 'Failed to verify class ownership',
@@ -351,7 +354,7 @@ router.get(
         .in('status', ['active', 'completed']);
 
       if (enrollmentError) {
-        console.error('❌ Error fetching enrollments:', enrollmentError);
+        logger.error('❌ Error fetching enrollments:', enrollmentError);
         return res.status(500).json({
           success: false,
           error: 'Failed to fetch enrollments',
@@ -365,7 +368,7 @@ router.get(
         .eq('class_instance_id', classId);
 
       if (materialsError) {
-        console.error('❌ Error fetching materials:', materialsError);
+        logger.error('❌ Error fetching materials:', materialsError);
         return res.status(500).json({
           success: false,
           error: 'Failed to fetch class materials',
@@ -397,7 +400,7 @@ router.get(
         .eq('class_instance_id', classId);
 
       if (sessionsError) {
-        console.error('❌ Error fetching quiz sessions:', sessionsError);
+        logger.error('❌ Error fetching quiz sessions:', sessionsError);
         return res.status(500).json({
           success: false,
           error: 'Failed to fetch quiz sessions',
@@ -411,7 +414,7 @@ router.get(
         .eq('class_instance_id', classId);
 
       if (questionsError) {
-        console.error('❌ Error fetching quiz questions:', questionsError);
+        logger.error('❌ Error fetching quiz questions:', questionsError);
         return res.status(500).json({
           success: false,
           error: 'Failed to fetch quiz question statistics',
@@ -430,7 +433,7 @@ router.get(
         },
       });
     } catch (error) {
-      console.error('❌ Quiz insights error:', error);
+      logger.error('❌ Quiz insights error:', error);
       return res.status(500).json({
         success: false,
         error: 'Internal server error',

@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { createLogger } from './logger';
+const logger = createLogger('student-dashboard-service');
 
 export interface StudentData {
   // UUID primary key of students table (FK target from enrollments.student_id)
@@ -65,7 +67,7 @@ export class StudentDashboardService {
         .single();
 
       if (error) {
-        console.error('Error fetching student data:', error);
+        logger.error('Error fetching student data:', error);
         return null;
       }
 
@@ -84,14 +86,14 @@ export class StudentDashboardService {
         account_created: data.users.created_at
       };
     } catch (error) {
-      console.error('Error in getStudentData:', error);
+      logger.error('Error in getStudentData:', error);
       return null;
     }
   }
 
   static async getTodayClasses(userId: string): Promise<ClassSession[]> {
     try {
-      console.log('🔍 getTodayClasses: Starting for user:', userId);
+      logger.log('🔍 getTodayClasses: Starting for user:', userId);
       
       // Get today's date and day of week
       const today = new Date();
@@ -100,9 +102,9 @@ export class StudentDashboardService {
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const todayName = dayNames[dayOfWeek];
       
-      console.log('🔍 getTodayClasses: Today is', todayName, todayString);
-      console.log('🔍 getTodayClasses: Current time:', today.toISOString());
-      console.log('🔍 getTodayClasses: Day of week:', dayOfWeek);
+      logger.log('🔍 getTodayClasses: Today is', todayName, todayString);
+      logger.log('🔍 getTodayClasses: Current time:', today.toISOString());
+      logger.log('🔍 getTodayClasses: Day of week:', dayOfWeek);
 
       // Get enrollments for this student, filtering out null class_instance_id values
       const { data: enrollments, error: enrollmentError } = await supabase
@@ -126,15 +128,15 @@ export class StudentDashboardService {
         .not('class_instance_id', 'is', null); // Filter out null class_instance_id values
 
       if (enrollmentError) {
-        console.error('Error fetching enrollments:', enrollmentError);
+        logger.error('Error fetching enrollments:', enrollmentError);
         return [];
       }
 
-      console.log('🔍 getTodayClasses: Got enrollments:', enrollments.length);
+      logger.log('🔍 getTodayClasses: Got enrollments:', enrollments.length);
 
       // Get all professor IDs
       const professorIds = [...new Set(enrollments.map(e => e.class_instances.professor_id).filter(Boolean))];
-      console.log('🔍 getTodayClasses: Professor IDs found:', professorIds.length);
+      logger.log('🔍 getTodayClasses: Professor IDs found:', professorIds.length);
 
       // Get professor information with cache busting
       const timestamp = Date.now();
@@ -145,11 +147,11 @@ export class StudentDashboardService {
         .gte('created_at', '2020-01-01'); // Add filter to bust cache
 
       if (professorsError) {
-        console.error('Error fetching professors:', professorsError);
+        logger.error('Error fetching professors:', professorsError);
         return [];
       }
 
-      console.log('🔍 getTodayClasses: Professors loaded:', professors.length);
+      logger.log('🔍 getTodayClasses: Professors loaded:', professors.length);
 
       // Create professor lookup map
       const professorMap: { [key: string]: any } = {};
@@ -168,7 +170,7 @@ export class StudentDashboardService {
         const startTime = classInstance.start_time;
         const endTime = classInstance.end_time;
         
-        console.log('🔍 Checking class', classInstance.courses.code, 'with schedule:', { daysOfWeek, firstClassDate, lastClassDate });
+        logger.log('🔍 Checking class', classInstance.courses.code, 'with schedule:', { daysOfWeek, firstClassDate, lastClassDate });
 
         // Check if today is within the class period and matches the schedule
         const withinPeriod = todayString >= firstClassDate && todayString <= lastClassDate;
@@ -177,7 +179,7 @@ export class StudentDashboardService {
         const meetsToday = withinPeriod && matchesSchedule;
         
         if (meetsToday) {
-          console.log('✅ Class', classInstance.courses.code, 'meets today!');
+          logger.log('✅ Class', classInstance.courses.code, 'meets today!');
           
           const professor = professorMap[classInstance.professor_id];
           const professorName = professor ? 
@@ -194,25 +196,25 @@ export class StudentDashboardService {
             status: 'upcoming' as const
           });
         } else {
-          console.log('❌ Class', classInstance.courses.code, 'does not meet today');
+          logger.log('❌ Class', classInstance.courses.code, 'does not meet today');
         }
       }
 
-      console.log('🔍 getTodayClasses: Found', todayClasses.length, 'classes for today');
+      logger.log('🔍 getTodayClasses: Found', todayClasses.length, 'classes for today');
       todayClasses.forEach(cls => {
-        console.log('🔍 getTodayClasses: Class found:', cls.class_code, cls.class_name, 'Professor:', cls.professor);
+        logger.log('🔍 getTodayClasses: Class found:', cls.class_code, cls.class_name, 'Professor:', cls.professor);
       });
       
       return todayClasses;
     } catch (error) {
-      console.error('Error in getTodayClasses:', error);
+      logger.error('Error in getTodayClasses:', error);
       return [];
     }
   }
 
   static async getRecentAttendance(userId: string, limit: number = 6): Promise<AttendanceRecord[]> {
     try {
-      console.log('🔍 getRecentAttendance: Starting for user:', userId);
+      logger.log('🔍 getRecentAttendance: Starting for user:', userId);
       
       // Use userId directly (UUID) for attendance_records.student_id
       const { data: attendanceData, error: attendanceError } = await supabase
@@ -231,7 +233,7 @@ export class StudentDashboardService {
         .limit(limit);
 
       if (attendanceError) {
-        console.error('Error fetching attendance:', attendanceError);
+        logger.error('Error fetching attendance:', attendanceError);
         return [];
       }
 
@@ -242,17 +244,17 @@ export class StudentDashboardService {
         scanned_at: record.scanned_at
       }));
 
-      console.log('🔍 getRecentAttendance: Found', recentAttendance.length, 'records');
+      logger.log('🔍 getRecentAttendance: Found', recentAttendance.length, 'records');
       return recentAttendance;
     } catch (error) {
-      console.error('Error in getRecentAttendance:', error);
+      logger.error('Error in getRecentAttendance:', error);
       return [];
     }
   }
 
   static async getAttendanceStats(userId: string): Promise<AttendanceStats> {
     try {
-      console.log('🔍 getAttendanceStats: Starting for user:', userId);
+      logger.log('🔍 getAttendanceStats: Starting for user:', userId);
       
       // Get all attendance records for this student using userId (UUID)
       const { data: attendanceRecords, error: attendanceError } = await supabase
@@ -272,7 +274,7 @@ export class StudentDashboardService {
         .order('scanned_at', { ascending: false });
 
       if (attendanceError) {
-        console.error('Error fetching attendance records:', attendanceError);
+        logger.error('Error fetching attendance records:', attendanceError);
         throw attendanceError;
       }
 
@@ -285,7 +287,7 @@ export class StudentDashboardService {
         .not('class_instance_id', 'is', null); // Filter out enrollments with null class_instance_id
 
       if (enrollmentError) {
-        console.error('Error fetching enrollments:', enrollmentError);
+        logger.error('Error fetching enrollments:', enrollmentError);
         throw enrollmentError;
       }
 
@@ -313,10 +315,10 @@ export class StudentDashboardService {
         attendanceStreak
       };
 
-      console.log('🔍 getAttendanceStats: Calculated stats:', stats);
+      logger.log('🔍 getAttendanceStats: Calculated stats:', stats);
       return stats;
     } catch (error) {
-      console.error('Error calculating attendance stats:', error);
+      logger.error('Error calculating attendance stats:', error);
       return {
         overallAttendance: 0,
         totalClasses: 0,
@@ -364,7 +366,7 @@ export class StudentDashboardService {
 
   static async getAllDashboardData(userId: string) {
     try {
-      console.log('🔍 getAllDashboardData: Starting for user:', userId);
+      logger.log('🔍 getAllDashboardData: Starting for user:', userId);
       
       // Get student data
       const studentData = await this.getStudentData(userId);
@@ -381,7 +383,7 @@ export class StudentDashboardService {
       // Calculate comprehensive stats
       const stats = await this.getAttendanceStats(userId);
 
-      console.log('🔍 getAllDashboardData: Returning comprehensive data with stats:', stats);
+      logger.log('🔍 getAllDashboardData: Returning comprehensive data with stats:', stats);
       return {
         studentData,
         todayClasses,
@@ -389,7 +391,7 @@ export class StudentDashboardService {
         stats
       };
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      logger.error('Error fetching dashboard data:', error);
       throw error;
     }
   }
@@ -397,33 +399,33 @@ export class StudentDashboardService {
   // Helper function to check if attendance has been taken for this student today
   private static async checkAttendanceForToday(studentId: string): Promise<boolean> {
     try {
-      console.log('🔍 checkAttendanceForToday: Checking studentId:', studentId);
+      logger.log('🔍 checkAttendanceForToday: Checking studentId:', studentId);
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-      console.log('🔍 checkAttendanceForToday: Today is:', today);
+      logger.log('🔍 checkAttendanceForToday: Today is:', today);
       
       // Check if there are any attendance records for this student today
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/attendance/student/${studentId}?limit=20`);
-      console.log('🔍 checkAttendanceForToday: API response status:', response.status);
+      logger.log('🔍 checkAttendanceForToday: API response status:', response.status);
       
       const data = await response.json();
-      console.log('🔍 checkAttendanceForToday: API response data:', data);
+      logger.log('🔍 checkAttendanceForToday: API response data:', data);
       
       if (data.success && data.attendance && data.attendance.length > 0) {
-        console.log('🔍 checkAttendanceForToday: Found', data.attendance.length, 'records');
+        logger.log('🔍 checkAttendanceForToday: Found', data.attendance.length, 'records');
         // Check if any record is from today
         const todayRecord = data.attendance.find((record: any) => {
           const recordDate = new Date(record.scanned_at).toISOString().split('T')[0];
-          console.log('🔍 checkAttendanceForToday: Checking record date:', recordDate, 'vs today:', today);
+          logger.log('🔍 checkAttendanceForToday: Checking record date:', recordDate, 'vs today:', today);
           return recordDate === today;
         });
-        console.log('🔍 checkAttendanceForToday: Found today record:', !!todayRecord);
+        logger.log('🔍 checkAttendanceForToday: Found today record:', !!todayRecord);
         return !!todayRecord;
       }
       
-      console.log('🔍 checkAttendanceForToday: No records found or API failed');
+      logger.log('🔍 checkAttendanceForToday: No records found or API failed');
       return false;
     } catch (error) {
-      console.error('Error checking attendance for today:', error);
+      logger.error('Error checking attendance for today:', error);
       return false;
     }
   }

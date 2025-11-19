@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { createLogger } from './logger';
+const logger = createLogger('student-class-detail-service');
 
 export interface ClassSession {
   id: string;
@@ -58,12 +60,12 @@ export class StudentClassDetailService {
    */
   static async getClassDetail(userId: string, classInstanceId: string): Promise<ClassDetailResponse> {
     try {
-      console.log('🔍 StudentClassDetailService: Getting class detail for user:', userId, 'class:', classInstanceId);
+      logger.log('🔍 StudentClassDetailService: Getting class detail for user:', userId, 'class:', classInstanceId);
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/students/${userId}/classes/${classInstanceId}`);
       const result = await response.json();
 
-      console.log('🔍 StudentClassDetailService: API response:', result);
+      logger.log('🔍 StudentClassDetailService: API response:', result);
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch class details');
@@ -71,7 +73,7 @@ export class StudentClassDetailService {
 
       return result;
     } catch (error) {
-      console.error('Error fetching class details:', error);
+      logger.error('Error fetching class details:', error);
       throw error;
     }
   }

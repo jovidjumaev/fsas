@@ -1,5 +1,7 @@
 import { supabase, supabaseAdmin } from './supabase';
 import { createHash } from 'crypto';
+import { createLogger } from './logger';
+const logger = createLogger('password-change-service');
 
 export interface PasswordChangeResult {
   success: boolean;
@@ -70,7 +72,7 @@ export class PasswordChangeService {
    */
   static async validatePasswordUniqueness(userId: string, newPassword: string): Promise<PasswordValidationResult> {
     try {
-      console.log('🔍 Checking password uniqueness for user:', userId);
+      logger.log('🔍 Checking password uniqueness for user:', userId);
       
       // Hash the new password
       const passwordHash = createHash('sha256').update(newPassword).digest('hex');
@@ -83,7 +85,7 @@ export class PasswordChangeService {
         .single();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-        console.error('❌ Error checking password uniqueness:', error);
+        logger.error('❌ Error checking password uniqueness:', error);
         return {
           isValid: false,
           errors: ['Unable to verify password uniqueness. Please try again.']
@@ -91,17 +93,17 @@ export class PasswordChangeService {
       }
 
       if (existingPassword) {
-        console.log('❌ Password already used by another user:', existingPassword.user_id);
+        logger.log('❌ Password already used by another user:', existingPassword.user_id);
         return {
           isValid: false,
           errors: ['This password is already in use by another user. Please choose a different password.']
         };
       }
 
-      console.log('✅ Password is unique across all users');
+      logger.log('✅ Password is unique across all users');
       return { isValid: true, errors: [] };
     } catch (error) {
-      console.error('❌ Exception during password uniqueness check:', error);
+      logger.error('❌ Exception during password uniqueness check:', error);
       return {
         isValid: false,
         errors: ['Password validation failed. Please try again.']
@@ -161,7 +163,7 @@ export class PasswordChangeService {
    */
   static async verifyCurrentPassword(email: string, currentPassword: string): Promise<{ isValid: boolean; session?: any }> {
     try {
-      console.log('🔍 Verifying current password for:', email);
+      logger.log('🔍 Verifying current password for:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -169,14 +171,14 @@ export class PasswordChangeService {
       });
 
       if (error) {
-        console.log('❌ Current password verification failed:', error.message);
+        logger.log('❌ Current password verification failed:', error.message);
         return { isValid: false };
       }
 
-      console.log('✅ Current password verified successfully');
+      logger.log('✅ Current password verified successfully');
       return { isValid: true, session: data.session };
     } catch (error) {
-      console.error('❌ Exception during password verification:', error);
+      logger.error('❌ Exception during password verification:', error);
       return { isValid: false };
     }
   }
@@ -186,7 +188,7 @@ export class PasswordChangeService {
    */
   static async recordPasswordHash(userId: string, password: string): Promise<boolean> {
     try {
-      console.log('📝 Recording new password hash for user:', userId);
+      logger.log('📝 Recording new password hash for user:', userId);
       
       const passwordHash = createHash('sha256').update(password).digest('hex');
       
@@ -199,14 +201,14 @@ export class PasswordChangeService {
         });
 
       if (error) {
-        console.error('❌ Error recording password hash:', error);
+        logger.error('❌ Error recording password hash:', error);
         return false;
       }
 
-      console.log('✅ Password hash recorded successfully');
+      logger.log('✅ Password hash recorded successfully');
       return true;
     } catch (error) {
-      console.error('❌ Exception recording password hash:', error);
+      logger.error('❌ Exception recording password hash:', error);
       return false;
     }
   }
@@ -228,12 +230,12 @@ export class PasswordChangeService {
     signOutCallback?: () => Promise<void>
   ): Promise<PasswordChangeResult> {
     try {
-      console.log('🔐 ===== PASSWORD CHANGE START =====');
-      console.log('🔐 User ID:', userId);
-      console.log('🔐 Email:', email);
+      logger.log('🔐 ===== PASSWORD CHANGE START =====');
+      logger.log('🔐 User ID:', userId);
+      logger.log('🔐 Email:', email);
 
       // 1. Verify current password
-      console.log('🔍 Step 1: Verifying current password...');
+      logger.log('🔍 Step 1: Verifying current password...');
       const passwordVerification = await this.verifyCurrentPassword(email, currentPassword);
       if (!passwordVerification.isValid) {
         return {
@@ -241,10 +243,10 @@ export class PasswordChangeService {
           error: 'Current password is incorrect. Please check your password and try again.'
         };
       }
-      console.log('✅ Current password verified');
+      logger.log('✅ Current password verified');
 
       // 2. Validate password strength
-      console.log('🔍 Step 2: Validating password strength...');
+      logger.log('🔍 Step 2: Validating password strength...');
       const strengthValidation = this.validatePasswordStrength(newPassword);
       if (!strengthValidation.isValid) {
         return {
@@ -252,10 +254,10 @@ export class PasswordChangeService {
           error: `Password does not meet requirements:\n\n• ${strengthValidation.errors.join('\n• ')}`
         };
       }
-      console.log('✅ Password strength validated');
+      logger.log('✅ Password strength validated');
 
       // 3. Validate password difference
-      console.log('🔍 Step 3: Validating password difference...');
+      logger.log('🔍 Step 3: Validating password difference...');
       const differenceValidation = this.validatePasswordDifference(currentPassword, newPassword);
       if (!differenceValidation.isValid) {
         return {
@@ -263,10 +265,10 @@ export class PasswordChangeService {
           error: differenceValidation.errors.join('\n')
         };
       }
-      console.log('✅ Password difference validated');
+      logger.log('✅ Password difference validated');
 
       // 4. Validate password uniqueness
-      console.log('🔍 Step 4: Validating password uniqueness...');
+      logger.log('🔍 Step 4: Validating password uniqueness...');
       const uniquenessValidation = await this.validatePasswordUniqueness(userId, newPassword);
       if (!uniquenessValidation.isValid) {
         return {
@@ -274,10 +276,10 @@ export class PasswordChangeService {
           error: uniquenessValidation.errors.join('\n')
         };
       }
-      console.log('✅ Password uniqueness validated');
+      logger.log('✅ Password uniqueness validated');
 
       // 5. Validate personal information
-      console.log('🔍 Step 5: Validating personal information...');
+      logger.log('🔍 Step 5: Validating personal information...');
       const personalInfoValidation = this.validatePasswordPersonalInfo(newPassword, {
         ...userInfo,
         email
@@ -288,51 +290,51 @@ export class PasswordChangeService {
           error: `Password cannot contain personal information:\n\n• ${personalInfoValidation.errors.join('\n• ')}`
         };
       }
-      console.log('✅ Personal information validation passed');
+      logger.log('✅ Personal information validation passed');
 
       // 6. Update password in Supabase Auth using admin client
-      console.log('🔍 Step 6: Updating password in Supabase Auth...');
+      logger.log('🔍 Step 6: Updating password in Supabase Auth...');
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
         password: newPassword
       });
 
       if (updateError) {
-        console.error('❌ Error updating password:', updateError);
+        logger.error('❌ Error updating password:', updateError);
         return {
           success: false,
           error: `Failed to update password: ${updateError.message}`
         };
       }
-      console.log('✅ Password updated in Supabase Auth');
+      logger.log('✅ Password updated in Supabase Auth');
 
       // 7. Record password hash for uniqueness tracking
-      console.log('🔍 Step 7: Recording password hash...');
+      logger.log('🔍 Step 7: Recording password hash...');
       const hashRecorded = await this.recordPasswordHash(userId, newPassword);
       if (!hashRecorded) {
-        console.warn('⚠️ Warning: Could not record password hash, but password was updated');
+        logger.warn('⚠️ Warning: Could not record password hash, but password was updated');
       }
 
       // 8. Sign out the user to force re-authentication with new password
-      console.log('🔍 Step 8: Signing out user to force re-authentication...');
+      logger.log('🔍 Step 8: Signing out user to force re-authentication...');
       try {
         if (signOutCallback) {
-          console.log('✅ Using provided signOut callback');
+          logger.log('✅ Using provided signOut callback');
           await signOutCallback();
         } else {
-          console.log('⚠️ No signOut callback provided, using direct Supabase signOut');
+          logger.log('⚠️ No signOut callback provided, using direct Supabase signOut');
           await supabase.auth.signOut();
         }
-        console.log('✅ User signed out successfully');
+        logger.log('✅ User signed out successfully');
       } catch (signOutError) {
-        console.warn('⚠️ Warning: Could not sign out user, but password was updated');
+        logger.warn('⚠️ Warning: Could not sign out user, but password was updated');
       }
 
-      console.log('✅ Password change completed successfully');
-      console.log('🔐 ===== PASSWORD CHANGE END =====');
+      logger.log('✅ Password change completed successfully');
+      logger.log('🔐 ===== PASSWORD CHANGE END =====');
       
       return { success: true };
     } catch (error) {
-      console.error('❌ Exception during password change:', error);
+      logger.error('❌ Exception during password change:', error);
       return {
         success: false,
         error: 'An unexpected error occurred. Please try again or contact support.'

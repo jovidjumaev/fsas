@@ -1,3 +1,6 @@
+const { createLogger } = require('./lib/logger');
+const logger = createLogger('Backend');
+
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
@@ -26,7 +29,7 @@ const supabase = createClient(
 // Generate session templates for a class instance
 const generateSessionTemplates = async (classInstanceId) => {
   try {
-    console.log('🔄 Generating session templates for class instance:', classInstanceId);
+    logger.log('🔄 Generating session templates for class instance:', classInstanceId);
     
     // Get class instance details
     const { data: classInstance, error: instanceError } = await supabase
@@ -52,9 +55,9 @@ const generateSessionTemplates = async (classInstanceId) => {
     const periodStart = createEasternDate(classInstance.first_class_date, '00:00:00');
     const periodEnd = createEasternDate(classInstance.last_class_date, '00:00:00');
     
-    console.log('🕐 Session template generation timezone handling:');
-    console.log(`   Period start (Eastern): ${formatEasternTime(periodStart)}`);
-    console.log(`   Period end (Eastern): ${formatEasternTime(periodEnd)}`);
+    logger.log('🕐 Session template generation timezone handling:');
+    logger.log(`   Period start (Eastern): ${formatEasternTime(periodStart)}`);
+    logger.log(`   Period end (Eastern): ${formatEasternTime(periodEnd)}`);
     
     // Find the first actual class day that matches the schedule
     let firstClassDate = new Date(periodStart);
@@ -109,13 +112,13 @@ const generateSessionTemplates = async (classInstanceId) => {
       
       if (insertError) throw insertError;
       
-      console.log(`✅ Generated ${sessions.length} session templates`);
+      logger.log(`✅ Generated ${sessions.length} session templates`);
       return insertedSessions;
     }
     
     return [];
   } catch (error) {
-    console.error('❌ Error generating session templates:', error);
+    logger.error('❌ Error generating session templates:', error);
     throw error;
   }
 };
@@ -139,7 +142,7 @@ router.get('/api/professors/:professorId/sessions', async (req, res) => {
     const { professorId } = req.params;
     const { status, class_id, date_range } = req.query;
     
-    console.log('📊 Fetching sessions for professor:', professorId);
+    logger.log('📊 Fetching sessions for professor:', professorId);
     
     let query = supabase
       .from('class_sessions')
@@ -193,12 +196,12 @@ router.get('/api/professors/:professorId/sessions', async (req, res) => {
     // Debug: Log session dates using Eastern Time
     const easternTime = getCurrentEasternTime();
     const todayDate = easternTime.toISOString().split('T')[0];
-    console.log('🔍 Backend Session Debug (Eastern Time):');
-    console.log('  Eastern time:', formatEasternTime(easternTime));
-    console.log('  Today\'s date (Eastern):', todayDate);
-    console.log('  Total sessions found:', sessions.length);
-    console.log('  Session dates:', sessions.map(s => ({ id: s.id, date: s.date, code: s.class_instances?.courses?.code })));
-    console.log('  Sessions matching today:', sessions.filter(s => s.date === todayDate).length);
+    logger.log('🔍 Backend Session Debug (Eastern Time):');
+    logger.log('  Eastern time:', formatEasternTime(easternTime));
+    logger.log('  Today\'s date (Eastern):', todayDate);
+    logger.log('  Total sessions found:', sessions.length);
+    logger.log('  Session dates:', sessions.map(s => ({ id: s.id, date: s.date, code: s.class_instances?.courses?.code })));
+    logger.log('  Sessions matching today:', sessions.filter(s => s.date === todayDate).length);
     
     // Get current enrollment and attendance counts for each session
     const sessionsWithCounts = await Promise.all(sessions.map(async (session) => {
@@ -233,7 +236,7 @@ router.get('/api/professors/:professorId/sessions', async (req, res) => {
       count: sessionsWithCounts.length
     });
   } catch (error) {
-    console.error('❌ Error fetching professor sessions:', error);
+    logger.error('❌ Error fetching professor sessions:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -268,7 +271,7 @@ router.get('/api/class-instances/:instanceId/sessions', async (req, res) => {
       count: sessions.length
     });
   } catch (error) {
-    console.error('❌ Error fetching class sessions:', error);
+    logger.error('❌ Error fetching class sessions:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -282,7 +285,7 @@ router.post('/api/sessions/:sessionId/activate', async (req, res) => {
     const { sessionId } = req.params;
     const { notes } = req.body;
     
-    console.log('🚀 Activating session:', sessionId);
+    logger.log('🚀 Activating session:', sessionId);
     
     // Check if session exists and is scheduled
     const { data: session, error: fetchError } = await supabase
@@ -328,10 +331,10 @@ router.post('/api/sessions/:sessionId/activate', async (req, res) => {
     // Set automatic timeout after 1 hour
     setTimeout(async () => {
       try {
-        console.log('⏰ Auto-completing session after 1 hour:', sessionId);
+        logger.log('⏰ Auto-completing session after 1 hour:', sessionId);
         await completeSessionAutomatically(sessionId);
       } catch (error) {
-        console.error('❌ Error auto-completing session:', error);
+        logger.error('❌ Error auto-completing session:', error);
       }
     }, 60 * 60 * 1000); // 1 hour
     
@@ -347,10 +350,10 @@ router.post('/api/sessions/:sessionId/activate', async (req, res) => {
       global.io.emit('session_activated', {
         sessionId: sessionId
       });
-      console.log('📡 Emitted session activation events via WebSocket');
+      logger.log('📡 Emitted session activation events via WebSocket');
     }
     
-    console.log('✅ Session activated successfully:', sessionId);
+    logger.log('✅ Session activated successfully:', sessionId);
     
     res.json({
       success: true,
@@ -358,7 +361,7 @@ router.post('/api/sessions/:sessionId/activate', async (req, res) => {
       qr_code: qrData
     });
   } catch (error) {
-    console.error('❌ Error activating session:', error);
+    logger.error('❌ Error activating session:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -369,7 +372,7 @@ router.post('/api/sessions/:sessionId/activate', async (req, res) => {
 // Complete session automatically (for timeout)
 async function completeSessionAutomatically(sessionId) {
   try {
-    console.log('⏰ Auto-completing session:', sessionId);
+    logger.log('⏰ Auto-completing session:', sessionId);
     
     // Check if session is still active
     const { data: session, error: fetchError } = await supabase
@@ -380,7 +383,7 @@ async function completeSessionAutomatically(sessionId) {
       .single();
     
     if (fetchError || !session) {
-      console.log('Session not found or already completed:', sessionId);
+      logger.log('Session not found or already completed:', sessionId);
       return;
     }
     
@@ -390,10 +393,10 @@ async function completeSessionAutomatically(sessionId) {
     // Create session end time in Eastern Time using utility functions
     const sessionEndTime = createEasternDate(session.date, session.end_time);
     
-    console.log(`🕐 Auto-completion time check for session ${sessionId}:`);
-    console.log(`   Current time (UTC): ${new Date().toISOString()}`);
-    console.log(`   Current time (Eastern): ${formatEasternTime(now)}`);
-    console.log(`   Session end time (Eastern): ${formatEasternTime(sessionEndTime)}`);
+    logger.log(`🕐 Auto-completion time check for session ${sessionId}:`);
+    logger.log(`   Current time (UTC): ${new Date().toISOString()}`);
+    logger.log(`   Current time (Eastern): ${formatEasternTime(now)}`);
+    logger.log(`   Session end time (Eastern): ${formatEasternTime(sessionEndTime)}`);
     
     // Only auto-complete if session end time has passed (with 1-minute grace period)
     const gracePeriod = 1 * 60 * 1000; // 1 minute in milliseconds
@@ -401,11 +404,11 @@ async function completeSessionAutomatically(sessionId) {
     
     if (now < earliestCompletionTime) {
       const minutesRemaining = getMinutesToEasternTime(session.end_time, session.date);
-      console.log(`⏰ Auto-completion skipped for session ${sessionId}: ${minutesRemaining} minutes remaining`);
+      logger.log(`⏰ Auto-completion skipped for session ${sessionId}: ${minutesRemaining} minutes remaining`);
       return;
     }
     
-    console.log(`✅ Auto-completion validation passed for session ${sessionId}`);
+    logger.log(`✅ Auto-completion validation passed for session ${sessionId}`);
     
     // Stop QR code rotation
     stopQRCodeRotation(sessionId);
@@ -447,7 +450,7 @@ async function completeSessionAutomatically(sessionId) {
       
       if (insertError) throw insertError;
       
-      console.log(`✅ Auto-created ${absentRecords.length} absent attendance records`);
+      logger.log(`✅ Auto-created ${absentRecords.length} absent attendance records`);
     }
     
     // Update session
@@ -471,12 +474,12 @@ async function completeSessionAutomatically(sessionId) {
       global.io.emit('session_completed', {
         sessionId: sessionId
       });
-      console.log('📡 Emitted auto-completion events via WebSocket');
+      logger.log('📡 Emitted auto-completion events via WebSocket');
     }
     
-    console.log('✅ Session auto-completed successfully:', sessionId);
+    logger.log('✅ Session auto-completed successfully:', sessionId);
   } catch (error) {
-    console.error('❌ Error auto-completing session:', error);
+    logger.error('❌ Error auto-completing session:', error);
     throw error;
   }
 }
@@ -486,7 +489,7 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
   try {
     const { sessionId } = req.params;
     
-    console.log('🏁 Completing session:', sessionId);
+    logger.log('🏁 Completing session:', sessionId);
     
     // Get session details with validation
     const { data: session, error: sessionError } = await supabase
@@ -511,15 +514,15 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
     const sessionEndTime = createEasternDate(session.date, session.end_time);
     const sessionStartTime = createEasternDate(session.date, session.start_time);
     
-    console.log(`🕐 Time debugging for session ${sessionId}:`);
-    console.log(`   Current time (UTC): ${new Date().toISOString()}`);
-    console.log(`   Current time (Eastern): ${formatEasternTime(now)}`);
-    console.log(`   Session start time (Eastern): ${formatEasternTime(sessionStartTime)}`);
-    console.log(`   Session end time (Eastern): ${formatEasternTime(sessionEndTime)}`);
+    logger.log(`🕐 Time debugging for session ${sessionId}:`);
+    logger.log(`   Current time (UTC): ${new Date().toISOString()}`);
+    logger.log(`   Current time (Eastern): ${formatEasternTime(now)}`);
+    logger.log(`   Session start time (Eastern): ${formatEasternTime(sessionStartTime)}`);
+    logger.log(`   Session end time (Eastern): ${formatEasternTime(sessionEndTime)}`);
     
     // Check if session times are valid
     if (isNaN(sessionStartTime.getTime()) || isNaN(sessionEndTime.getTime())) {
-      console.error(`❌ Invalid session times for session ${sessionId}`);
+      logger.error(`❌ Invalid session times for session ${sessionId}`);
       return res.status(500).json({
         success: false,
         error: 'Invalid session time configuration'
@@ -534,7 +537,7 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
     
     if (now < earliestCompletionTime) {
       const minutesUntilStart = getMinutesToEasternTime(session.start_time, session.date);
-      console.log(`❌ Cannot complete session ${sessionId}: ${minutesUntilStart} minutes until session starts`);
+      logger.log(`❌ Cannot complete session ${sessionId}: ${minutesUntilStart} minutes until session starts`);
       
       return res.status(400).json({
         success: false,
@@ -546,16 +549,16 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
     // Log completion timing for monitoring
     const minutesRemaining = Math.round((sessionEndTime - now) / (1000 * 60));
     if (isNaN(minutesRemaining)) {
-      console.log(`⚠️ Session ${sessionId} completed (time calculation unavailable)`);
+      logger.log(`⚠️ Session ${sessionId} completed (time calculation unavailable)`);
     } else if (minutesRemaining > 0) {
-      console.log(`⚠️ Session ${sessionId} completed ${minutesRemaining} minutes early (professor override)`);
+      logger.log(`⚠️ Session ${sessionId} completed ${minutesRemaining} minutes early (professor override)`);
     } else {
-      console.log(`✅ Session ${sessionId} completed on time or after end time`);
+      logger.log(`✅ Session ${sessionId} completed on time or after end time`);
     }
     
     // Check if session is in a valid state for completion
     if (session.status !== 'active' && session.status !== 'scheduled') {
-      console.log(`❌ Cannot complete session ${sessionId}: Invalid status '${session.status}'`);
+      logger.log(`❌ Cannot complete session ${sessionId}: Invalid status '${session.status}'`);
       
       return res.status(400).json({
         success: false,
@@ -563,7 +566,7 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
       });
     }
     
-    console.log(`✅ Session ${sessionId} validation passed. Completing session...`);
+    logger.log(`✅ Session ${sessionId} validation passed. Completing session...`);
     
     // Stop QR code rotation
     stopQRCodeRotation(sessionId);
@@ -605,7 +608,7 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
       
       if (insertError) throw insertError;
       
-      console.log(`✅ Created ${absentRecords.length} absent attendance records`);
+      logger.log(`✅ Created ${absentRecords.length} absent attendance records`);
     }
     
     // Update session
@@ -622,7 +625,7 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
     
     if (updateError) throw updateError;
     
-    console.log('✅ Session completed successfully:', sessionId);
+    logger.log('✅ Session completed successfully:', sessionId);
     
     // Emit WebSocket event for real-time updates
     if (global.io) {
@@ -633,7 +636,7 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
       global.io.emit('session_completed', {
         sessionId: sessionId
       });
-      console.log('📡 Emitted session completion events via WebSocket');
+      logger.log('📡 Emitted session completion events via WebSocket');
     }
     
     res.json({
@@ -641,7 +644,7 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
       session: updatedSession
     });
   } catch (error) {
-    console.error('❌ Error completing session:', error);
+    logger.error('❌ Error completing session:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -654,7 +657,7 @@ router.post('/api/sessions/:sessionId/pause', async (req, res) => {
   try {
     const { sessionId } = req.params;
     
-    console.log('⏸️ Pausing session:', sessionId);
+    logger.log('⏸️ Pausing session:', sessionId);
     
     // Check if session exists and is active
     const { data: session, error: fetchError } = await supabase
@@ -688,7 +691,7 @@ router.post('/api/sessions/:sessionId/pause', async (req, res) => {
     
     if (updateError) throw updateError;
     
-    console.log('✅ Session paused successfully:', sessionId);
+    logger.log('✅ Session paused successfully:', sessionId);
     
     res.json({
       success: true,
@@ -696,7 +699,7 @@ router.post('/api/sessions/:sessionId/pause', async (req, res) => {
       message: 'Session paused successfully'
     });
   } catch (error) {
-    console.error('❌ Error pausing session:', error);
+    logger.error('❌ Error pausing session:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -709,7 +712,7 @@ router.post('/api/sessions/:sessionId/resume', async (req, res) => {
   try {
     const { sessionId } = req.params;
     
-    console.log('▶️ Resuming session:', sessionId);
+    logger.log('▶️ Resuming session:', sessionId);
     
     // Check if session exists and is paused
     const { data: session, error: fetchError } = await supabase
@@ -747,7 +750,7 @@ router.post('/api/sessions/:sessionId/resume', async (req, res) => {
     // Start QR code rotation
     startQRCodeRotation(sessionId);
     
-    console.log('✅ Session resumed successfully:', sessionId);
+    logger.log('✅ Session resumed successfully:', sessionId);
     
     res.json({
       success: true,
@@ -755,7 +758,7 @@ router.post('/api/sessions/:sessionId/resume', async (req, res) => {
       message: 'Session resumed successfully'
     });
   } catch (error) {
-    console.error('❌ Error resuming session:', error);
+    logger.error('❌ Error resuming session:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -769,7 +772,7 @@ router.post('/api/sessions/:sessionId/cancel', async (req, res) => {
     const { sessionId } = req.params;
     const { notes } = req.body;
     
-    console.log('❌ Cancelling session:', sessionId);
+    logger.log('❌ Cancelling session:', sessionId);
     
     // Stop QR code rotation if active
     stopQRCodeRotation(sessionId);
@@ -789,14 +792,14 @@ router.post('/api/sessions/:sessionId/cancel', async (req, res) => {
     
     if (updateError) throw updateError;
     
-    console.log('✅ Session cancelled successfully:', sessionId);
+    logger.log('✅ Session cancelled successfully:', sessionId);
     
     res.json({
       success: true,
       session: updatedSession
     });
   } catch (error) {
-    console.error('❌ Error cancelling session:', error);
+    logger.error('❌ Error cancelling session:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -833,7 +836,7 @@ router.get('/api/sessions/:sessionId', async (req, res) => {
       .single();
     
     if (classError) {
-      console.error('❌ Error fetching class instance enrollment count:', classError);
+      logger.error('❌ Error fetching class instance enrollment count:', classError);
     }
     
     // Get current attendance count for this session (excused counts as present for analytics)
@@ -843,7 +846,7 @@ router.get('/api/sessions/:sessionId', async (req, res) => {
       .eq('session_id', sessionId);
     
     if (attendanceError) {
-      console.error('❌ Error fetching attendance count:', attendanceError);
+      logger.error('❌ Error fetching attendance count:', attendanceError);
     }
     
     // Count present, late, and excused as "attended" for analytics
@@ -863,7 +866,7 @@ router.get('/api/sessions/:sessionId', async (req, res) => {
       session: updatedSession
     });
   } catch (error) {
-    console.error('❌ Error fetching session details:', error);
+    logger.error('❌ Error fetching session details:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -896,7 +899,7 @@ router.get('/api/sessions/:sessionId/attendance', async (req, res) => {
       attendance
     });
   } catch (error) {
-    console.error('❌ Error fetching attendance records:', error);
+    logger.error('❌ Error fetching attendance records:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -909,7 +912,7 @@ router.get('/api/sessions/:sessionId/qr-code', async (req, res) => {
   try {
     const { sessionId } = req.params;
     
-    console.log('📱 Fetching QR code for session:', sessionId);
+    logger.log('📱 Fetching QR code for session:', sessionId);
     
     // Check if session exists and is active
     const { data: session, error: sessionError } = await supabase
@@ -937,7 +940,7 @@ router.get('/api/sessions/:sessionId/qr-code', async (req, res) => {
       time_remaining: Math.max(0, Math.floor((new Date(qrData.expires_at).getTime() - Date.now()) / 1000))
     });
   } catch (error) {
-    console.error('❌ Error fetching QR code:', error);
+    logger.error('❌ Error fetching QR code:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -973,7 +976,7 @@ router.get('/api/sessions/:sessionId/qr-code-legacy', async (req, res) => {
       session: session
     });
   } catch (error) {
-    console.error('❌ Error getting QR code:', error);
+    logger.error('❌ Error getting QR code:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -988,7 +991,7 @@ router.get('/api/sessions/:sessionId/qr-code-legacy', async (req, res) => {
 const activeRotations = new Map();
 
 const startQRCodeRotation = (sessionId) => {
-  console.log('🔄 Starting QR code rotation for session:', sessionId);
+  logger.log('🔄 Starting QR code rotation for session:', sessionId);
   
   const rotationInterval = setInterval(async () => {
     try {
@@ -1002,7 +1005,7 @@ const startQRCodeRotation = (sessionId) => {
         })
         .eq('id', sessionId);
       
-      console.log('🔄 QR code rotated for session:', sessionId);
+      logger.log('🔄 QR code rotated for session:', sessionId);
       
       // Emit real-time QR code update
       if (global.io) {
@@ -1013,10 +1016,10 @@ const startQRCodeRotation = (sessionId) => {
           time_remaining: Math.max(0, Math.floor((new Date(qrData.expires_at).getTime() - Date.now()) / 1000))
         });
         
-        console.log('📡 Real-time QR code update emitted to session room');
+        logger.log('📡 Real-time QR code update emitted to session room');
       }
     } catch (error) {
-      console.error('❌ Error rotating QR code:', error);
+      logger.error('❌ Error rotating QR code:', error);
     }
   }, 10000); // 10 seconds - rotate QR codes every 10 seconds for security
   
@@ -1024,7 +1027,7 @@ const startQRCodeRotation = (sessionId) => {
 };
 
 const stopQRCodeRotation = (sessionId) => {
-  console.log('⏹️ Stopping QR code rotation for session:', sessionId);
+  logger.log('⏹️ Stopping QR code rotation for session:', sessionId);
   
   const interval = activeRotations.get(sessionId);
   if (interval) {
@@ -1039,7 +1042,7 @@ const stopQRCodeRotation = (sessionId) => {
 
 const notifyStudentsSessionActivated = async (sessionId) => {
   try {
-    console.log('📢 Notifying students about session activation:', sessionId);
+    logger.log('📢 Notifying students about session activation:', sessionId);
     
     // Get session details with class information
     const { data: session, error: sessionError } = await supabase
@@ -1063,7 +1066,7 @@ const notifyStudentsSessionActivated = async (sessionId) => {
       .single();
     
     if (sessionError || !session) {
-      console.error('❌ Error fetching session details:', sessionError);
+      logger.error('❌ Error fetching session details:', sessionError);
       return;
     }
     
@@ -1077,12 +1080,12 @@ const notifyStudentsSessionActivated = async (sessionId) => {
       .eq('status', 'active');
     
     if (enrollmentError) {
-      console.error('❌ Error fetching enrollments:', enrollmentError);
+      logger.error('❌ Error fetching enrollments:', enrollmentError);
       return;
     }
     
     if (!enrollments || enrollments.length === 0) {
-      console.log('📢 No enrolled students found for this class');
+      logger.log('📢 No enrolled students found for this class');
       return;
     }
     
@@ -1115,13 +1118,13 @@ const notifyStudentsSessionActivated = async (sessionId) => {
         .insert(notifications);
       
       if (notificationError) {
-        console.error('❌ Error creating session notifications:', notificationError);
+        logger.error('❌ Error creating session notifications:', notificationError);
       } else {
-        console.log(`📢 Session notifications sent to ${notifications.length} students`);
+        logger.log(`📢 Session notifications sent to ${notifications.length} students`);
       }
     }
   } catch (error) {
-    console.error('❌ Error notifying students:', error);
+    logger.error('❌ Error notifying students:', error);
   }
 };
 
@@ -1135,7 +1138,7 @@ router.patch('/api/sessions/:sessionId/attendance/:studentNumber', async (req, r
     const { sessionId, studentNumber } = req.params;
     const { status } = req.body;
     
-    console.log('📝 Updating attendance status:', { sessionId, studentNumber, status });
+    logger.log('📝 Updating attendance status:', { sessionId, studentNumber, status });
     
     // Validate status
     const validStatuses = ['present', 'late', 'absent', 'excused'];
@@ -1204,7 +1207,7 @@ router.patch('/api/sessions/:sessionId/attendance/:studentNumber', async (req, r
       
       if (updateError) throw updateError;
       
-      console.log('✅ Updated existing attendance record');
+      logger.log('✅ Updated existing attendance record');
     } else {
       // Create new record
       const { data: newRecord, error: createError } = await supabase
@@ -1222,7 +1225,7 @@ router.patch('/api/sessions/:sessionId/attendance/:studentNumber', async (req, r
       
       if (createError) throw createError;
       
-      console.log('✅ Created new attendance record');
+      logger.log('✅ Created new attendance record');
     }
     
     // Update session attendance_count to mark it as professor-initiated
@@ -1241,9 +1244,9 @@ router.patch('/api/sessions/:sessionId/attendance/:studentNumber', async (req, r
         .eq('id', sessionId);
       
       if (updateSessionError) {
-        console.error('❌ Error updating session attendance count:', updateSessionError);
+        logger.error('❌ Error updating session attendance count:', updateSessionError);
       } else {
-        console.log('✅ Updated session attendance count:', attendanceRecords.length);
+        logger.log('✅ Updated session attendance count:', attendanceRecords.length);
       }
     }
     
@@ -1260,11 +1263,11 @@ router.patch('/api/sessions/:sessionId/attendance/:studentNumber', async (req, r
         status: status,
         timestamp: new Date().toISOString()
       });
-      console.log('📡 Emitted attendance status update via WebSocket');
+      logger.log('📡 Emitted attendance status update via WebSocket');
     }
     
   } catch (error) {
-    console.error('❌ Error updating attendance status:', error);
+    logger.error('❌ Error updating attendance status:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1280,7 +1283,7 @@ router.patch('/api/sessions/:sessionId/attendance/:studentNumber', async (req, r
 // This creates "present" records for all enrolled students
 router.post('/api/sessions/auto-complete', async (req, res) => {
   try {
-    console.log('🔄 Starting automatic session completion process...');
+    logger.log('🔄 Starting automatic session completion process...');
     
     // Find sessions that are past their end time but not completed
     const now = new Date();
@@ -1298,7 +1301,7 @@ router.post('/api/sessions/auto-complete', async (req, res) => {
     
     if (sessionsError) throw sessionsError;
     
-    console.log(`📅 Found ${incompleteSessions?.length || 0} incomplete sessions`);
+    logger.log(`📅 Found ${incompleteSessions?.length || 0} incomplete sessions`);
     
     let completedCount = 0;
     
@@ -1307,7 +1310,7 @@ router.post('/api/sessions/auto-complete', async (req, res) => {
       
       // Only auto-complete if session ended more than 1 hour ago
       if (now - sessionEndTime > 60 * 60 * 1000) {
-        console.log(`⏰ Auto-completing session ${session.id} (ended ${Math.round((now - sessionEndTime) / (1000 * 60))} minutes ago)`);
+        logger.log(`⏰ Auto-completing session ${session.id} (ended ${Math.round((now - sessionEndTime) / (1000 * 60))} minutes ago)`);
         
         // Get all enrolled students for this class
         const { data: enrolledStudents, error: enrollmentError } = await supabase
@@ -1347,7 +1350,7 @@ router.post('/api/sessions/auto-complete', async (req, res) => {
           
           if (insertError) throw insertError;
           
-          console.log(`✅ Created ${presentRecords.length} present attendance records for auto-completed session`);
+          logger.log(`✅ Created ${presentRecords.length} present attendance records for auto-completed session`);
         }
         
         // Update session status
@@ -1364,7 +1367,7 @@ router.post('/api/sessions/auto-complete', async (req, res) => {
         if (updateError) throw updateError;
         
         completedCount++;
-        console.log(`✅ Auto-completed session ${session.id}`);
+        logger.log(`✅ Auto-completed session ${session.id}`);
       }
     }
     
@@ -1375,7 +1378,7 @@ router.post('/api/sessions/auto-complete', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error in auto-completion process:', error);
+    logger.error('❌ Error in auto-completion process:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1392,7 +1395,7 @@ router.post('/api/classes/:classId/backfill-attendance', async (req, res) => {
   try {
     const { classId } = req.params;
     
-    console.log('🔄 Backfilling attendance records for class:', classId);
+    logger.log('🔄 Backfilling attendance records for class:', classId);
     
     // Get all completed sessions for this class
     const { data: sessions, error: sessionsError } = await supabase
@@ -1446,11 +1449,11 @@ router.post('/api/classes/:classId/backfill-attendance', async (req, res) => {
         if (insertError) throw insertError;
         
         totalRecordsCreated += absentRecords.length;
-        console.log(`✅ Created ${absentRecords.length} absent records for session ${session.session_number}`);
+        logger.log(`✅ Created ${absentRecords.length} absent records for session ${session.session_number}`);
       }
     }
     
-    console.log(`✅ Backfill complete: ${totalRecordsCreated} attendance records created`);
+    logger.log(`✅ Backfill complete: ${totalRecordsCreated} attendance records created`);
     
     res.json({
       success: true,
@@ -1460,7 +1463,7 @@ router.post('/api/classes/:classId/backfill-attendance', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error backfilling attendance records:', error);
+    logger.error('❌ Error backfilling attendance records:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1477,7 +1480,7 @@ router.get('/api/classes/:classId/analytics', async (req, res) => {
   try {
     const { classId } = req.params;
     
-    console.log('📊 Fetching analytics for class:', classId);
+    logger.log('📊 Fetching analytics for class:', classId);
     
     // Get all completed sessions for this class - only professor-initiated sessions
     const { data: sessions, error: sessionsError } = await supabase
@@ -1627,7 +1630,7 @@ router.get('/api/classes/:classId/analytics', async (req, res) => {
       generated_at: new Date().toISOString()
     };
     
-    console.log('✅ Analytics data generated successfully');
+    logger.log('✅ Analytics data generated successfully');
     
     res.json({
       success: true,
@@ -1635,7 +1638,7 @@ router.get('/api/classes/:classId/analytics', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error fetching analytics:', error);
+    logger.error('❌ Error fetching analytics:', error);
     res.status(500).json({
       success: false,
       error: error.message

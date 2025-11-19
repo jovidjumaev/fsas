@@ -11,6 +11,8 @@ import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { io } from 'socket.io-client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { createLogger } from '../../lib/logger';
+const logger = createLogger('ai-assistant');
 
 interface Material {
   id: string;
@@ -137,7 +139,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     
     // Listen for attendance status updates
     socket.on('attendance_status_updated', (data) => {
-      console.log('📊 AI Assistant received attendance status update:', data);
+      logger.log('📊 AI Assistant received attendance status update:', data);
       
       // Show a toast notification about the update
       toast.success('Attendance data updated! Ask the AI for fresh information.');
@@ -177,8 +179,8 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   // Add global navigation tracking
   useEffect(() => {
     const handleNavigation = () => {
-      console.log('🚨 NAVIGATION DETECTED! Current URL:', window.location.href);
-      console.log('🚨 Navigation stack trace:', new Error().stack);
+      logger.log('🚨 NAVIGATION DETECTED! Current URL:', window.location.href);
+      logger.log('🚨 Navigation stack trace:', new Error().stack);
     };
 
     // Listen for navigation events
@@ -190,14 +192,14 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     const originalReplaceState = history.replaceState;
     
     history.pushState = function(...args) {
-      console.log('🚨 pushState called:', args);
-      console.log('🚨 pushState stack trace:', new Error().stack);
+      logger.log('🚨 pushState called:', args);
+      logger.log('🚨 pushState stack trace:', new Error().stack);
       originalPushState.apply(history, args);
     };
     
     history.replaceState = function(...args) {
-      console.log('🚨 replaceState called:', args);
-      console.log('🚨 replaceState stack trace:', new Error().stack);
+      logger.log('🚨 replaceState called:', args);
+      logger.log('🚨 replaceState stack trace:', new Error().stack);
       originalReplaceState.apply(history, args);
     };
 
@@ -207,10 +209,10 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     
     const checkUrlChange = () => {
       if (window.location.href !== lastUrl) {
-        console.log('🚨 URL CHANGED!');
-        console.log('🚨 From:', lastUrl);
-        console.log('🚨 To:', window.location.href);
-        console.log('🚨 URL change stack trace:', new Error().stack);
+        logger.log('🚨 URL CHANGED!');
+        logger.log('🚨 From:', lastUrl);
+        logger.log('🚨 To:', window.location.href);
+        logger.log('🚨 URL change stack trace:', new Error().stack);
         lastUrl = window.location.href;
       }
     };
@@ -229,25 +231,25 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
 
   const loadMaterials = async () => {
     try {
-      console.log('📋 Loading materials, URL before fetch:', window.location.href);
+      logger.log('📋 Loading materials, URL before fetch:', window.location.href);
       const response = await fetch(
         `/api/classes/${classId}/materials?professorId=${professorId}`
       );
-      console.log('📋 Materials response received, URL:', window.location.href);
+      logger.log('📋 Materials response received, URL:', window.location.href);
       const data = await response.json();
-      console.log('📋 Materials data parsed, URL:', window.location.href);
+      logger.log('📋 Materials data parsed, URL:', window.location.href);
       
       if (data.success) {
-        console.log('📋 Setting materials, URL:', window.location.href);
+        logger.log('📋 Setting materials, URL:', window.location.href);
         setMaterials(data.materials);
-        console.log('📋 Materials set successfully, URL:', window.location.href);
+        logger.log('📋 Materials set successfully, URL:', window.location.href);
       } else {
-        console.log('📋 Failed to load materials, URL:', window.location.href);
+        logger.log('📋 Failed to load materials, URL:', window.location.href);
         toast.error('Failed to load materials');
       }
     } catch (error: unknown) {
-      console.error('❌ Error loading materials:', error);
-      console.log('❌ URL after materials error:', window.location.href);
+      logger.error('❌ Error loading materials:', error);
+      logger.log('❌ URL after materials error:', window.location.href);
       toast.error('Error loading materials');
     }
   };
@@ -288,7 +290,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         throw new Error(data.error || 'Failed to load quiz insights');
       }
     } catch (error: unknown) {
-      console.error('❌ Error loading quiz insights:', error);
+      logger.error('❌ Error loading quiz insights:', error);
       const message =
         error instanceof Error ? error.message : 'Failed to load quiz insights';
       setQuizError(message);
@@ -323,7 +325,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         toast.error('Failed to create chat session');
       }
     } catch (error: unknown) {
-      console.error('Error creating chat session:', error);
+      logger.error('Error creating chat session:', error);
       toast.error('Error creating chat session');
     }
   };
@@ -339,17 +341,17 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         setMessages(data.messages);
       }
     } catch (error: unknown) {
-      console.error('Error loading chat history:', error);
+      logger.error('Error loading chat history:', error);
     }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('📁 File upload started');
-    console.log('📁 Current URL before upload:', window.location.href);
+    logger.log('📁 File upload started');
+    logger.log('📁 Current URL before upload:', window.location.href);
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log('📁 File selected:', file.name, file.type, file.size);
+    logger.log('📁 File selected:', file.name, file.type, file.size);
 
     // Validate file type
     const allowedTypes = [
@@ -371,15 +373,15 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     }
 
     setIsUploading(true);
-    console.log('📁 Starting upload process');
+    logger.log('📁 Starting upload process');
     
     try {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('professorId', professorId);
 
-      console.log('📡 Uploading to:', `/api/classes/${classId}/materials/upload`);
-      console.log('📡 File details:', file.name, file.type, file.size);
+      logger.log('📡 Uploading to:', `/api/classes/${classId}/materials/upload`);
+      logger.log('📡 File details:', file.name, file.type, file.size);
 
       const response = await fetch(
         `/api/classes/${classId}/materials/upload`,
@@ -389,30 +391,30 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         }
       );
 
-      console.log('📡 Upload response status:', response.status);
-      console.log('📡 URL immediately after response:', window.location.href);
+      logger.log('📡 Upload response status:', response.status);
+      logger.log('📡 URL immediately after response:', window.location.href);
       
       const data = await response.json();
-      console.log('📡 Upload response data:', data);
-      console.log('📡 URL after parsing response:', window.location.href);
+      logger.log('📡 Upload response data:', data);
+      logger.log('📡 URL after parsing response:', window.location.href);
       
       if (data.success) {
-        console.log('✅ Upload successful, URL after upload:', window.location.href);
-        console.log('✅ About to call loadMaterials()');
+        logger.log('✅ Upload successful, URL after upload:', window.location.href);
+        logger.log('✅ About to call loadMaterials()');
         toast.success('File uploaded successfully');
-        console.log('✅ About to reload materials, URL:', window.location.href);
+        logger.log('✅ About to reload materials, URL:', window.location.href);
         loadMaterials(); // Reload materials
-        console.log('✅ Materials reloaded, final URL:', window.location.href);
+        logger.log('✅ Materials reloaded, final URL:', window.location.href);
       } else {
-        console.log('❌ Upload failed, URL after failed upload:', window.location.href);
+        logger.log('❌ Upload failed, URL after failed upload:', window.location.href);
         toast.error(data.error || 'Failed to upload file');
       }
     } catch (error: unknown) {
-      console.error('❌ Error uploading file:', error);
-      console.log('❌ URL after upload error:', window.location.href);
+      logger.error('❌ Error uploading file:', error);
+      logger.log('❌ URL after upload error:', window.location.href);
       toast.error('Error uploading file');
     } finally {
-      console.log('🏁 Upload process finished, final URL:', window.location.href);
+      logger.log('🏁 Upload process finished, final URL:', window.location.href);
       setIsUploading(false);
       // Reset file input
       event.target.value = '';
@@ -420,14 +422,14 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   };
 
   const handleSendMessage = async () => {
-    console.log('💬 Send message button clicked');
+    logger.log('💬 Send message button clicked');
     if (!inputMessage.trim() || !sessionId) {
-      console.log('❌ Cannot send message - no input or session');
+      logger.log('❌ Cannot send message - no input or session');
       return;
     }
 
     const userMessage = inputMessage.trim();
-    console.log('💬 Sending message:', userMessage);
+    logger.log('💬 Sending message:', userMessage);
     setInputMessage('');
     setIsLoading(true);
 
@@ -441,7 +443,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
     setMessages(prev => [...prev, newUserMessage]);
 
     try {
-      console.log('📡 Sending to:', `/api/classes/${classId}/chat/message`);
+      logger.log('📡 Sending to:', `/api/classes/${classId}/chat/message`);
       const response = await fetch(
         `/api/classes/${classId}/chat/message`,
         {
@@ -457,9 +459,9 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         }
       );
 
-      console.log('📡 Chat response status:', response.status);
+      logger.log('📡 Chat response status:', response.status);
       const data = await response.json();
-      console.log('📡 Chat response data:', data);
+      logger.log('📡 Chat response data:', data);
       
       if (data.success) {
         // Add AI response to messages
@@ -482,7 +484,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         setMessages(prev => prev.slice(0, -1));
       }
     } catch (error: unknown) {
-      console.error('Error sending message:', error);
+      logger.error('Error sending message:', error);
       toast.error('Error sending message');
       // Remove the user message if sending failed
       setMessages(prev => prev.slice(0, -1));
@@ -492,28 +494,28 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
-    console.log('🔑 Key pressed:', event.key, 'Code:', event.code);
-    console.log('🔑 Shift key:', event.shiftKey, 'Ctrl key:', event.ctrlKey, 'Alt key:', event.altKey);
+    logger.log('🔑 Key pressed:', event.key, 'Code:', event.code);
+    logger.log('🔑 Shift key:', event.shiftKey, 'Ctrl key:', event.ctrlKey, 'Alt key:', event.altKey);
     
     if (event.key === 'Enter' && !event.shiftKey) {
-      console.log('✅ Enter key detected, sending message');
+      logger.log('✅ Enter key detected, sending message');
       event.preventDefault();
       event.stopPropagation();
       handleSendMessage();
     } else if (event.key === 'Enter' && event.shiftKey) {
-      console.log('📝 Shift+Enter detected, allowing new line');
+      logger.log('📝 Shift+Enter detected, allowing new line');
       // Allow Shift+Enter for new lines
     } else {
-      console.log('🔑 Other key pressed:', event.key);
+      logger.log('🔑 Other key pressed:', event.key);
     }
   };
 
   const handleKeyUp = (event: React.KeyboardEvent) => {
-    console.log('🔑 Key released:', event.key, 'Code:', event.code);
+    logger.log('🔑 Key released:', event.key, 'Code:', event.code);
     
     // Fallback for Enter key if onKeyDown didn't work
     if (event.key === 'Enter' && !event.shiftKey) {
-      console.log('✅ Enter key fallback detected, sending message');
+      logger.log('✅ Enter key fallback detected, sending message');
       event.preventDefault();
       event.stopPropagation();
       handleSendMessage();
@@ -521,8 +523,8 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   };
 
   const handleDeleteMaterial = async (materialId: string) => {
-    console.log('🗑️ Delete button clicked for material:', materialId);
-    console.log('🗑️ Current URL before delete:', window.location.href);
+    logger.log('🗑️ Delete button clicked for material:', materialId);
+    logger.log('🗑️ Current URL before delete:', window.location.href);
     setMaterialToDelete(materialId);
     setShowDeleteConfirm(true);
   };
@@ -530,13 +532,13 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
   const confirmDelete = async () => {
     if (!materialToDelete) return;
 
-    console.log('🗑️ Attempting to delete material:', materialToDelete);
-    console.log('🗑️ Current URL before delete API call:', window.location.href);
+    logger.log('🗑️ Attempting to delete material:', materialToDelete);
+    logger.log('🗑️ Current URL before delete API call:', window.location.href);
 
     try {
-      console.log('📡 Delete URL:', `/api/classes/${classId}/materials/${materialToDelete}`);
-      console.log('📡 Environment:', process.env.NODE_ENV);
-      console.log('📡 API URL:', process.env.NEXT_PUBLIC_API_URL);
+      logger.log('📡 Delete URL:', `/api/classes/${classId}/materials/${materialToDelete}`);
+      logger.log('📡 Environment:', process.env.NODE_ENV);
+      logger.log('📡 API URL:', process.env.NEXT_PUBLIC_API_URL);
 
       // Add timeout to prevent hanging requests
       const controller = new AbortController();
@@ -552,34 +554,34 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
       });
 
       clearTimeout(timeoutId);
-      console.log('📡 Delete response status:', response.status);
+      logger.log('📡 Delete response status:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Delete failed:', response.status, errorText);
+        logger.error(`❌ Delete failed: ${response.status} ${errorText}`);
         toast.error(`Delete failed: ${response.status} ${response.statusText}`);
         return;
       }
 
       const data = await response.json();
-      console.log('📡 Delete response data:', data);
+      logger.log('📡 Delete response data:', data);
 
       if (data.success) {
-        console.log('✅ Delete successful, URL after delete:', window.location.href);
+        logger.log('✅ Delete successful, URL after delete:', window.location.href);
         toast.success('File deleted successfully');
         
         // Add small delay before reloading to prevent auth conflicts
         setTimeout(() => {
-          console.log('🔄 Reloading materials after delay...');
+          logger.log('🔄 Reloading materials after delay...');
           loadMaterials();
         }, 500);
       } else {
-        console.log('❌ Delete failed, URL after failed delete:', window.location.href);
+        logger.log('❌ Delete failed, URL after failed delete:', window.location.href);
         toast.error(data.error || 'Failed to delete file');
       }
     } catch (error: unknown) {
-      console.error('❌ Error deleting material:', error);
-      console.log('❌ URL after error:', window.location.href);
+      logger.error('❌ Error deleting material:', error);
+      logger.log('❌ URL after error:', window.location.href);
       
       if (error instanceof DOMException && error.name === 'AbortError') {
         toast.error('Delete request timed out. Please try again.');
@@ -588,7 +590,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
         toast.error('Failed to delete file: ' + message);
       }
     } finally {
-      console.log('🏁 Delete process finished, final URL:', window.location.href);
+      logger.log('🏁 Delete process finished, final URL:', window.location.href);
       setShowDeleteConfirm(false);
       setMaterialToDelete(null);
     }

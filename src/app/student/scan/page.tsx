@@ -12,6 +12,8 @@ import ProfileDropdown from '@/components/profile/profile-dropdown';
 import ProfileEditModal from '@/components/profile/profile-edit-modal';
 import PasswordChangeModal from '@/components/profile/password-change-modal';
 import { supabase } from '@/lib/supabase';
+import { createLogger } from '../../../lib/logger';
+const logger = createLogger('page');
 import { 
   GraduationCap,
   QrCode, 
@@ -112,7 +114,7 @@ function StudentScanContent() {
       
       setUserProfile(data);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      logger.error('Error fetching user profile:', error);
     }
   };
 
@@ -120,8 +122,8 @@ function StudentScanContent() {
     if (!user) return;
     
     try {
-      console.log('Attempting to save profile data:', profileData);
-      console.log('User ID:', user.id);
+      logger.log('Attempting to save profile data:', profileData);
+      logger.log('User ID:', user.id);
       
       // Separate data for users table (only basic fields that exist)
       const usersTableData = {
@@ -146,7 +148,7 @@ function StudentScanContent() {
         .eq('id', user.id);
       
       if (usersError) {
-        console.error('Error updating users table:', usersError);
+        logger.error('Error updating users table:', usersError);
         throw new Error(`Failed to save profile: ${usersError.message}`);
       }
       
@@ -158,14 +160,14 @@ function StudentScanContent() {
       // });
       // 
       // if (authError) {
-      //   console.warn('Warning: Could not update auth metadata:', authError.message);
+      //   logger.warn('Warning: Could not update auth metadata:', authError.message);
       //   // Don't throw error here, as the main update succeeded
       // }
       
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, ...profileData }));
     } catch (error) {
-      console.error('Error saving profile:', error);
+      logger.error('Error saving profile:', error);
       throw error;
     }
   };
@@ -178,7 +180,7 @@ function StudentScanContent() {
       
       if (error) throw error;
     } catch (error) {
-      console.error('Error changing password:', error);
+      logger.error('Error changing password:', error);
       throw error;
     }
   };
@@ -213,7 +215,7 @@ function StudentScanContent() {
       
       setUserProfile((prev: any) => ({ ...prev, avatar_url: publicUrl }));
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      logger.error('Error uploading avatar:', error);
       throw error;
     }
   };
@@ -231,7 +233,7 @@ function StudentScanContent() {
             .remove([`avatars/${fileName}`]);
           
           if (deleteError) {
-            console.warn('Error deleting avatar from storage:', deleteError);
+            logger.warn('Error deleting avatar from storage:', deleteError);
           }
         }
       }
@@ -246,7 +248,7 @@ function StudentScanContent() {
       
       setUserProfile((prev: any) => ({ ...prev, avatar_url: null }));
     } catch (error) {
-      console.error('Error deleting avatar:', error);
+      logger.error('Error deleting avatar:', error);
       throw error;
     }
   };
@@ -263,10 +265,10 @@ function StudentScanContent() {
         // User is authenticated, process the QR code
         try {
           const qrData = JSON.parse(decodeURIComponent(qrDataParam));
-          console.log('QR code data from URL:', qrData);
+          logger.log('QR code data from URL:', qrData);
           processQRCode(JSON.stringify(qrData));
         } catch (error) {
-          console.error('Error parsing QR code data from URL:', error);
+          logger.error('Error parsing QR code data from URL:', error);
           setScanResult({
             success: false,
             message: 'Invalid QR code data'
@@ -294,7 +296,7 @@ function StudentScanContent() {
         .single();
 
       if (studentError || !studentData) {
-        console.error('Student profile not found');
+        logger.error('Student profile not found');
         setStatsLoading(false);
         return;
       }
@@ -306,13 +308,13 @@ function StudentScanContent() {
       if (result.success) {
         setTodayStats(result.stats);
       } else {
-        console.error('Error fetching today\'s stats:', result.error);
+        logger.error('Error fetching today\'s stats:', result.error);
         // Keep default values (0s)
       }
       
       setStatsLoading(false);
     } catch (error) {
-      console.error('Error fetching today\'s stats:', error);
+      logger.error('Error fetching today\'s stats:', error);
       setStatsLoading(false);
     }
   };
@@ -329,7 +331,7 @@ function StudentScanContent() {
         .single();
 
       if (studentError || !studentData) {
-        console.error('Student profile not found');
+        logger.error('Student profile not found');
         return;
       }
 
@@ -357,7 +359,7 @@ function StudentScanContent() {
         .limit(20);
 
       if (attendanceError) {
-        console.error('Error fetching attendance history:', attendanceError);
+        logger.error('Error fetching attendance history:', attendanceError);
         return;
       }
 
@@ -384,7 +386,7 @@ function StudentScanContent() {
 
       setScanHistory(history);
     } catch (error) {
-      console.error('Error fetching scan history:', error);
+      logger.error('Error fetching scan history:', error);
     }
   };
 
@@ -406,7 +408,7 @@ function StudentScanContent() {
         streamRef.current = stream;
       }
     } catch (error) {
-      console.error('Error accessing camera:', error);
+      logger.error('Error accessing camera:', error);
       setScanResult({
         success: false,
         message: 'Unable to access camera. Please check permissions.'
@@ -484,7 +486,7 @@ function StudentScanContent() {
       
       stopScanning();
     } catch (error) {
-      console.error('Error processing QR code:', error);
+      logger.error('Error processing QR code:', error);
       setScanResult({
         success: false,
         message: error instanceof Error ? error.message : 'Failed to process QR code'

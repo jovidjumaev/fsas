@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { createLogger } from './logger';
+const logger = createLogger('name-change-service');
 
 export interface NameChangeInfo {
   canChange: boolean;
@@ -66,7 +68,7 @@ export class NameChangeService {
         nextResetDate
       };
     } catch (error) {
-      console.error('Error in getNameChangeInfo:', error);
+      logger.error('Error in getNameChangeInfo:', error);
       // Return fallback values if there's any error
       const now = new Date();
       const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -140,9 +142,9 @@ export class NameChangeService {
         // Save back to localStorage
         localStorage.setItem(storageKey, JSON.stringify(data));
         
-        console.log('Name change recorded in localStorage:', data);
+        logger.log('Name change recorded in localStorage:', data);
       } catch (error) {
-        console.error('Error recording name change in localStorage:', error);
+        logger.error('Error recording name change in localStorage:', error);
         // Continue anyway - this is not critical
       }
 
@@ -152,7 +154,7 @@ export class NameChangeService {
         message: 'Name updated successfully!'
       };
     } catch (error) {
-      console.error('Error in changeName:', error);
+      logger.error('Error in changeName:', error);
       return {
         success: false,
         message: 'An error occurred while updating your name. Please try again.'
@@ -172,13 +174,13 @@ export class NameChangeService {
         .order('changed_at', { ascending: false });
 
       if (error) {
-        console.error('Error getting name change history:', error);
+        logger.error('Error getting name change history:', error);
         throw error;
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error in getNameChangeHistory:', error);
+      logger.error('Error in getNameChangeHistory:', error);
       throw error;
     }
   }

@@ -17,6 +17,8 @@ import ProfileEditModal from '@/components/profile/profile-edit-modal';
 import PasswordChangeModal from '@/components/profile/password-change-modal';
 import { supabase } from '@/lib/supabase';
 import { io } from 'socket.io-client';
+import { createLogger } from '../../../lib/logger';
+const logger = createLogger('page');
 
 interface ProfessorStats {
   totalClasses: number;
@@ -113,7 +115,7 @@ function ProfessorDashboardContent() {
       
       // Listen for attendance updates
       socket.on('dashboard-attendance-update', (data) => {
-        console.log('📊 Received attendance update:', data);
+        logger.log('📊 Received attendance update:', data);
         
         // Update the classes state with new attendance data
         setMyClasses((prevClasses: ClassData[]) => 
@@ -183,8 +185,8 @@ function ProfessorDashboardContent() {
     if (!user) return;
     
     try {
-      console.log('🔍 Fetching user profile for user ID:', user.id);
-      console.log('🔍 User metadata:', user.user_metadata);
+      logger.log('🔍 Fetching user profile for user ID:', user.id);
+      logger.log('🔍 User metadata:', user.user_metadata);
       
       const { data, error } = await supabase
         .from('users' as any)
@@ -193,8 +195,8 @@ function ProfessorDashboardContent() {
         .single();
       
       if (error) {
-        console.error('Error fetching user profile:', error);
-        console.log('🔍 Falling back to user metadata');
+        logger.error('Error fetching user profile:', error);
+        logger.log('🔍 Falling back to user metadata');
         
         // Create a basic profile from user metadata
         const fallbackProfile = {
@@ -207,7 +209,7 @@ function ProfessorDashboardContent() {
           title: user.user_metadata?.title || ''
         };
         
-        console.log('🔍 Using fallback profile:', fallbackProfile);
+        logger.log('🔍 Using fallback profile:', fallbackProfile);
         setUserProfile(fallbackProfile);
         return;
       }
@@ -220,10 +222,10 @@ function ProfessorDashboardContent() {
         title: user.user_metadata?.title || ''
       };
       
-      console.log('✅ User profile fetched:', completeProfile);
+      logger.log('✅ User profile fetched:', completeProfile);
       setUserProfile(completeProfile);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      logger.error('Error fetching user profile:', error);
     }
   };
 
@@ -231,14 +233,14 @@ function ProfessorDashboardContent() {
     if (!user) return;
     
     try {
-      console.log('Attempting to save profile data:', profileData);
-      console.log('User ID:', user.id);
+      logger.log('Attempting to save profile data:', profileData);
+      logger.log('User ID:', user.id);
       
       // Check if names changed and handle name change tracking
       const namesChanged = profileData.first_name !== userProfile?.first_name || profileData.last_name !== userProfile?.last_name;
       
       if (namesChanged) {
-        console.log('Names changed, checking name change limits...');
+        logger.log('Names changed, checking name change limits...');
         
         // Import and use the name change service
         const { NameChangeService } = await import('@/lib/name-change-service');
@@ -264,7 +266,7 @@ function ProfessorDashboardContent() {
           throw new Error(nameChangeResult.message);
         }
         
-        console.log('Name change recorded successfully:', nameChangeResult);
+        logger.log('Name change recorded successfully:', nameChangeResult);
       }
       
       // Separate data for users table (only basic fields that exist)
@@ -290,7 +292,7 @@ function ProfessorDashboardContent() {
         .eq('id', user.id);
       
       if (usersError) {
-        console.error('Error updating users table:', usersError);
+        logger.error('Error updating users table:', usersError);
         throw new Error(`Failed to save profile: ${usersError.message}`);
       }
       
@@ -303,7 +305,7 @@ function ProfessorDashboardContent() {
       //   });
       //   
       //   if (authError) {
-      //     console.warn('Warning: Could not update auth metadata:', authError.message);
+      //     logger.warn('Warning: Could not update auth metadata:', authError.message);
       //     // Don't throw error here, as the main update succeeded
       //   }
       // }
@@ -311,7 +313,7 @@ function ProfessorDashboardContent() {
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, ...profileData }));
     } catch (error) {
-      console.error('Error saving profile:', error);
+      logger.error('Error saving profile:', error);
       throw error;
     }
   };
@@ -355,19 +357,19 @@ function ProfessorDashboardContent() {
         throw new Error(result.error || 'Password change failed');
       }
     } catch (error) {
-      console.error('Error changing password:', error);
+      logger.error('Error changing password:', error);
       throw error;
     }
   };
 
   const handleAvatarUpload = async (file: File) => {
     if (!user) {
-      console.error('No user found for avatar upload');
+      logger.error('No user found for avatar upload');
       throw new Error('User not authenticated');
     }
     
     try {
-      console.log('Starting avatar upload for user:', user.id);
+      logger.log('Starting avatar upload for user:', user.id);
       
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -386,7 +388,7 @@ function ProfessorDashboardContent() {
       const fileName = `${user.id}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
       
-      console.log('Uploading file to path:', filePath);
+      logger.log('Uploading file to path:', filePath);
       
       // Upload file to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -397,18 +399,18 @@ function ProfessorDashboardContent() {
         });
       
       if (uploadError) {
-        console.error('Storage upload error:', uploadError);
+        logger.error('Storage upload error:', uploadError);
         throw new Error(`Failed to upload file: ${uploadError.message}`);
       }
       
-      console.log('File uploaded successfully:', uploadData);
+      logger.log('File uploaded successfully:', uploadData);
       
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
       
-      console.log('Public URL generated:', publicUrl);
+      logger.log('Public URL generated:', publicUrl);
       
       // Update user profile with avatar URL
       const { data: updateData, error: updateError } = await supabase
@@ -421,30 +423,30 @@ function ProfessorDashboardContent() {
         .select();
       
       if (updateError) {
-        console.error('Database update error:', updateError);
+        logger.error('Database update error:', updateError);
         throw new Error(`Failed to update profile: ${updateError.message}`);
       }
       
-      console.log('Profile updated successfully:', updateData);
+      logger.log('Profile updated successfully:', updateData);
       
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, avatar_url: publicUrl }));
       
-      console.log('Avatar upload completed successfully');
+      logger.log('Avatar upload completed successfully');
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      logger.error('Error uploading avatar:', error);
       throw error;
     }
   };
 
   const handleAvatarDelete = async () => {
     if (!user) {
-      console.error('No user found for avatar deletion');
+      logger.error('No user found for avatar deletion');
       throw new Error('User not authenticated');
     }
     
     try {
-      console.log('Starting avatar deletion for user:', user.id);
+      logger.log('Starting avatar deletion for user:', user.id);
       
       // Get current avatar URL to extract file path
       const currentAvatarUrl = userProfile?.avatar_url;
@@ -457,7 +459,7 @@ function ProfessorDashboardContent() {
       const fileName = urlParts[urlParts.length - 1];
       const filePath = `avatars/${fileName}`;
       
-      console.log('Deleting file from path:', filePath);
+      logger.log('Deleting file from path:', filePath);
       
       // Delete file from Supabase Storage
       const { error: deleteError } = await supabase.storage
@@ -465,11 +467,11 @@ function ProfessorDashboardContent() {
         .remove([filePath]);
       
       if (deleteError) {
-        console.error('Storage deletion error:', deleteError);
+        logger.error('Storage deletion error:', deleteError);
         throw new Error(`Failed to delete file: ${deleteError.message}`);
       }
       
-      console.log('File deleted successfully from storage');
+      logger.log('File deleted successfully from storage');
       
       // Update user profile to remove avatar URL
       const { data: updateData, error: updateError } = await supabase
@@ -482,18 +484,18 @@ function ProfessorDashboardContent() {
         .select();
       
       if (updateError) {
-        console.error('Database update error:', updateError);
+        logger.error('Database update error:', updateError);
         throw new Error(`Failed to update profile: ${updateError.message}`);
       }
       
-      console.log('Profile updated successfully:', updateData);
+      logger.log('Profile updated successfully:', updateData);
       
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, avatar_url: null }));
       
-      console.log('Avatar deletion completed successfully');
+      logger.log('Avatar deletion completed successfully');
     } catch (error) {
-      console.error('Error deleting avatar:', error);
+      logger.error('Error deleting avatar:', error);
       throw error;
     }
   };
@@ -513,7 +515,7 @@ function ProfessorDashboardContent() {
       // Navigate to active session page
       window.location.href = `/professor/sessions/active/${sessionId}`;
     } catch (error) {
-      console.error('Error starting session:', error);
+      logger.error('Error starting session:', error);
       alert('Failed to start session. Please try again.');
     }
   };
@@ -525,32 +527,32 @@ function ProfessorDashboardContent() {
       await fetchUserProfile();
       
       if (!user?.id) {
-        console.error('No user ID available');
+        logger.error('No user ID available');
         return;
       }
 
-      console.log('🔍 Fetching dashboard data for user:', user.id);
-      console.log('🔍 API URL:', `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/dashboard`);
+      logger.log('🔍 Fetching dashboard data for user:', user.id);
+      logger.log('🔍 API URL:', `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/dashboard`);
       
       // Fetch real dashboard data from API
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/dashboard`);
       
-      console.log('🔍 Response status:', response.status);
-      console.log('🔍 Response ok:', response.ok);
+      logger.log('🔍 Response status:', response.status);
+      logger.log('🔍 Response ok:', response.ok);
       
       const result = await response.json();
       
-      console.log('🔍 API Response:', result);
-      console.log('🔍 Response success:', result.success);
-      console.log('🔍 Response data:', result.data);
+      logger.log('🔍 API Response:', result);
+      logger.log('🔍 Response success:', result.success);
+      logger.log('🔍 Response data:', result.data);
       
       if (result.success) {
         const { stats, classes, activeSessions, todayClasses } = result.data;
         
-        console.log('🔍 Stats:', stats);
-        console.log('🔍 Classes count:', classes.length);
-        console.log('🔍 Active sessions count:', activeSessions.length);
-        console.log('🔍 Today classes count:', todayClasses.length);
+        logger.log('🔍 Stats:', stats);
+        logger.log('🔍 Classes count:', classes.length);
+        logger.log('🔍 Active sessions count:', activeSessions.length);
+        logger.log('🔍 Today classes count:', todayClasses.length);
         
         setStats(stats);
         setMyClasses(classes);
@@ -561,9 +563,9 @@ function ProfessorDashboardContent() {
       }
       
     } catch (error) {
-      console.error('❌ Error fetching dashboard data:', error);
-      console.error('❌ Error details:', error.message);
-      console.error('❌ Error stack:', error.stack);
+      logger.error('❌ Error fetching dashboard data:', error);
+      logger.error('❌ Error details:', error.message);
+      logger.error('❌ Error stack:', error.stack);
       
       // Fallback to empty data on error
       setStats({

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { StudentClassesService, StudentClass, ClassStats } from '@/lib/student-classes-service';
+import { createLogger } from '../lib/logger';
+const logger = createLogger('use-student-classes');
 
 interface UseStudentClassesReturn {
   classes: StudentClass[];
@@ -37,7 +39,7 @@ export function useStudentClasses(user: User | null): UseStudentClassesReturn {
       setStats(data.stats);
 
     } catch (error) {
-      console.error('Error fetching classes data:', error);
+      logger.error('Error fetching classes data:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch classes');
       setClasses([]);
       setStats({

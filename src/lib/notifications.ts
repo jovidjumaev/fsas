@@ -5,6 +5,8 @@
 
 import { supabase, supabaseAdmin } from './supabase';
 import { Json } from '@/types/database';
+import { createLogger } from './logger';
+const logger = createLogger('notifications');
 
 export type NotificationType = 
   | 'attendance_reminder'
@@ -58,7 +60,7 @@ export class NotificationService {
    */
   static async getUserNotifications(userId: string, limit = 50): Promise<Notification[]> {
     try {
-      console.log('🔔 Fetching notifications for user:', userId);
+      logger.log('🔔 Fetching notifications for user:', userId);
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/notifications?user_id=${userId}&limit=${limit}`);
       
@@ -69,14 +71,14 @@ export class NotificationService {
       const result = await response.json();
       
       if (!result.success) {
-        console.error('❌ API error:', result.error);
+        logger.error('❌ API error:', result.error);
         return [];
       }
 
-      console.log('✅ Fetched notifications:', result.data?.length || 0, 'notifications');
+      logger.log('✅ Fetched notifications:', result.data?.length || 0, 'notifications');
       return result.data || [];
     } catch (error: any) {
-      console.error('❌ Exception in getUserNotifications:', error);
+      logger.error('❌ Exception in getUserNotifications:', error);
       return [];
     }
   }
@@ -86,7 +88,7 @@ export class NotificationService {
    */
   static async getUnreadCount(userId: string): Promise<number> {
     try {
-      console.log('🔔 Fetching unread count for user:', userId);
+      logger.log('🔔 Fetching unread count for user:', userId);
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/notifications/unread-count?user_id=${userId}`);
       
@@ -97,14 +99,14 @@ export class NotificationService {
       const result = await response.json();
       
       if (!result.success) {
-        console.error('❌ API error:', result.error);
+        logger.error('❌ API error:', result.error);
         return 0;
       }
 
-      console.log('✅ Unread count:', result.count);
+      logger.log('✅ Unread count:', result.count);
       return result.count || 0;
     } catch (error: any) {
-      console.error('❌ Exception in getUnreadCount:', error);
+      logger.error('❌ Exception in getUnreadCount:', error);
       return 0;
     }
   }
@@ -123,13 +125,13 @@ export class NotificationService {
         .limit(limit);
 
       if (error) {
-        console.error('Error fetching unread notifications:', error);
+        logger.error('Error fetching unread notifications:', error);
         throw error;
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error in getUnreadNotifications:', error);
+      logger.error('Error in getUnreadNotifications:', error);
       return [];
     }
   }
@@ -153,7 +155,7 @@ export class NotificationService {
       const result = await response.json();
       return result.success;
     } catch (error) {
-      console.error('Error in markAsRead:', error);
+      logger.error('Error in markAsRead:', error);
       return false;
     }
   }
@@ -172,13 +174,13 @@ export class NotificationService {
         .in('id', notificationIds);
 
       if (error) {
-        console.error('Error marking notifications as read:', error);
+        logger.error('Error marking notifications as read:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error in markMultipleAsRead:', error);
+      logger.error('Error in markMultipleAsRead:', error);
       return false;
     }
   }
@@ -198,13 +200,13 @@ export class NotificationService {
         .eq('is_read', false);
 
       if (error) {
-        console.error('Error marking all notifications as read:', error);
+        logger.error('Error marking all notifications as read:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error in markAllAsRead:', error);
+      logger.error('Error in markAllAsRead:', error);
       return false;
     }
   }
@@ -220,13 +222,13 @@ export class NotificationService {
         .eq('id', notificationId);
 
       if (error) {
-        console.error('Error deleting notification:', error);
+        logger.error('Error deleting notification:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error in deleteNotification:', error);
+      logger.error('Error in deleteNotification:', error);
       return false;
     }
   }
@@ -242,13 +244,13 @@ export class NotificationService {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Error deleting all notifications:', error);
+        logger.error('Error deleting all notifications:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error in deleteAllNotifications:', error);
+      logger.error('Error in deleteAllNotifications:', error);
       return false;
     }
   }
@@ -276,13 +278,13 @@ export class NotificationService {
         .single();
 
       if (error) {
-        console.error('Error creating notification:', error);
+        logger.error('Error creating notification:', error);
         return null;
       }
 
       return data?.id || null;
     } catch (error) {
-      console.error('Error in createNotification:', error);
+      logger.error('Error in createNotification:', error);
       return null;
     }
   }
@@ -400,10 +402,10 @@ export class NotificationService {
         }
       });
 
-      console.log('✅ Student enrollment notification created:', notificationId);
+      logger.log('✅ Student enrollment notification created:', notificationId);
       return notificationId;
     } catch (error) {
-      console.error('❌ Error creating enrollment notification:', error);
+      logger.error('❌ Error creating enrollment notification:', error);
       return null;
     }
   }
@@ -436,10 +438,10 @@ export class NotificationService {
         }
       });
 
-      console.log('✅ Session start notification created:', notificationId);
+      logger.log('✅ Session start notification created:', notificationId);
       return notificationId;
     } catch (error) {
-      console.error('❌ Error creating session start notification:', error);
+      logger.error('❌ Error creating session start notification:', error);
       return null;
     }
   }
@@ -472,10 +474,10 @@ export class NotificationService {
         }
       });
 
-      console.log('✅ Attendance recorded notification created:', notificationId);
+      logger.log('✅ Attendance recorded notification created:', notificationId);
       return notificationId;
     } catch (error) {
-      console.error('❌ Error creating attendance recorded notification:', error);
+      logger.error('❌ Error creating attendance recorded notification:', error);
       return null;
     }
   }
@@ -515,15 +517,15 @@ export class NotificationService {
         .select('id');
 
       if (error) {
-        console.error('❌ Error bulk creating session notifications:', error);
+        logger.error('❌ Error bulk creating session notifications:', error);
         return 0;
       }
 
       successCount = data?.length || 0;
-      console.log(`✅ Bulk session notifications created: ${successCount}/${studentIds.length}`);
+      logger.log(`✅ Bulk session notifications created: ${successCount}/${studentIds.length}`);
       
     } catch (error) {
-      console.error('❌ Error in bulk session notification:', error);
+      logger.error('❌ Error in bulk session notification:', error);
     }
 
     return successCount;

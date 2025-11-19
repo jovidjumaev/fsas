@@ -17,6 +17,8 @@ import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import io from 'socket.io-client';
+import { createLogger } from '../../../../../lib/logger';
+const logger = createLogger('page');
 
 interface ActiveSessionData {
   id: string;
@@ -132,7 +134,7 @@ function ActiveSessionContent() {
         }
       }
     } catch (error) {
-      console.error('Error fetching attendance records:', error);
+      logger.error('Error fetching attendance records:', error);
     }
   };
 
@@ -214,7 +216,7 @@ function ActiveSessionContent() {
         const now = new Date();
         const remaining = Math.max(0, Math.floor((sessionEndTime.getTime() - now.getTime()) / 1000));
         
-        console.log('🕐 Timer calculation:', {
+        logger.log('🕐 Timer calculation:', {
           activated_at: activeSession.activated_at,
           activationTime: activationTime.toISOString(),
           sessionEndTime: sessionEndTime.toISOString(),
@@ -227,12 +229,12 @@ function ActiveSessionContent() {
         
         // If session has expired, automatically complete it
         if (remaining === 0) {
-          console.log('⏰ Session has expired, completing automatically');
+          logger.log('⏰ Session has expired, completing automatically');
           handleStopSession();
         }
       } else {
         // For non-active sessions or sessions without activation time, set to 0
-        console.log('⏹️ Session not active or no activation time:', {
+        logger.log('⏹️ Session not active or no activation time:', {
           status: activeSession.status,
           activated_at: activeSession.activated_at
         });
@@ -240,7 +242,7 @@ function ActiveSessionContent() {
       }
       
     } catch (error) {
-      console.error('Error fetching session data:', error);
+      logger.error('Error fetching session data:', error);
       setSession(null);
     } finally {
       setIsLoading(false);
@@ -254,21 +256,21 @@ function ActiveSessionContent() {
       socketRef.current = socket; // Store socket reference
       
       socket.on('connect', () => {
-        console.log('🔗 Connected to WebSocket for real-time updates');
-        console.log('📡 Joining session room:', sessionId);
+        logger.log('🔗 Connected to WebSocket for real-time updates');
+        logger.log('📡 Joining session room:', sessionId);
         socket.emit('join-session', sessionId);
       });
       
       socket.on('disconnect', () => {
-        console.log('🔌 WebSocket disconnected');
+        logger.log('🔌 WebSocket disconnected');
       });
       
       socket.on('error', (error) => {
-        console.error('❌ WebSocket error:', error);
+        logger.error('❌ WebSocket error:', error);
       });
 
       socket.on('attendance_update', (data) => {
-        console.log('🎯 Real-time attendance update received:', data);
+        logger.log('🎯 Real-time attendance update received:', data);
         
         // Refresh attendance records to get the full list with correct counts
         fetchAttendanceRecords();
@@ -281,7 +283,7 @@ function ActiveSessionContent() {
       });
 
       socket.on('qr_code_update', (data) => {
-        console.log('Real-time QR code update received:', data);
+        logger.log('Real-time QR code update received:', data);
         if (data.sessionId === sessionId) {
           setSession(prev => prev ? {
             ...prev,
@@ -380,7 +382,7 @@ function ActiveSessionContent() {
         }
       }
     } catch (error) {
-      console.error('Error refreshing QR code:', error);
+      logger.error('Error refreshing QR code:', error);
     }
   };
 
@@ -419,7 +421,7 @@ function ActiveSessionContent() {
       await fetchSessionData(); // Refresh session data to reflect completion
       router.push('/professor/sessions?tab=completed'); // Redirect to sessions page with completed tab
     } catch (error) {
-      console.error('Error completing session:', error);
+      logger.error('Error completing session:', error);
       alert(`Failed to complete session: ${error.message}`);
     } finally {
       setIsCompleting(false);
@@ -475,7 +477,7 @@ function ActiveSessionContent() {
       XLSX.writeFile(workbook, `attendance_${session?.class_code}_${new Date().toISOString().split('T')[0]}.xlsx`);
       setIsExportDialogOpen(false);
     } catch (error) {
-      console.error('Error exporting to XLSX:', error);
+      logger.error('Error exporting to XLSX:', error);
       alert('Failed to export to XLSX. Please try CSV instead.');
     }
   };
@@ -487,7 +489,7 @@ function ActiveSessionContent() {
   const handlePauseSession = async () => {
     try {
       setIsPausing(true);
-      console.log('Pausing session:', sessionId);
+      logger.log('Pausing session:', sessionId);
       
       // Call the backend API to pause the session
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/pause`, {
@@ -504,7 +506,7 @@ function ActiveSessionContent() {
           stopQRRefreshTimer();
           // Refresh attendance records to ensure counts are accurate
           await fetchAttendanceRecords();
-          console.log('✅ Session paused successfully');
+          logger.log('✅ Session paused successfully');
         } else {
           throw new Error(data.error || 'Failed to pause session');
         }
@@ -512,7 +514,7 @@ function ActiveSessionContent() {
         throw new Error('Failed to pause session');
       }
     } catch (error) {
-      console.error('Error pausing session:', error);
+      logger.error('Error pausing session:', error);
       alert('Failed to pause session. Please try again.');
     } finally {
       setIsPausing(false);
@@ -522,7 +524,7 @@ function ActiveSessionContent() {
   const handleResumeSession = async () => {
     try {
       setIsResuming(true);
-      console.log('Resuming session:', sessionId);
+      logger.log('Resuming session:', sessionId);
       
       // Call the backend API to resume the session
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/resume`, {
@@ -539,7 +541,7 @@ function ActiveSessionContent() {
           startQRRefreshTimer();
           // Refresh attendance records to ensure counts are accurate
           await fetchAttendanceRecords();
-          console.log('✅ Session resumed successfully');
+          logger.log('✅ Session resumed successfully');
         } else {
           throw new Error(data.error || 'Failed to resume session');
         }
@@ -547,7 +549,7 @@ function ActiveSessionContent() {
         throw new Error('Failed to resume session');
       }
     } catch (error) {
-      console.error('Error resuming session:', error);
+      logger.error('Error resuming session:', error);
       alert('Failed to resume session. Please try again.');
     } finally {
       setIsResuming(false);
@@ -635,7 +637,7 @@ function ActiveSessionContent() {
                 alt="Attendance QR Code" 
                 className="max-w-full max-h-full object-contain"
                 onError={(e) => {
-                  console.error('QR code failed to load:', e);
+                  logger.error('QR code failed to load:', e);
                   e.currentTarget.style.display = 'none';
                 }}
               />
@@ -938,7 +940,7 @@ function ActiveSessionContent() {
                         alt="Attendance QR Code" 
                         className="w-full h-full object-contain rounded-lg"
                         onError={(e) => {
-                          console.error('QR code failed to load:', e);
+                          logger.error('QR code failed to load:', e);
                           e.currentTarget.style.display = 'none';
                         }}
                       />

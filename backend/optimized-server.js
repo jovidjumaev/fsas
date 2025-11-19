@@ -1,3 +1,6 @@
+const { createLogger } = require('./lib/logger');
+const logger = createLogger('Backend');
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -409,7 +412,7 @@ app.get('/api/professors/:professorId/classes', async (req, res) => {
           .eq('status', 'active');
         
         if (enrollmentError) {
-          console.error('Error fetching enrollments for class', classInstance.id, enrollmentError);
+          logger.error('Error fetching enrollments for class', classInstance.id, enrollmentError);
         }
         
         const enrolledCount = enrollments?.length || 0;
@@ -424,7 +427,7 @@ app.get('/api/professors/:professorId/classes', async (req, res) => {
           .eq('class_instance_id', classInstance.id);
         
         if (sessionsError) {
-          console.error('Error fetching sessions for class', classInstance.id, sessionsError);
+          logger.error('Error fetching sessions for class', classInstance.id, sessionsError);
         }
         
         // Calculate attendance rate from professor-initiated sessions only
@@ -582,7 +585,7 @@ app.post('/api/enrollments', async (req, res) => {
     
     // Create notification for the enrolled student
     try {
-      console.log('🔔 Creating enrollment notification for student:', student_id);
+      logger.log('🔔 Creating enrollment notification for student:', student_id);
       
       // Get class and professor information for the notification
       const { data: classInfo, error: classError } = await supabase
@@ -627,13 +630,13 @@ app.post('/api/enrollments', async (req, res) => {
           .insert(notificationData);
         
         if (notificationError) {
-          console.error('❌ Error creating enrollment notification:', notificationError);
+          logger.error('❌ Error creating enrollment notification:', notificationError);
         } else {
-          console.log('✅ Enrollment notification created successfully');
+          logger.log('✅ Enrollment notification created successfully');
         }
       }
     } catch (notificationErr) {
-      console.error('❌ Error in enrollment notification creation:', notificationErr);
+      logger.error('❌ Error in enrollment notification creation:', notificationErr);
     }
     
     res.json({
@@ -783,7 +786,7 @@ app.get('/api/sessions/:sessionId/qr', async (req, res) => {
       data: qrData
     });
   } catch (error) {
-    console.error('Error generating QR code:', error);
+    logger.error('Error generating QR code:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to generate QR code'
@@ -797,8 +800,8 @@ app.post('/api/sessions/:sessionId/activate', async (req, res) => {
     const { sessionId } = req.params;
     const { notes } = req.body;
     
-    console.log('🚀 Activating session:', sessionId);
-    console.log('🔍 Session activation endpoint called with sessionId:', sessionId);
+    logger.log('🚀 Activating session:', sessionId);
+    logger.log('🔍 Session activation endpoint called with sessionId:', sessionId);
     
     // Check if session exists and is scheduled
     const { data: session, error: fetchError } = await supabase
@@ -838,18 +841,18 @@ app.post('/api/sessions/:sessionId/activate', async (req, res) => {
     
     if (updateError) throw updateError;
     
-    console.log('✅ Session updated successfully, now calling notification function...');
+    logger.log('✅ Session updated successfully, now calling notification function...');
     
     // Notify students about session activation
-    console.log('🔔 Calling notifyStudentsSessionActivated...');
+    logger.log('🔔 Calling notifyStudentsSessionActivated...');
     try {
       await notifyStudentsSessionActivated(sessionId);
-      console.log('✅ notifyStudentsSessionActivated completed');
+      logger.log('✅ notifyStudentsSessionActivated completed');
     } catch (notificationError) {
-      console.error('❌ Error in notifyStudentsSessionActivated:', notificationError);
+      logger.error('❌ Error in notifyStudentsSessionActivated:', notificationError);
     }
     
-    console.log('✅ Session activated successfully:', sessionId);
+    logger.log('✅ Session activated successfully:', sessionId);
     
     res.json({
       success: true,
@@ -858,7 +861,7 @@ app.post('/api/sessions/:sessionId/activate', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error activating session:', error);
+    logger.error('❌ Error activating session:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -965,7 +968,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   try {
     const { email, role } = req.body;
     
-    console.log('🔐 Password reset request:', { email, role });
+    logger.log('🔐 Password reset request:', { email, role });
     
     // Validate input
     if (!email || !role) {
@@ -992,7 +995,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       .single();
 
     if (userError || !userData) {
-      console.log('🔐 User not found:', email);
+      logger.log('🔐 User not found:', email);
       return res.status(404).json({
         success: false,
         error: 'No account found with this email address'
@@ -1000,7 +1003,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     }
 
     if (userData.role !== role) {
-      console.log('🔐 Role mismatch:', userData.role, 'expected:', role);
+      logger.log('🔐 Role mismatch:', userData.role, 'expected:', role);
       return res.status(400).json({
         success: false,
         error: `This email is registered as a ${userData.role}. Please use the ${userData.role} forgot password page.`
@@ -1008,7 +1011,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     }
 
     if (!userData.is_active) {
-      console.log('🔐 Account inactive:', email);
+      logger.log('🔐 Account inactive:', email);
       return res.status(400).json({
         success: false,
         error: 'This account has been deactivated. Please contact support.'
@@ -1021,21 +1024,21 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     });
 
     if (resetError) {
-      console.error('🔐 Password reset error:', resetError);
+      logger.error('🔐 Password reset error:', resetError);
       return res.status(500).json({
         success: false,
         error: resetError.message
       });
     }
 
-    console.log('✅ Password reset email sent to:', email);
+    logger.log('✅ Password reset email sent to:', email);
     res.json({
       success: true,
       message: 'Password reset email sent successfully'
     });
 
   } catch (error) {
-    console.error('🔐 Password reset error:', error);
+    logger.error('🔐 Password reset error:', error);
     res.status(500).json({
       success: false,
       error: 'An unexpected error occurred. Please try again.'
@@ -1048,7 +1051,7 @@ app.post('/api/auth/validate-reset-token', async (req, res) => {
   try {
     const { token, type } = req.body;
     
-    console.log('🔐 Validating reset token:', { hasToken: !!token, type });
+    logger.log('🔐 Validating reset token:', { hasToken: !!token, type });
     
     if (!token || !type) {
       return res.status(400).json({
@@ -1067,7 +1070,7 @@ app.post('/api/auth/validate-reset-token', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('🔐 Token validation error:', error);
+    logger.error('🔐 Token validation error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to validate token'
@@ -1080,7 +1083,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
   try {
     const { token, password, type } = req.body;
     
-    console.log('🔐 Password reset update:', { hasToken: !!token, type });
+    logger.log('🔐 Password reset update:', { hasToken: !!token, type });
     
     // Validate input
     if (!token || !password || !type) {
@@ -1107,14 +1110,14 @@ app.post('/api/auth/reset-password', async (req, res) => {
     // The actual password update will be handled by Supabase Auth
     // when the user clicks the reset link and is redirected
     
-    console.log('✅ Password reset completed for type:', type);
+    logger.log('✅ Password reset completed for type:', type);
     res.json({
       success: true,
       message: 'Password has been reset successfully'
     });
 
   } catch (error) {
-    console.error('🔐 Password reset update error:', error);
+    logger.error('🔐 Password reset update error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to reset password. Please try again.'
@@ -1129,7 +1132,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 // Get all available courses
 app.get('/api/courses', async (req, res) => {
   try {
-    console.log('📚 Fetching available courses');
+    logger.log('📚 Fetching available courses');
     
     const { data: courses, error } = await supabase
       .from('classes')
@@ -1144,7 +1147,7 @@ app.get('/api/courses', async (req, res) => {
       .eq('is_active', true);
     
     if (error) {
-      console.error('Error fetching courses:', error);
+      logger.error('Error fetching courses:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch courses'
@@ -1160,14 +1163,14 @@ app.get('/api/courses', async (req, res) => {
       department_name: course.departments.name
     }));
     
-    console.log('✅ Courses fetched successfully:', formattedCourses.length);
+    logger.log('✅ Courses fetched successfully:', formattedCourses.length);
     res.json({
       success: true,
       courses: formattedCourses
     });
     
   } catch (error) {
-    console.error('📚 Courses fetch error:', error);
+    logger.error('📚 Courses fetch error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch courses'
@@ -1184,7 +1187,7 @@ app.post('/api/classes', async (req, res) => {
   try {
     const { course_id, professor_id, academic_period_id, room_location, max_students } = req.body;
     
-    console.log('📚 Creating new class:', { course_id, professor_id, academic_period_id, room_location, max_students });
+    logger.log('📚 Creating new class:', { course_id, professor_id, academic_period_id, room_location, max_students });
     
     // First, get the course details
     const { data: course, error: courseError } = await supabase
@@ -1194,7 +1197,7 @@ app.post('/api/classes', async (req, res) => {
       .single();
     
     if (courseError || !course) {
-      console.error('Error fetching course:', courseError);
+      logger.error('Error fetching course:', courseError);
       return res.status(400).json({
         success: false,
         error: 'Course not found'
@@ -1220,21 +1223,21 @@ app.post('/api/classes', async (req, res) => {
       .single();
     
     if (createError) {
-      console.error('Error creating class:', createError);
+      logger.error('Error creating class:', createError);
       return res.status(500).json({
         success: false,
         error: 'Failed to create class'
       });
     }
     
-    console.log('✅ Class created successfully:', newClass.id);
+    logger.log('✅ Class created successfully:', newClass.id);
     res.json({
       success: true,
       class: newClass
     });
     
   } catch (error) {
-    console.error('📚 Class creation error:', error);
+    logger.error('📚 Class creation error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to create class'
@@ -1249,7 +1252,7 @@ app.post('/api/classes', async (req, res) => {
 // Automatically complete sessions that are past their end time
 async function autoCompletePastSessions(classInstanceIds) {
   try {
-    console.log('🔄 Checking for past sessions that need completion...');
+    logger.log('🔄 Checking for past sessions that need completion...');
     
     const easternTime = getCurrentEasternTime();
     const todayDate = easternTime.toISOString().split('T')[0];
@@ -1270,16 +1273,16 @@ async function autoCompletePastSessions(classInstanceIds) {
       .lte('date', todayDate); // Sessions on or before today
     
     if (sessionsError) {
-      console.error('❌ Error fetching past sessions:', sessionsError);
+      logger.error('❌ Error fetching past sessions:', sessionsError);
       return;
     }
     
     if (!pastSessions || pastSessions.length === 0) {
-      console.log('✅ No past sessions need completion');
+      logger.log('✅ No past sessions need completion');
       return;
     }
     
-    console.log(`📅 Found ${pastSessions.length} past sessions to check`);
+    logger.log(`📅 Found ${pastSessions.length} past sessions to check`);
     
     let completedCount = 0;
     
@@ -1292,7 +1295,7 @@ async function autoCompletePastSessions(classInstanceIds) {
       const completionTime = new Date(sessionEndTime.getTime() + gracePeriod);
       
       if (easternTime >= completionTime) {
-        console.log(`⏰ Auto-completing session ${session.id} (ended ${Math.round((easternTime - sessionEndTime) / (1000 * 60))} minutes ago)`);
+        logger.log(`⏰ Auto-completing session ${session.id} (ended ${Math.round((easternTime - sessionEndTime) / (1000 * 60))} minutes ago)`);
         
         // Get all enrolled students for this class
         const { data: enrolledStudents, error: enrollmentError } = await supabase
@@ -1302,7 +1305,7 @@ async function autoCompletePastSessions(classInstanceIds) {
           .eq('status', 'active');
         
         if (enrollmentError) {
-          console.error(`❌ Error fetching enrollments for session ${session.id}:`, enrollmentError);
+          logger.error(`❌ Error fetching enrollments for session ${session.id}:`, enrollmentError);
           continue;
         }
         
@@ -1313,7 +1316,7 @@ async function autoCompletePastSessions(classInstanceIds) {
           .eq('session_id', session.id);
         
         if (recordsError) {
-          console.error(`❌ Error fetching attendance records for session ${session.id}:`, recordsError);
+          logger.error(`❌ Error fetching attendance records for session ${session.id}:`, recordsError);
           continue;
         }
         
@@ -1340,11 +1343,11 @@ async function autoCompletePastSessions(classInstanceIds) {
             .insert(attendanceRecords);
           
           if (insertError) {
-            console.error(`❌ Error creating attendance records for session ${session.id}:`, insertError);
+            logger.error(`❌ Error creating attendance records for session ${session.id}:`, insertError);
             continue;
           }
           
-          console.log(`✅ Created ${attendanceRecords.length} attendance records for session ${session.id}`);
+          logger.log(`✅ Created ${attendanceRecords.length} attendance records for session ${session.id}`);
         }
         
         // Update session status to completed
@@ -1359,25 +1362,25 @@ async function autoCompletePastSessions(classInstanceIds) {
           .eq('id', session.id);
         
         if (updateError) {
-          console.error(`❌ Error updating session ${session.id}:`, updateError);
+          logger.error(`❌ Error updating session ${session.id}:`, updateError);
           continue;
         }
         
         completedCount++;
-        console.log(`✅ Auto-completed session ${session.id}`);
+        logger.log(`✅ Auto-completed session ${session.id}`);
       } else {
-        console.log(`⏰ Session ${session.id} not yet ready for completion (${Math.round((completionTime - easternTime) / (1000 * 60))} minutes remaining)`);
+        logger.log(`⏰ Session ${session.id} not yet ready for completion (${Math.round((completionTime - easternTime) / (1000 * 60))} minutes remaining)`);
       }
     }
     
     if (completedCount > 0) {
-      console.log(`🎉 Auto-completed ${completedCount} past sessions`);
+      logger.log(`🎉 Auto-completed ${completedCount} past sessions`);
     } else {
-      console.log('✅ No sessions needed auto-completion');
+      logger.log('✅ No sessions needed auto-completion');
     }
     
   } catch (error) {
-    console.error('❌ Error in autoCompletePastSessions:', error);
+    logger.error('❌ Error in autoCompletePastSessions:', error);
   }
 }
 
@@ -1390,7 +1393,7 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
   try {
     const { professorId } = req.params;
     
-    console.log('📊 Fetching dashboard data for professor:', professorId);
+    logger.log('📊 Fetching dashboard data for professor:', professorId);
     
     // Get professor's class instances (using new schema)
     const { data: classInstances, error: classInstancesError } = await supabase
@@ -1417,7 +1420,7 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
       .eq('is_active', true);
     
     if (classInstancesError) {
-      console.error('Error fetching class instances:', classInstancesError);
+      logger.error('Error fetching class instances:', classInstancesError);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch class instances'
@@ -1436,7 +1439,7 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
       .eq('status', 'active');
     
     if (enrollmentsError) {
-      console.error('Error fetching enrollments:', enrollmentsError);
+      logger.error('Error fetching enrollments:', enrollmentsError);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch enrollments'
@@ -1459,7 +1462,7 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
       .in('class_instance_id', classInstances.map(c => c.id));
     
     if (allSessionsError) {
-      console.error('Error fetching all sessions:', allSessionsError);
+      logger.error('Error fetching all sessions:', allSessionsError);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch sessions'
@@ -1474,29 +1477,29 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
     const easternTime = getCurrentEasternTime();
     const todayDate = easternTime.toISOString().split('T')[0];
     
-    console.log('🕐 Dashboard timezone handling (using centralized utilities):');
-    console.log('  Server UTC time:', new Date().toISOString());
-    console.log('  Eastern time:', formatEasternTime(easternTime));
-    console.log('  Eastern day of week:', easternTime.getDay(), '(' + easternTime.toLocaleDateString('en-US', { weekday: 'long' }) + ')');
-    console.log('  Eastern date:', todayDate);
+    logger.log('🕐 Dashboard timezone handling (using centralized utilities):');
+    logger.log('  Server UTC time:', new Date().toISOString());
+    logger.log('  Eastern time:', formatEasternTime(easternTime));
+    logger.log('  Eastern day of week:', easternTime.getDay(), '(' + easternTime.toLocaleDateString('en-US', { weekday: 'long' }) + ')');
+    logger.log('  Eastern date:', todayDate);
     
     // Helper function to check if a class meets on a specific day
     const isClassToday = (classInstance) => {
       const todayDayOfWeek = easternTime.getDay(); // 0 = Sunday, 1 = Monday, etc.
       
-      console.log(`🔍 Checking if class ${classInstance.class_code} meets today:`);
-      console.log(`   Today's day of week: ${todayDayOfWeek} (${easternTime.toLocaleDateString('en-US', { weekday: 'long' })})`);
-      console.log(`   Class days: ${classInstance.days_of_week?.join(', ') || 'none'}`);
+      logger.log(`🔍 Checking if class ${classInstance.class_code} meets today:`);
+      logger.log(`   Today's day of week: ${todayDayOfWeek} (${easternTime.toLocaleDateString('en-US', { weekday: 'long' })})`);
+      logger.log(`   Class days: ${classInstance.days_of_week?.join(', ') || 'none'}`);
       
       // Check if today is within the class period using Eastern Time utilities
       const firstClassDate = createEasternDate(classInstance.first_class_date, '00:00:00');
       const lastClassDate = createEasternDate(classInstance.last_class_date, '23:59:59');
       
-      console.log(`   Class period: ${classInstance.first_class_date} to ${classInstance.last_class_date}`);
-      console.log(`   Today within period: ${easternTime >= firstClassDate && easternTime <= lastClassDate}`);
+      logger.log(`   Class period: ${classInstance.first_class_date} to ${classInstance.last_class_date}`);
+      logger.log(`   Today within period: ${easternTime >= firstClassDate && easternTime <= lastClassDate}`);
       
       if (easternTime < firstClassDate || easternTime > lastClassDate) {
-        console.log(`   ❌ Class ${classInstance.class_code} not in period`);
+        logger.log(`   ❌ Class ${classInstance.class_code} not in period`);
         return false;
       }
       
@@ -1513,7 +1516,7 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
       };
       
       const meetsToday = daysOfWeek.some(day => dayMapping[day] === todayDayOfWeek);
-      console.log(`   ✅ Class ${classInstance.class_code} meets today: ${meetsToday}`);
+      logger.log(`   ✅ Class ${classInstance.class_code} meets today: ${meetsToday}`);
       
       return meetsToday;
     };
@@ -1712,14 +1715,14 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
       todayClasses: classesWithStats.filter(c => c.isToday)
     };
     
-    console.log('✅ Dashboard data fetched successfully');
+    logger.log('✅ Dashboard data fetched successfully');
     res.json({
       success: true,
       data: dashboardData
     });
     
   } catch (error) {
-    console.error('❌ Dashboard data error:', error);
+    logger.error('❌ Dashboard data error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch dashboard data'
@@ -1735,26 +1738,26 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
 global.io = io;
 
 io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
+  logger.log('Client connected:', socket.id);
   
   socket.on('join-session', (sessionId) => {
     socket.join(`session-${sessionId}`);
-    console.log(`Client ${socket.id} joined session ${sessionId}`);
+    logger.log(`Client ${socket.id} joined session ${sessionId}`);
   });
   
   // Join professor dashboard room for live updates
   socket.on('join-professor-dashboard', (professorId) => {
     socket.join(`professor-${professorId}`);
-    console.log(`Client ${socket.id} joined professor dashboard ${professorId}`);
+    logger.log(`Client ${socket.id} joined professor dashboard ${professorId}`);
   });
   
   socket.on('leave-session', (sessionId) => {
     socket.leave(`session-${sessionId}`);
-    console.log(`Client ${socket.id} left session ${sessionId}`);
+    logger.log(`Client ${socket.id} left session ${sessionId}`);
   });
   
   socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
+    logger.log('Client disconnected:', socket.id);
   });
 });
 
@@ -1802,7 +1805,7 @@ app.get('/api/classes/:classId', async (req, res) => {
       .single();
     
     if (classError) {
-      console.error('Error fetching class:', classError);
+      logger.error('Error fetching class:', classError);
       return res.status(404).json({
         success: false,
         error: 'Class not found'
@@ -1814,7 +1817,7 @@ app.get('/api/classes/:classId', async (req, res) => {
       class: classData
     });
   } catch (error) {
-    console.error('Error in /api/classes/:classId:', error);
+    logger.error('Error in /api/classes/:classId:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -1848,7 +1851,7 @@ app.get('/api/classes/:classId/students', async (req, res) => {
       .eq('status', 'active');
     
     if (enrollmentError) {
-      console.error('Error fetching enrolled students:', enrollmentError);
+      logger.error('Error fetching enrolled students:', enrollmentError);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch enrolled students'
@@ -1888,7 +1891,7 @@ app.get('/api/classes/:classId/students', async (req, res) => {
       students: studentsWithAttendance
     });
   } catch (error) {
-    console.error('Error in /api/classes/:classId/students:', error);
+    logger.error('Error in /api/classes/:classId/students:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -1903,9 +1906,9 @@ app.post('/api/academic-periods/update-current', async (req, res) => {
     const year = now.getFullYear();
     const month = now.getMonth() + 1; // 1-12
     
-    console.log(`🕐 Updating current period for Eastern Time: ${year}-${month.toString().padStart(2, '0')}`);
-    console.log(`   UTC time: ${new Date().toISOString()}`);
-    console.log(`   Eastern time: ${formatEasternTime(now)}`);
+    logger.log(`🕐 Updating current period for Eastern Time: ${year}-${month.toString().padStart(2, '0')}`);
+    logger.log(`   UTC time: ${new Date().toISOString()}`);
+    logger.log(`   Eastern time: ${formatEasternTime(now)}`);
     
     // Determine current period based on Eastern Time date
     let currentPeriod;
@@ -1928,7 +1931,7 @@ app.post('/api/academic-periods/update-current', async (req, res) => {
       .neq('id', '00000000-0000-0000-0000-000000000000');
     
     if (updateError) {
-      console.error('Error updating periods:', updateError);
+      logger.error('Error updating periods:', updateError);
       return res.status(500).json({
         success: false,
         error: 'Failed to update periods'
@@ -1945,7 +1948,7 @@ app.post('/api/academic-periods/update-current', async (req, res) => {
       .single();
     
     if (findError && findError.code !== 'PGRST116') {
-      console.error('Error finding current period:', findError);
+      logger.error('Error finding current period:', findError);
       return res.status(500).json({
         success: false,
         error: 'Failed to find current period'
@@ -1962,7 +1965,7 @@ app.post('/api/academic-periods/update-current', async (req, res) => {
         .single();
       
       if (error) {
-        console.error('Error updating current period:', error);
+        logger.error('Error updating current period:', error);
         return res.status(500).json({
           success: false,
           error: 'Failed to update current period'
@@ -1990,7 +1993,7 @@ app.post('/api/academic-periods/update-current', async (req, res) => {
         .single();
       
       if (error) {
-        console.error('Error creating current period:', error);
+        logger.error('Error creating current period:', error);
         return res.status(500).json({
           success: false,
           error: 'Failed to create current period'
@@ -2005,7 +2008,7 @@ app.post('/api/academic-periods/update-current', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('Error in /api/academic-periods/update-current:', error);
+    logger.error('Error in /api/academic-periods/update-current:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -2023,7 +2026,7 @@ app.get('/api/academic-periods', async (req, res) => {
       .order('semester', { ascending: true });
     
     if (error) {
-      console.error('Error fetching academic periods:', error);
+      logger.error('Error fetching academic periods:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch academic periods'
@@ -2035,7 +2038,7 @@ app.get('/api/academic-periods', async (req, res) => {
       data: periods
     });
   } catch (error) {
-    console.error('Error in /api/academic-periods:', error);
+    logger.error('Error in /api/academic-periods:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -2060,7 +2063,7 @@ app.get('/api/students', async (req, res) => {
       .eq('is_active', true);
     
     if (studentsError) {
-      console.error('Error fetching students:', studentsError);
+      logger.error('Error fetching students:', studentsError);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch students'
@@ -2072,7 +2075,7 @@ app.get('/api/students', async (req, res) => {
       students: students
     });
   } catch (error) {
-    console.error('Error in /api/students:', error);
+    logger.error('Error in /api/students:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -2122,7 +2125,7 @@ app.post('/api/students', async (req, res) => {
       .single();
     
     if (studentError) {
-      console.error('Error creating student:', studentError);
+      logger.error('Error creating student:', studentError);
       return res.status(500).json({
         success: false,
         error: 'Failed to create student'
@@ -2134,7 +2137,7 @@ app.post('/api/students', async (req, res) => {
       student: student
     });
   } catch (error) {
-    console.error('Error in /api/students POST:', error);
+    logger.error('Error in /api/students POST:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -2177,7 +2180,7 @@ app.post('/api/classes/:classId/enroll', async (req, res) => {
       .eq('status', 'active');
     
     if (countError) {
-      console.error('Error checking enrollment count:', countError);
+      logger.error('Error checking enrollment count:', countError);
       return res.status(500).json({
         success: false,
         error: 'Failed to check enrollment count'
@@ -2198,7 +2201,7 @@ app.post('/api/classes/:classId/enroll', async (req, res) => {
       .eq('is_current', true);
     
     if (periodError) {
-      console.error('Error finding current academic period:', periodError);
+      logger.error('Error finding current academic period:', periodError);
       return res.status(500).json({
         success: false,
         error: 'Failed to find academic period'
@@ -2208,7 +2211,7 @@ app.post('/api/classes/:classId/enroll', async (req, res) => {
     const currentPeriod = periods && periods.length > 0 ? periods[0] : null;
     
     if (!currentPeriod) {
-      console.error('No current academic period found');
+      logger.error('No current academic period found');
       return res.status(500).json({
         success: false,
         error: 'No current academic period found'
@@ -2223,7 +2226,7 @@ app.post('/api/classes/:classId/enroll', async (req, res) => {
       .single();
     
     if (classInfoError) {
-      console.error('Error getting class info:', classInfoError);
+      logger.error('Error getting class info:', classInfoError);
       return res.status(500).json({
         success: false,
         error: 'Failed to get class information'
@@ -2244,7 +2247,7 @@ app.post('/api/classes/:classId/enroll', async (req, res) => {
         .single();
       
       if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Error checking existing enrollment:', checkError);
+        logger.error('Error checking existing enrollment:', checkError);
         continue;
       }
       
@@ -2261,7 +2264,7 @@ app.post('/api/classes/:classId/enroll', async (req, res) => {
           .single();
         
         if (updateError) {
-          console.error('Error updating enrollment:', updateError);
+          logger.error('Error updating enrollment:', updateError);
           continue;
         }
         
@@ -2282,7 +2285,7 @@ app.post('/api/classes/:classId/enroll', async (req, res) => {
           .single();
         
         if (insertError) {
-          console.error('Error creating enrollment:', insertError);
+          logger.error('Error creating enrollment:', insertError);
           continue;
         }
         
@@ -2299,7 +2302,7 @@ app.post('/api/classes/:classId/enroll', async (req, res) => {
     
     // Create notifications for enrolled students
     try {
-      console.log('🔔 Creating enrollment notifications for', enrollmentResults.length, 'students');
+      logger.log('🔔 Creating enrollment notifications for', enrollmentResults.length, 'students');
       
       // Get class information for notifications
       const { data: classInfo, error: classError } = await supabase
@@ -2346,14 +2349,14 @@ app.post('/api/classes/:classId/enroll', async (req, res) => {
             .insert(notificationsToCreate);
           
           if (notificationError) {
-            console.error('❌ Error creating enrollment notifications:', notificationError);
+            logger.error('❌ Error creating enrollment notifications:', notificationError);
           } else {
-            console.log(`✅ Enrollment notifications created for ${notificationsToCreate.length} students`);
+            logger.log(`✅ Enrollment notifications created for ${notificationsToCreate.length} students`);
           }
         }
       }
     } catch (notificationErr) {
-      console.error('❌ Error in enrollment notification creation:', notificationErr);
+      logger.error('❌ Error in enrollment notification creation:', notificationErr);
     }
     
     res.json({
@@ -2362,7 +2365,7 @@ app.post('/api/classes/:classId/enroll', async (req, res) => {
       enrollments: enrollmentResults
     });
   } catch (error) {
-    console.error('Error in /api/classes/:classId/enroll:', error);
+    logger.error('Error in /api/classes/:classId/enroll:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -2373,11 +2376,11 @@ app.post('/api/classes/:classId/enroll', async (req, res) => {
 // Unenroll student from a class
 app.post('/api/classes/:classId/unenroll', async (req, res) => {
   try {
-    console.log('🔔 CLASS UNENROLLMENT ENDPOINT CALLED:', req.params.classId);
+    logger.log('🔔 CLASS UNENROLLMENT ENDPOINT CALLED:', req.params.classId);
     const { classId } = req.params;
     const { student_id } = req.body;
     
-    console.log('📝 Class unenrollment request:', { classId, student_id });
+    logger.log('📝 Class unenrollment request:', { classId, student_id });
     
     if (!student_id) {
       return res.status(400).json({
@@ -2397,7 +2400,7 @@ app.post('/api/classes/:classId/unenroll', async (req, res) => {
       .select();
     
     if (error) {
-      console.error('Error unenrolling student:', error);
+      logger.error('Error unenrolling student:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to unenroll student'
@@ -2413,10 +2416,10 @@ app.post('/api/classes/:classId/unenroll', async (req, res) => {
     
     // Create notification for the unenrolled student
     try {
-      console.log('🔔 Creating unenrollment notification for student:', student_id);
+      logger.log('🔔 Creating unenrollment notification for student:', student_id);
       
       // Get class and professor information for the notification
-      console.log('🔍 Fetching class info for classId:', classId);
+      logger.log('🔍 Fetching class info for classId:', classId);
       const { data: classInfo, error: classError } = await supabase
         .from('classes')
         .select(`
@@ -2435,10 +2438,10 @@ app.post('/api/classes/:classId/unenroll', async (req, res) => {
         .single();
       
       if (classError) {
-        console.error('❌ Error fetching class info:', classError);
-        console.log('❌ Class ID:', classId);
+        logger.error('❌ Error fetching class info:', classError);
+        logger.log('❌ Class ID:', classId);
       } else {
-        console.log('✅ Class info fetched:', classInfo);
+        logger.log('✅ Class info fetched:', classInfo);
       }
       
       if (!classError && classInfo) {
@@ -2466,13 +2469,13 @@ app.post('/api/classes/:classId/unenroll', async (req, res) => {
           .insert(notificationData);
         
         if (notificationError) {
-          console.error('❌ Error creating unenrollment notification:', notificationError);
+          logger.error('❌ Error creating unenrollment notification:', notificationError);
         } else {
-          console.log('✅ Unenrollment notification created successfully');
+          logger.log('✅ Unenrollment notification created successfully');
         }
       }
     } catch (notificationErr) {
-      console.error('❌ Error in unenrollment notification creation:', notificationErr);
+      logger.error('❌ Error in unenrollment notification creation:', notificationErr);
     }
     
     res.json({
@@ -2481,7 +2484,7 @@ app.post('/api/classes/:classId/unenroll', async (req, res) => {
       data: data[0]
     });
   } catch (error) {
-    console.error('❌ Error in /api/classes/:classId/unenroll:', error);
+    logger.error('❌ Error in /api/classes/:classId/unenroll:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error: ' + error.message
@@ -2495,7 +2498,7 @@ app.post('/api/classes/:classId/unenroll', async (req, res) => {
 
 const notifyStudentsSessionActivated = async (sessionId) => {
   try {
-    console.log('📢 Notifying students about session activation:', sessionId);
+    logger.log('📢 Notifying students about session activation:', sessionId);
     
     // Get session details with class information
     const { data: session, error: sessionError } = await supabase
@@ -2517,7 +2520,7 @@ const notifyStudentsSessionActivated = async (sessionId) => {
       .single();
     
     if (sessionError || !session) {
-      console.error('❌ Error fetching session details:', sessionError);
+      logger.error('❌ Error fetching session details:', sessionError);
       return;
     }
     
@@ -2532,12 +2535,12 @@ const notifyStudentsSessionActivated = async (sessionId) => {
       .eq('status', 'active');
     
     if (enrollmentError) {
-      console.error('❌ Error fetching enrollments:', enrollmentError);
+      logger.error('❌ Error fetching enrollments:', enrollmentError);
       return;
     }
     
     if (!enrollments || enrollments.length === 0) {
-      console.log('📢 No enrolled students found for this class');
+      logger.log('📢 No enrolled students found for this class');
       return;
     }
     
@@ -2570,13 +2573,13 @@ const notifyStudentsSessionActivated = async (sessionId) => {
         .insert(notifications);
       
       if (notificationError) {
-        console.error('❌ Error creating session notifications:', notificationError);
+        logger.error('❌ Error creating session notifications:', notificationError);
       } else {
-        console.log(`📢 Session notifications sent to ${notifications.length} students`);
+        logger.log(`📢 Session notifications sent to ${notifications.length} students`);
       }
     }
   } catch (error) {
-    console.error('❌ Error notifying students:', error);
+    logger.error('❌ Error notifying students:', error);
   }
 };
 
@@ -2603,7 +2606,7 @@ app.get('/api/notifications', async (req, res) => {
       .limit(50);
     
     if (error) {
-      console.error('Error fetching notifications:', error);
+      logger.error('Error fetching notifications:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch notifications'
@@ -2617,7 +2620,7 @@ app.get('/api/notifications', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error in notifications API:', error);
+    logger.error('Error in notifications API:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -2644,7 +2647,7 @@ app.get('/api/notifications/unread-count', async (req, res) => {
       .eq('is_read', false);
     
     if (error) {
-      console.error('Error fetching unread count:', error);
+      logger.error('Error fetching unread count:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch unread count'
@@ -2657,7 +2660,7 @@ app.get('/api/notifications/unread-count', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error in unread count API:', error);
+    logger.error('Error in unread count API:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -2679,7 +2682,7 @@ app.patch('/api/notifications/:id/read', async (req, res) => {
       .eq('id', id);
     
     if (error) {
-      console.error('Error marking notification as read:', error);
+      logger.error('Error marking notification as read:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to mark notification as read'
@@ -2692,7 +2695,7 @@ app.patch('/api/notifications/:id/read', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error in mark as read API:', error);
+    logger.error('Error in mark as read API:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -2726,7 +2729,7 @@ app.post('/api/notifications/test', async (req, res) => {
       .single();
     
     if (error) {
-      console.error('Error creating test notification:', error);
+      logger.error('Error creating test notification:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to create test notification'
@@ -2740,7 +2743,7 @@ app.post('/api/notifications/test', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error in test notification API:', error);
+    logger.error('Error in test notification API:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -2755,10 +2758,10 @@ app.post('/api/notifications/test', async (req, res) => {
 const PORT = process.env.PORT || 3001;
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log('🚀 Optimized FSAS Backend Server running on port', PORT);
-  console.log('📊 Health check: http://localhost:' + PORT + '/api/health');
-  console.log('🔗 Supabase connected:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
-  console.log('✨ Features: QR Generation, Attendance Tracking, Real-time Updates, Role-based Access, Enrollment Management');
+  logger.log('🚀 Optimized FSAS Backend Server running on port', PORT);
+  logger.log('📊 Health check: http://localhost:' + PORT + '/api/health');
+  logger.log('🔗 Supabase connected:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+  logger.log('✨ Features: QR Generation, Attendance Tracking, Real-time Updates, Role-based Access, Enrollment Management');
 });
 
 module.exports = { app, server, io, broadcastAttendanceUpdate };

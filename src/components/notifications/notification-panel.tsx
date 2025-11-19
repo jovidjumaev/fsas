@@ -5,6 +5,8 @@ import { Bell, Check, CheckCheck, Trash2, X, ExternalLink } from 'lucide-react';
 import { NotificationService, Notification, NotificationType } from '@/lib/notifications';
 import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
+import { createLogger } from '../../lib/logger';
+const logger = createLogger('notification-panel');
 
 export function NotificationPanel() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -17,12 +19,12 @@ export function NotificationPanel() {
 
   // Load notifications
   useEffect(() => {
-    console.log('🔔 NotificationPanel: useEffect triggered, user:', user ? user.id : 'null');
+    logger.log('🔔 NotificationPanel: useEffect triggered, user:', user ? user.id : 'null');
     if (user) {
       loadNotifications();
       loadUnreadCount();
     } else {
-      console.log('🔔 NotificationPanel: No user found, stopping loading');
+      logger.log('🔔 NotificationPanel: No user found, stopping loading');
       setIsLoading(false);
     }
   }, [user]);
@@ -53,7 +55,7 @@ export function NotificationPanel() {
         NotificationService.unsubscribeFromNotifications(subscription);
       };
     } catch (error) {
-      console.error('Error subscribing to notifications:', error);
+      logger.error('Error subscribing to notifications:', error);
     }
   }, [user]);
 
@@ -80,20 +82,20 @@ export function NotificationPanel() {
 
   const loadNotifications = async () => {
     if (!user) {
-      console.log('🔔 NotificationPanel: No user, skipping load');
+      logger.log('🔔 NotificationPanel: No user, skipping load');
       setIsLoading(false);
       return;
     }
     
-    console.log('🔔 NotificationPanel: Loading notifications for user:', user.id);
+    logger.log('🔔 NotificationPanel: Loading notifications for user:', user.id);
     setIsLoading(true);
     
     try {
       const data = await NotificationService.getUserNotifications(user.id);
-      console.log('🔔 NotificationPanel: Loaded notifications:', data);
+      logger.log('🔔 NotificationPanel: Loaded notifications:', data);
       setNotifications(data);
     } catch (error) {
-      console.error('🔔 NotificationPanel: Error loading notifications:', error);
+      logger.error('🔔 NotificationPanel: Error loading notifications:', error);
     } finally {
       setIsLoading(false);
     }
@@ -101,17 +103,17 @@ export function NotificationPanel() {
 
   const loadUnreadCount = async () => {
     if (!user) {
-      console.log('🔔 NotificationPanel: No user, skipping unread count');
+      logger.log('🔔 NotificationPanel: No user, skipping unread count');
       return;
     }
     
-    console.log('🔔 NotificationPanel: Loading unread count for user:', user.id);
+    logger.log('🔔 NotificationPanel: Loading unread count for user:', user.id);
     try {
       const count = await NotificationService.getUnreadCount(user.id);
-      console.log('🔔 NotificationPanel: Unread count:', count);
+      logger.log('🔔 NotificationPanel: Unread count:', count);
       setUnreadCount(count);
     } catch (error) {
-      console.error('🔔 NotificationPanel: Error loading unread count:', error);
+      logger.error('🔔 NotificationPanel: Error loading unread count:', error);
     }
   };
 

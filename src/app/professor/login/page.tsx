@@ -8,6 +8,8 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/lib/auth-context';
 import { BookOpen, Mail, Lock, ArrowRight, AlertCircle, Zap, Moon, Sun } from 'lucide-react';
+import { createLogger } from '../../../lib/logger';
+const logger = createLogger('page');
 
 export default function ProfessorLogin() {
   const [email, setEmail] = useState('');
@@ -43,8 +45,8 @@ export default function ProfessorLogin() {
     setError('');
 
     try {
-      console.log('👨‍🏫 Professor login attempt:', { email, password: '***' });
-      console.log('AuthContext available:', !!signIn);
+      logger.log('👨‍🏫 Professor login attempt:', { email, password: '***' });
+      logger.log('AuthContext available:', !!signIn);
       
       // Validate input
       if (!email || !password) {
@@ -54,13 +56,13 @@ export default function ProfessorLogin() {
       
       const result = await signIn(email, password, 'professor');
       
-      console.log('SignIn result:', result);
+      logger.log('SignIn result:', result);
       
       if (result.success) {
-        console.log('✅ Professor login successful, redirecting to dashboard');
+        logger.log('✅ Professor login successful, redirecting to dashboard');
         router.push('/professor/dashboard');
       } else {
-        console.error('❌ Professor login failed:', result.error);
+        logger.error('❌ Professor login failed:', result.error);
         if (result.error?.includes('Please sign in as a')) {
           setError('This account is not registered as a professor. Please use the student login page.');
         } else {
@@ -68,7 +70,7 @@ export default function ProfessorLogin() {
         }
       }
     } catch (err) {
-      console.error('❌ Professor login error:', err);
+      logger.error('❌ Professor login error:', err);
       setError('Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);

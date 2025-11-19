@@ -1,3 +1,6 @@
+const { createLogger } = require('./lib/logger');
+const logger = createLogger('Backend');
+
 const crypto = require('crypto');
 const QRCode = require('qrcode');
 
@@ -67,7 +70,7 @@ class QRCodeGenerator {
         secret: qrCodeSecret
       };
     } catch (error) {
-      console.error('❌ Error generating QR code:', error);
+      logger.error('❌ Error generating QR code:', error);
       throw error;
     }
   }
@@ -154,7 +157,7 @@ class QRCodeGenerator {
         timestamp: qrData.timestamp
       };
     } catch (error) {
-      console.error('❌ Error validating QR code:', error);
+      logger.error('❌ Error validating QR code:', error);
       return {
         isValid: false,
         error: 'Invalid QR code format'

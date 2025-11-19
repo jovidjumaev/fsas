@@ -4,6 +4,8 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, X } from 'lucide-react';
+import { createLogger } from '../../lib/logger';
+const logger = createLogger('confirmation-dialog');
 
 interface ConfirmationDialogProps {
   isOpen: boolean;
@@ -29,8 +31,8 @@ export function ConfirmationDialog({
   if (!isOpen) return null;
 
   const handleConfirm = () => {
-    console.log('✅ Confirmation dialog confirm button clicked');
-    console.log('✅ Current URL before confirm:', window.location.href);
+    logger.log('✅ Confirmation dialog confirm button clicked');
+    logger.log('✅ Current URL before confirm:', window.location.href);
     onConfirm();
     onClose();
   };

@@ -13,6 +13,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import ProfessorHeader from '@/components/professor/professor-header';
+import { createLogger } from '../../../../lib/logger';
+const logger = createLogger('page');
 
 interface SessionData {
   id: string;
@@ -98,7 +100,7 @@ function SessionDetailsContent() {
       const data = await response.json();
       setSession(data.session);
     } catch (error) {
-      console.error('Error fetching session details:', error);
+      logger.error('Error fetching session details:', error);
       setSession(null);
     } finally {
       setIsLoading(false);
@@ -116,7 +118,7 @@ function SessionDetailsContent() {
       const data = await response.json();
       setAttendance(data.data || []);
     } catch (error) {
-      console.error('Error fetching attendance:', error);
+      logger.error('Error fetching attendance:', error);
       setAttendance([]);
     }
   }, [sessionId]);
@@ -132,7 +134,7 @@ function SessionDetailsContent() {
       const data = await response.json();
       setEnrolledStudents(data.data || []);
     } catch (error) {
-      console.error('Error fetching enrolled students:', error);
+      logger.error('Error fetching enrolled students:', error);
       setEnrolledStudents([]);
     }
   }, [session?.class_instance_id]);
@@ -154,7 +156,7 @@ function SessionDetailsContent() {
       await fetchSessionDetails();
       await fetchAttendance();
     } catch (error) {
-      console.error('Error activating session:', error);
+      logger.error('Error activating session:', error);
       alert('Failed to activate session. Please try again.');
     } finally {
       setIsActionLoading(false);
@@ -175,7 +177,7 @@ function SessionDetailsContent() {
       await fetchSessionDetails();
       await fetchAttendance();
     } catch (error) {
-      console.error('Error completing session:', error);
+      logger.error('Error completing session:', error);
       alert('Failed to complete session. Please try again.');
     } finally {
       setIsActionLoading(false);
@@ -197,7 +199,7 @@ function SessionDetailsContent() {
       
       await fetchSessionDetails();
     } catch (error) {
-      console.error('Error cancelling session:', error);
+      logger.error('Error cancelling session:', error);
       alert('Failed to cancel session. Please try again.');
     } finally {
       setIsActionLoading(false);
@@ -242,7 +244,7 @@ function SessionDetailsContent() {
       await fetchAttendance();
       setEditingStudent(null);
     } catch (error) {
-      console.error('Error updating attendance status:', error);
+      logger.error('Error updating attendance status:', error);
       alert('Failed to update attendance status. Please try again.');
     }
   };

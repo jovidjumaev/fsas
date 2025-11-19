@@ -14,6 +14,8 @@ import PasswordChangeModal from '@/components/profile/password-change-modal';
 import { ClassCard } from '@/components/student/class-card';
 import { useStudentClasses } from '@/hooks/use-student-classes';
 import { supabase } from '@/lib/supabase';
+import { createLogger } from '../../../lib/logger';
+const logger = createLogger('page');
 import { 
   GraduationCap,
   Calendar,
@@ -91,7 +93,7 @@ function StudentClassesContent() {
       
       setUserProfile(data);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      logger.error('Error fetching user profile:', error);
     }
   };
 
@@ -99,8 +101,8 @@ function StudentClassesContent() {
     if (!user) return;
     
     try {
-      console.log('Attempting to save profile data:', profileData);
-      console.log('User ID:', user.id);
+      logger.log('Attempting to save profile data:', profileData);
+      logger.log('User ID:', user.id);
       
       // Separate data for users table (only basic fields that exist)
       const usersTableData = {
@@ -125,7 +127,7 @@ function StudentClassesContent() {
         .eq('id', user.id);
       
       if (usersError) {
-        console.error('Error updating users table:', usersError);
+        logger.error('Error updating users table:', usersError);
         throw new Error(`Failed to save profile: ${usersError.message}`);
       }
       
@@ -137,14 +139,14 @@ function StudentClassesContent() {
       // });
       // 
       // if (authError) {
-      //   console.warn('Warning: Could not update auth metadata:', authError.message);
+      //   logger.warn('Warning: Could not update auth metadata:', authError.message);
       //   // Don't throw error here, as the main update succeeded
       // }
       
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, ...profileData }));
     } catch (error) {
-      console.error('Error saving profile:', error);
+      logger.error('Error saving profile:', error);
       throw error;
     }
   };
@@ -157,7 +159,7 @@ function StudentClassesContent() {
       
       if (error) throw error;
     } catch (error) {
-      console.error('Error changing password:', error);
+      logger.error('Error changing password:', error);
       throw error;
     }
   };
@@ -192,7 +194,7 @@ function StudentClassesContent() {
       
       setUserProfile((prev: any) => ({ ...prev, avatar_url: publicUrl }));
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      logger.error('Error uploading avatar:', error);
       throw error;
     }
   };
@@ -210,7 +212,7 @@ function StudentClassesContent() {
             .remove([`avatars/${fileName}`]);
           
           if (deleteError) {
-            console.warn('Error deleting avatar from storage:', deleteError);
+            logger.warn('Error deleting avatar from storage:', deleteError);
           }
         }
       }
@@ -225,7 +227,7 @@ function StudentClassesContent() {
       
       setUserProfile((prev: any) => ({ ...prev, avatar_url: null }));
     } catch (error) {
-      console.error('Error deleting avatar:', error);
+      logger.error('Error deleting avatar:', error);
       throw error;
     }
   };

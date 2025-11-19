@@ -11,6 +11,8 @@ import { EmailConfirmationModal } from '@/components/email-confirmation-modal';
 import { BookOpen, Mail, Lock, User, Hash, Building2, Phone, ArrowRight, AlertCircle, Moon, Sun } from 'lucide-react';
 import { PasswordInputWithStrength } from '@/components/ui/password-strength-indicator';
 import { ErrorDisplay } from '@/components/ui/error-display';
+import { createLogger } from '../../../lib/logger';
+const logger = createLogger('page');
 
 export default function ProfessorRegisterPage() {
   const [formData, setFormData] = useState({
@@ -93,11 +95,11 @@ export default function ProfessorRegisterPage() {
       );
 
       if (result.success) {
-        console.log('✅ Professor registration successful');
+        logger.log('✅ Professor registration successful');
         
         // Check if email confirmation is required
         if (result.requiresEmailConfirmation) {
-          console.log('📧 Email confirmation required');
+          logger.log('📧 Email confirmation required');
           setShowEmailModal(true);
           return;
         }
@@ -105,11 +107,11 @@ export default function ProfessorRegisterPage() {
         // Redirect to login if email is already confirmed
         router.push('/professor/login?message=registration_success');
       } else {
-        console.error('❌ Professor registration failed:', result.error);
+        logger.error('❌ Professor registration failed:', result.error);
         setError(result.error || 'Registration failed. Please try again.');
       }
     } catch (err: any) {
-      console.error('❌ Professor registration error:', err);
+      logger.error('❌ Professor registration error:', err);
       
       // Extract specific error message
       let errorMessage = 'Registration failed. Please try again.';

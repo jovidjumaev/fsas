@@ -1,3 +1,6 @@
+const { createLogger } = require('./lib/logger');
+const logger = createLogger('Backend');
+
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const OpenAI = require('openai');
@@ -26,7 +29,7 @@ router.get('/api/students/:studentId/classes/:classId/materials', async (req, re
   try {
     const { studentId, classId } = req.params;
     
-    console.log('📚 Getting materials for student:', studentId, 'class:', classId);
+    logger.log('📚 Getting materials for student:', studentId, 'class:', classId);
     
     // Verify student is enrolled in this class
     const { data: enrollment, error: enrollmentError } = await supabase
@@ -61,7 +64,7 @@ router.get('/api/students/:studentId/classes/:classId/materials', async (req, re
       .order('uploaded_at', { ascending: false });
     
     if (materialsError) {
-      console.error('❌ Error fetching materials:', materialsError);
+      logger.error('❌ Error fetching materials:', materialsError);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch materials'
@@ -74,7 +77,7 @@ router.get('/api/students/:studentId/classes/:classId/materials', async (req, re
     });
     
   } catch (error) {
-    console.error('❌ Materials error:', error);
+    logger.error('❌ Materials error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -91,7 +94,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/chat/session', async (
     const { studentId, classId } = req.params;
     const { sessionName = 'Study Session' } = req.body;
     
-    console.log('💬 Creating chat session for student:', studentId);
+    logger.log('💬 Creating chat session for student:', studentId);
     
     // Verify student enrollment
     const { data: enrollment, error: enrollmentError } = await supabase
@@ -121,7 +124,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/chat/session', async (
       .single();
     
     if (sessionError) {
-      console.error('❌ Error creating session:', sessionError);
+      logger.error('❌ Error creating session:', sessionError);
       return res.status(500).json({
         success: false,
         error: 'Failed to create chat session'
@@ -134,7 +137,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/chat/session', async (
     });
     
   } catch (error) {
-    console.error('❌ Chat session error:', error);
+    logger.error('❌ Chat session error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -151,7 +154,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/chat/message', async (
     const { studentId, classId } = req.params;
     const { sessionId, message } = req.body;
     
-    console.log('💬 Student AI message:', message);
+    logger.log('💬 Student AI message:', message);
     
     // Verify student enrollment
     const { data: enrollment, error: enrollmentError } = await supabase
@@ -204,7 +207,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/chat/message', async (
       .eq('is_processed', true);
     
     if (materialsError) {
-      console.error('❌ Error fetching materials:', materialsError);
+      logger.error('❌ Error fetching materials:', materialsError);
     }
     
     // Get class session IDs first
@@ -214,7 +217,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/chat/message', async (
       .eq('class_instance_id', classId);
     
     if (sessionIdsError) {
-      console.error('❌ Error fetching session IDs:', sessionIdsError);
+      logger.error('❌ Error fetching session IDs:', sessionIdsError);
     }
     
     // Get student's attendance data
@@ -237,7 +240,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/chat/message', async (
         .in('session_id', sessionIdList);
       
       if (attendanceError) {
-        console.error('❌ Error fetching attendance:', attendanceError);
+        logger.error('❌ Error fetching attendance:', attendanceError);
       } else {
         attendanceData = attendanceRecords || [];
       }
@@ -343,7 +346,7 @@ CRITICAL INSTRUCTIONS:
     const aiResponse = completion.choices[0].message.content;
     const tokensUsed = completion.usage?.total_tokens || 0;
     
-    console.log('🤖 AI Response tokens:', tokensUsed);
+    logger.log('🤖 AI Response tokens:', tokensUsed);
     
     // Save user message
     const { data: userMessage, error: userError } = await supabase
@@ -358,7 +361,7 @@ CRITICAL INSTRUCTIONS:
       .single();
     
     if (userError) {
-      console.error('❌ Error saving user message:', userError);
+      logger.error('❌ Error saving user message:', userError);
     }
     
     // Save AI response
@@ -374,7 +377,7 @@ CRITICAL INSTRUCTIONS:
       .single();
     
     if (aiError) {
-      console.error('❌ Error saving AI message:', aiError);
+      logger.error('❌ Error saving AI message:', aiError);
     }
     
     // Update session last activity
@@ -391,8 +394,8 @@ CRITICAL INSTRUCTIONS:
     });
     
   } catch (error) {
-    console.error('❌ Chat message error:', error);
-    console.error('❌ Error details:', {
+    logger.error('❌ Chat message error:', error);
+    logger.error('❌ Error details:', {
       message: error.message,
       stack: error.stack,
       name: error.name
@@ -414,7 +417,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/flashcards/generate', 
     const { studentId, classId } = req.params;
     const { materialId, count = 5 } = req.body;
     
-    console.log('🃏 Generating flashcards for material:', materialId);
+    logger.log('🃏 Generating flashcards for material:', materialId);
     
     // Verify student enrollment
     const { data: enrollment, error: enrollmentError } = await supabase
@@ -495,8 +498,8 @@ Return ONLY a JSON array. No markdown, no code blocks, no explanations. Just the
         throw new Error('No valid flashcards generated');
       }
     } catch (parseError) {
-      console.error('❌ Error parsing AI response:', parseError);
-      console.error('AI Response:', aiResponse);
+      logger.error('❌ Error parsing AI response:', parseError);
+      logger.error('AI Response:', aiResponse);
       return res.status(500).json({
         success: false,
         error: 'Failed to parse flashcard data from AI',
@@ -519,7 +522,7 @@ Return ONLY a JSON array. No markdown, no code blocks, no explanations. Just the
       .select();
     
     if (saveError) {
-      console.error('❌ Error saving flashcards:', saveError);
+      logger.error('❌ Error saving flashcards:', saveError);
       return res.status(500).json({
         success: false,
         error: 'Failed to save flashcards'
@@ -532,7 +535,7 @@ Return ONLY a JSON array. No markdown, no code blocks, no explanations. Just the
     });
     
   } catch (error) {
-    console.error('❌ Flashcard generation error:', error);
+    logger.error('❌ Flashcard generation error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error',
@@ -550,7 +553,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/quiz/generate', async 
     const { studentId, classId } = req.params;
     const { materialId, count = 5 } = req.body;
     
-    console.log('📝 Generating quiz questions for material:', materialId);
+    logger.log('📝 Generating quiz questions for material:', materialId);
     
     // Verify student enrollment
     const { data: enrollment, error: enrollmentError } = await supabase
@@ -635,8 +638,8 @@ IMPORTANT: Return ONLY valid JSON array format, no markdown code blocks. Example
         throw new Error('No valid quiz questions generated');
       }
     } catch (parseError) {
-      console.error('❌ Error parsing AI response:', parseError);
-      console.error('AI Response:', aiResponse);
+      logger.error('❌ Error parsing AI response:', parseError);
+      logger.error('AI Response:', aiResponse);
       return res.status(500).json({
         success: false,
         error: 'Failed to parse quiz data from AI',
@@ -658,7 +661,7 @@ IMPORTANT: Return ONLY valid JSON array format, no markdown code blocks. Example
       .single();
     
     if (sessionError) {
-      console.error('❌ Error creating quiz session:', sessionError);
+      logger.error('❌ Error creating quiz session:', sessionError);
       return res.status(500).json({
         success: false,
         error: 'Failed to create quiz session'
@@ -684,7 +687,7 @@ IMPORTANT: Return ONLY valid JSON array format, no markdown code blocks. Example
       .select();
     
     if (saveError) {
-      console.error('❌ Error saving questions:', saveError);
+      logger.error('❌ Error saving questions:', saveError);
       return res.status(500).json({
         success: false,
         error: 'Failed to save quiz questions'
@@ -698,7 +701,7 @@ IMPORTANT: Return ONLY valid JSON array format, no markdown code blocks. Example
     });
     
   } catch (error) {
-    console.error('❌ Quiz generation error:', error);
+    logger.error('❌ Quiz generation error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -742,7 +745,7 @@ router.get('/api/students/:studentId/classes/:classId/ai/flashcards', async (req
       .order('created_at', { ascending: false });
     
     if (flashcardsError) {
-      console.error('❌ Error fetching flashcards:', flashcardsError);
+      logger.error('❌ Error fetching flashcards:', flashcardsError);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch flashcards'
@@ -755,7 +758,7 @@ router.get('/api/students/:studentId/classes/:classId/ai/flashcards', async (req
     });
     
   } catch (error) {
-    console.error('❌ Get flashcards error:', error);
+    logger.error('❌ Get flashcards error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -800,7 +803,7 @@ router.get('/api/students/:studentId/classes/:classId/ai/quiz', async (req, res)
       .order('created_at', { ascending: false });
     
     if (sessionsError) {
-      console.error('❌ Error fetching quiz sessions:', sessionsError);
+      logger.error('❌ Error fetching quiz sessions:', sessionsError);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch quiz sessions'
@@ -813,7 +816,7 @@ router.get('/api/students/:studentId/classes/:classId/ai/quiz', async (req, res)
     });
     
   } catch (error) {
-    console.error('❌ Get quiz error:', error);
+    logger.error('❌ Get quiz error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -830,7 +833,7 @@ router.get('/api/students/:studentId/classes/:classId/ai/quiz/history', async (r
     const { studentId, classId } = req.params;
     const { materialId } = req.query;
 
-    console.log('📊 Getting quiz history for student:', studentId, 'material:', materialId);
+    logger.log('📊 Getting quiz history for student:', studentId, 'material:', materialId);
 
     // Verify student enrollment
     const { data: enrollment, error: enrollmentError } = await supabase
@@ -873,7 +876,7 @@ router.get('/api/students/:studentId/classes/:classId/ai/quiz/history', async (r
     const { data: quizHistory, error: historyError } = await query;
 
     if (historyError) {
-      console.error('❌ Error fetching quiz history:', historyError);
+      logger.error('❌ Error fetching quiz history:', historyError);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch quiz history'
@@ -886,7 +889,7 @@ router.get('/api/students/:studentId/classes/:classId/ai/quiz/history', async (r
     });
 
   } catch (error) {
-    console.error('❌ Get quiz history error:', error);
+    logger.error('❌ Get quiz history error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -902,7 +905,7 @@ router.get('/api/students/:studentId/classes/:classId/ai/quiz/attempt/:attemptId
   try {
     const { studentId, classId, attemptId } = req.params;
 
-    console.log('📋 Getting quiz attempt details:', attemptId);
+    logger.log('📋 Getting quiz attempt details:', attemptId);
 
     // Verify student enrollment
     const { data: enrollment, error: enrollmentError } = await supabase
@@ -937,7 +940,7 @@ router.get('/api/students/:studentId/classes/:classId/ai/quiz/attempt/:attemptId
       .single();
 
     if (sessionError || !session) {
-      console.error('❌ Error fetching quiz session:', sessionError);
+      logger.error('❌ Error fetching quiz session:', sessionError);
       return res.status(404).json({
         success: false,
         error: 'Quiz attempt not found'
@@ -953,7 +956,7 @@ router.get('/api/students/:studentId/classes/:classId/ai/quiz/attempt/:attemptId
       .order('question_order', { ascending: true });
 
     if (questionsError) {
-      console.error('❌ Error fetching questions:', questionsError);
+      logger.error('❌ Error fetching questions:', questionsError);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch quiz questions'
@@ -969,7 +972,7 @@ router.get('/api/students/:studentId/classes/:classId/ai/quiz/attempt/:attemptId
     });
 
   } catch (error) {
-    console.error('❌ Get quiz attempt details error:', error);
+    logger.error('❌ Get quiz attempt details error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -986,7 +989,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/quiz/submit', async (r
     const { studentId, classId } = req.params;
     const { quizSessionId, answers } = req.body;
     
-    console.log('📝 Submitting quiz answers for session:', quizSessionId);
+    logger.log('📝 Submitting quiz answers for session:', quizSessionId);
     
     // Verify student enrollment
     const { data: enrollment, error: enrollmentError } = await supabase
@@ -1066,7 +1069,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/quiz/submit', async (r
       .single();
     
     if (sessionError) {
-      console.error('❌ Error updating quiz session:', sessionError);
+      logger.error('❌ Error updating quiz session:', sessionError);
       return res.status(500).json({
         success: false,
         error: 'Failed to update quiz session'
@@ -1083,7 +1086,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/quiz/submit', async (r
     });
     
   } catch (error) {
-    console.error('❌ Quiz submission error:', error);
+    logger.error('❌ Quiz submission error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -1100,7 +1103,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/materials/reprocess', 
     const { studentId, classId } = req.params;
     const { materialId } = req.body;
     
-    console.log('🔄 Re-processing material:', materialId);
+    logger.log('🔄 Re-processing material:', materialId);
     
     // Verify student enrollment
     const { data: enrollment, error: enrollmentError } = await supabase
@@ -1146,7 +1149,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/materials/reprocess', 
     if (material.file_url) {
       const urlParts = material.file_url.split('/');
       actualFileName = urlParts[urlParts.length - 1];
-      console.log('📄 Using filename from URL:', actualFileName);
+      logger.log('📄 Using filename from URL:', actualFileName);
     }
     
     // Download the file from storage
@@ -1155,7 +1158,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/materials/reprocess', 
       .download(actualFileName);
     
     if (downloadError) {
-      console.error('❌ Error downloading file:', downloadError);
+      logger.error('❌ Error downloading file:', downloadError);
       return res.status(500).json({
         success: false,
         error: 'Failed to download file for processing'
@@ -1192,9 +1195,9 @@ router.post('/api/students/:studentId/classes/:classId/ai/materials/reprocess', 
       // Clean up temporary file
       fs.unlinkSync(tempPath);
       
-      console.log('✅ PowerPoint text re-extracted:', extractedText.length, 'characters');
+      logger.log('✅ PowerPoint text re-extracted:', extractedText.length, 'characters');
     } catch (pptxError) {
-      console.error('❌ PowerPoint re-extraction error:', pptxError);
+      logger.error('❌ PowerPoint re-extraction error:', pptxError);
       extractedText = `PowerPoint presentation: ${material.file_name}\n\nThis PowerPoint file has been uploaded successfully. Text extraction from slides encountered an error, but the AI assistant can still help with general questions about the presentation.`;
     }
     
@@ -1211,7 +1214,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/materials/reprocess', 
       .single();
     
     if (updateError) {
-      console.error('❌ Error updating material:', updateError);
+      logger.error('❌ Error updating material:', updateError);
       return res.status(500).json({
         success: false,
         error: 'Failed to update material with extracted text'
@@ -1226,7 +1229,7 @@ router.post('/api/students/:studentId/classes/:classId/ai/materials/reprocess', 
     });
     
   } catch (error) {
-    console.error('❌ Re-process material error:', error);
+    logger.error('❌ Re-process material error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'

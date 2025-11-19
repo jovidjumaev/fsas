@@ -8,6 +8,8 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useAuth } from '@/lib/auth-context';
+import { createLogger } from '../../lib/logger';
+const logger = createLogger('page');
 
 function ResetPasswordForm() {
   const [password, setPassword] = useState('');
@@ -40,7 +42,7 @@ function ResetPasswordForm() {
   
   // Debug: Check if we're getting tokens from Supabase redirect
   if (typeof window !== 'undefined') {
-    console.log('🔐 ResetPassword: Token extraction debug:', {
+    logger.log('🔐 ResetPassword: Token extraction debug:', {
       searchParams: window.location.search,
       hash: window.location.hash,
       hashLength: window.location.hash.length,
@@ -59,7 +61,7 @@ function ResetPasswordForm() {
   
   // Check if this is a direct access (no tokens) vs Supabase redirect
   if (typeof window !== 'undefined' && !token && !hashError && window.location.hash === '') {
-    console.log('🔐 ResetPassword: Direct access detected - no tokens or errors in URL');
+    logger.log('🔐 ResetPassword: Direct access detected - no tokens or errors in URL');
   }
   
   const type = searchParams.get('type');
@@ -94,13 +96,13 @@ function ResetPasswordForm() {
   // Add error boundary for debugging
   if (typeof window !== 'undefined') {
     window.addEventListener('error', (e) => {
-      console.error('🔐 ResetPassword: Global error caught:', e.error);
+      logger.error('🔐 ResetPassword: Global error caught:', e.error);
     });
   }
 
   // Debug: Log all URL parameters
   if (typeof window !== 'undefined') {
-    console.log('🔐 ResetPassword: All URL parameters:', {
+    logger.log('🔐 ResetPassword: All URL parameters:', {
       search: window.location.search,
       hash: window.location.hash,
       pathname: window.location.pathname,
@@ -112,7 +114,7 @@ function ResetPasswordForm() {
   }
   
   if (hashError) {
-    console.log('🔐 ResetPassword: Error detected in URL hash:', {
+    logger.log('🔐 ResetPassword: Error detected in URL hash:', {
       hashError,
       errorCode,
       errorDescription
@@ -126,14 +128,14 @@ function ResetPasswordForm() {
     !token;
   
   if (isSupabaseRedirectWithoutTokens) {
-    console.log('🔐 ResetPassword: Supabase redirect detected but no tokens in URL hash');
-    console.log('🔐 ResetPassword: This indicates a Supabase configuration issue');
-    console.log('🔐 ResetPassword: Site URL and Redirect URLs need to be configured in Supabase dashboard');
+    logger.log('🔐 ResetPassword: Supabase redirect detected but no tokens in URL hash');
+    logger.log('🔐 ResetPassword: This indicates a Supabase configuration issue');
+    logger.log('🔐 ResetPassword: Site URL and Redirect URLs need to be configured in Supabase dashboard');
   }
 
   useEffect(() => {
-    console.log('🔐 ResetPassword: useEffect triggered');
-    console.log('🔐 ResetPassword: Current state:', {
+    logger.log('🔐 ResetPassword: useEffect triggered');
+    logger.log('🔐 ResetPassword: Current state:', {
       isValidating,
       validationError,
       token: token ? 'exists' : 'missing',
@@ -147,7 +149,7 @@ function ResetPasswordForm() {
 
     // Prevent multiple executions if already processed
     if (!isValidating && validationError) {
-      console.log('🔐 ResetPassword: Already processed, skipping');
+      logger.log('🔐 ResetPassword: Already processed, skipping');
       return;
     }
 
@@ -155,7 +157,7 @@ function ResetPasswordForm() {
     const timeoutId = setTimeout(() => {
       // Check for error in URL hash first
       if (hashError) {
-        console.log('🔐 ResetPassword: Error detected, showing error message');
+        logger.log('🔐 ResetPassword: Error detected, showing error message');
         let errorMessage = 'Invalid reset link. Please request a new password reset.';
         
         if (errorCode === 'otp_expired') {
@@ -171,16 +173,16 @@ function ResetPasswordForm() {
 
       // For OTP flow, we don't need a token - just check for valid type
       if (!token && type && (type === 'student' || type === 'professor')) {
-        console.log('🔐 ResetPassword: OTP flow detected - no token needed');
+        logger.log('🔐 ResetPassword: OTP flow detected - no token needed');
         setSelectedType(type);
         setIsValidating(false);
         return;
       }
 
       if (!token) {
-        console.log('🔐 ResetPassword: Missing token, showing error');
-        console.log('🔐 ResetPassword: This usually means Supabase did not redirect with tokens');
-        console.log('🔐 ResetPassword: Check Supabase Site URL and email template configuration');
+        logger.log('🔐 ResetPassword: Missing token, showing error');
+        logger.log('🔐 ResetPassword: This usually means Supabase did not redirect with tokens');
+        logger.log('🔐 ResetPassword: Check Supabase Site URL and email template configuration');
         
         // Check if this is direct access
         const isDirectAccess = typeof window !== 'undefined' && !hashError && window.location.hash === '';
@@ -194,18 +196,18 @@ function ResetPasswordForm() {
         
         setValidationError(errorMessage);
         setIsValidating(false);
-        console.log('🔐 ResetPassword: Error state set, isValidating set to false');
+        logger.log('🔐 ResetPassword: Error state set, isValidating set to false');
         return;
       }
 
       if (!type) {
-        console.log('🔐 ResetPassword: Missing type parameter, will show type selection');
+        logger.log('🔐 ResetPassword: Missing type parameter, will show type selection');
         // Show type selection since Supabase doesn't preserve our custom parameters
         setIsValidating(false);
         return;
       }
 
-      console.log('🔐 ResetPassword: All checks passed, calling validateResetToken');
+      logger.log('🔐 ResetPassword: All checks passed, calling validateResetToken');
       // Validate the reset token
       validateResetToken();
     }, 100); // Small delay to prevent flash
@@ -217,7 +219,7 @@ function ResetPasswordForm() {
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (isValidating) {
-        console.log('🔐 ResetPassword: Timeout reached, forcing validation to complete');
+        logger.log('🔐 ResetPassword: Timeout reached, forcing validation to complete');
         setIsValidating(false);
         if (!validationError) {
           setValidationError('Invalid reset link. Please request a new password reset.');
@@ -230,16 +232,16 @@ function ResetPasswordForm() {
 
   const validateResetToken = async () => {
     try {
-      console.log('🔐 ResetPassword: Starting token validation...');
+      logger.log('🔐 ResetPassword: Starting token validation...');
       // For Supabase password reset, we don't need to validate the token via API
       // The token will be validated when we try to update the password
-      console.log('🔐 ResetPassword: Token validation skipped - will validate during password update');
-      console.log('🔐 ResetPassword: Token exists:', !!token, 'Type:', type);
-      console.log('🔐 ResetPassword: Setting isValidating to false');
+      logger.log('🔐 ResetPassword: Token validation skipped - will validate during password update');
+      logger.log('🔐 ResetPassword: Token exists:', !!token, 'Type:', type);
+      logger.log('🔐 ResetPassword: Setting isValidating to false');
       setIsValidating(false);
-      console.log('🔐 ResetPassword: Token validation complete');
+      logger.log('🔐 ResetPassword: Token validation complete');
     } catch (err) {
-      console.error('Token validation error:', err);
+      logger.error('Token validation error:', err);
       setValidationError('Failed to validate reset link. Please try again.');
       setIsValidating(false);
     }
@@ -275,7 +277,7 @@ function ResetPasswordForm() {
         setError(result.error || 'Failed to reset password. Please try again.');
       }
     } catch (err) {
-      console.error('Password reset error:', err);
+      logger.error('Password reset error:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);

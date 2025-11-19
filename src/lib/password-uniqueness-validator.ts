@@ -5,6 +5,8 @@
 
 import { supabase, supabaseAdmin } from './supabase';
 import { createHash } from 'crypto';
+import { createLogger } from './logger';
+const logger = createLogger('password-uniqueness-validator');
 
 export interface PasswordUniquenessResult {
   isUnique: boolean;
@@ -25,8 +27,8 @@ function hashPasswordForUniqueness(password: string): string {
  */
 export async function validatePasswordUniqueness(password: string): Promise<PasswordUniquenessResult> {
   try {
-    console.log('🔐 ===== PASSWORD UNIQUENESS VALIDATION START =====');
-    console.log('🔐 Password to validate:', password);
+    logger.log('🔐 ===== PASSWORD UNIQUENESS VALIDATION START =====');
+    logger.log('🔐 Password to validate:', password);
     
     // First check against common passwords
     const commonPasswords = [
@@ -41,7 +43,7 @@ export async function validatePasswordUniqueness(password: string): Promise<Pass
 
     const lowerPassword = password.toLowerCase();
     if (commonPasswords.includes(lowerPassword) || commonPasswords.includes(password)) {
-      console.log('❌ Password is too common and likely already in use');
+      logger.log('❌ Password is too common and likely already in use');
       return {
         isUnique: false,
         error: 'This password is too common and likely already in use. Please choose a more unique password.'
@@ -54,7 +56,7 @@ export async function validatePasswordUniqueness(password: string): Promise<Pass
         !/[a-z]/.test(password) || 
         !/\d/.test(password) ||
         !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      console.log('❌ Password is too simple and likely already in use');
+      logger.log('❌ Password is too simple and likely already in use');
       return {
         isUnique: false,
         error: 'This password is too simple and likely already in use. Please create a stronger, more unique password.'
@@ -72,7 +74,7 @@ export async function validatePasswordUniqueness(password: string): Promise<Pass
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-      console.error('❌ Error checking password uniqueness in database:', error);
+      logger.error('❌ Error checking password uniqueness in database:', error);
       return {
         isUnique: false, // BLOCK registration if we can't check database
         error: 'Unable to verify password uniqueness. Please try again or contact support.'
@@ -80,19 +82,19 @@ export async function validatePasswordUniqueness(password: string): Promise<Pass
     }
 
     if (existingPassword) {
-      console.log('❌ Password already exists in system');
+      logger.log('❌ Password already exists in system');
       return {
         isUnique: false,
         error: 'This password is already in use by another user. Please choose a different password.'
       };
     }
 
-    console.log('✅ Password is unique');
-    console.log('🔐 ===== PASSWORD UNIQUENESS VALIDATION END =====');
+    logger.log('✅ Password is unique');
+    logger.log('🔐 ===== PASSWORD UNIQUENESS VALIDATION END =====');
     return { isUnique: true };
 
   } catch (error) {
-    console.error('❌ Error in password uniqueness validation:', error);
+    logger.error('❌ Error in password uniqueness validation:', error);
     return {
       isUnique: false, // BLOCK registration if we can't check
       error: 'Unable to verify password uniqueness. Please try again or contact support.'
@@ -106,7 +108,7 @@ export async function validatePasswordUniqueness(password: string): Promise<Pass
  */
 export async function recordPasswordHash(userId: string, password: string): Promise<boolean> {
   try {
-    console.log('📝 Recording password hash for user:', userId);
+    logger.log('📝 Recording password hash for user:', userId);
     
     const passwordHash = hashPasswordForUniqueness(password);
     
@@ -118,14 +120,14 @@ export async function recordPasswordHash(userId: string, password: string): Prom
       });
 
     if (error) {
-      console.error('❌ Error recording password hash:', error);
+      logger.error('❌ Error recording password hash:', error);
       return false;
     }
 
-    console.log('✅ Password hash recorded successfully');
+    logger.log('✅ Password hash recorded successfully');
     return true;
   } catch (error) {
-    console.error('❌ Error in recordPasswordHash:', error);
+    logger.error('❌ Error in recordPasswordHash:', error);
     return false;
   }
 }

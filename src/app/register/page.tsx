@@ -8,6 +8,8 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/lib/auth-context';
 import { EmailConfirmationModal } from '@/components/email-confirmation-modal';
+import { createLogger } from '../../lib/logger';
+const logger = createLogger('page');
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -49,8 +51,8 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted with data:', formData);
-    console.log('Form validation starting...');
+    logger.log('Form submitted with data:', formData);
+    logger.log('Form validation starting...');
     setIsLoading(true);
     setError('');
 
@@ -82,16 +84,16 @@ export default function RegisterPage() {
     }
 
     try {
-      console.log('Calling signUp with:', { email: formData.email, role: formData.role, additionalData: formData });
+      logger.log('Calling signUp with:', { email: formData.email, role: formData.role, additionalData: formData });
       const result = await signUp(formData.email, formData.password, formData.role, formData);
-      console.log('SignUp result:', result);
+      logger.log('SignUp result:', result);
       
       if (result.success) {
-        console.log('Registration successful');
+        logger.log('Registration successful');
         
         // Check if email confirmation is required
         if (result.requiresEmailConfirmation) {
-          console.log('Email confirmation required');
+          logger.log('Email confirmation required');
           setShowEmailModal(true);
           return;
         }
@@ -103,11 +105,11 @@ export default function RegisterPage() {
           router.push('/professor/dashboard');
         }
       } else {
-        console.error('Registration failed:', result.error);
+        logger.error('Registration failed:', result.error);
         setError(result.error || 'Registration failed. Please try again.');
       }
     } catch (err: any) {
-      console.error('Registration error:', err);
+      logger.error('Registration error:', err);
       
       // Extract specific error message
       let errorMessage = 'Registration failed. Please try again.';

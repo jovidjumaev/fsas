@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { createLogger } from '../lib/logger';
+const logger = createLogger('protected-route');
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -28,17 +30,17 @@ export default function ProtectedRoute({
 
     if (!loading) {
       if (!user) {
-        console.log('🔒 ProtectedRoute: No user, redirecting to:', redirectTo);
+        logger.log('🔒 ProtectedRoute: No user, redirecting to:', redirectTo);
         router.push(redirectTo);
         return;
       }
 
       if (requiredRole && userRole !== requiredRole) {
-        console.log('🔒 ProtectedRoute: Wrong role. Required:', requiredRole, 'Current:', userRole);
+        logger.log('🔒 ProtectedRoute: Wrong role. Required:', requiredRole, 'Current:', userRole);
         
         // Add a small delay before redirect to allow for role fetch retries
         const timeout = setTimeout(() => {
-          console.log('🔒 ProtectedRoute: Redirecting after delay to:', redirectTo);
+          logger.log('🔒 ProtectedRoute: Redirecting after delay to:', redirectTo);
           router.push(redirectTo);
         }, 2000); // 2 second delay
         

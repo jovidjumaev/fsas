@@ -14,6 +14,8 @@ import PasswordChangeModal from '@/components/profile/password-change-modal';
 import { supabase } from '@/lib/supabase';
 import { useStudentAttendance } from '@/hooks/use-student-attendance';
 import { ExportUtils } from '@/lib/export-utils';
+import { createLogger } from '../../../lib/logger';
+const logger = createLogger('page');
 import { 
   GraduationCap,
   QrCode, 
@@ -141,7 +143,7 @@ function StudentAttendanceContent() {
       
       setUserProfile(data);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      logger.error('Error fetching user profile:', error);
     }
   };
 
@@ -149,8 +151,8 @@ function StudentAttendanceContent() {
     if (!user) return;
     
     try {
-      console.log('Attempting to save profile data:', profileData);
-      console.log('User ID:', user.id);
+      logger.log('Attempting to save profile data:', profileData);
+      logger.log('User ID:', user.id);
       
       // Separate data for users table (only basic fields that exist)
       const usersTableData = {
@@ -175,7 +177,7 @@ function StudentAttendanceContent() {
         .eq('id', user.id);
       
       if (usersError) {
-        console.error('Error updating users table:', usersError);
+        logger.error('Error updating users table:', usersError);
         throw new Error(`Failed to save profile: ${usersError.message}`);
       }
       
@@ -187,14 +189,14 @@ function StudentAttendanceContent() {
       // });
       // 
       // if (authError) {
-      //   console.warn('Warning: Could not update auth metadata:', authError.message);
+      //   logger.warn('Warning: Could not update auth metadata:', authError.message);
       //   // Don't throw error here, as the main update succeeded
       // }
       
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, ...profileData }));
     } catch (error) {
-      console.error('Error saving profile:', error);
+      logger.error('Error saving profile:', error);
       throw error;
     }
   };
@@ -207,19 +209,19 @@ function StudentAttendanceContent() {
       
       if (error) throw error;
     } catch (error) {
-      console.error('Error changing password:', error);
+      logger.error('Error changing password:', error);
       throw error;
     }
   };
 
   const handleAvatarUpload = async (file: File) => {
     if (!user) {
-      console.error('No user found for avatar upload');
+      logger.error('No user found for avatar upload');
       throw new Error('User not authenticated');
     }
     
     try {
-      console.log('Starting avatar upload for user:', user.id);
+      logger.log('Starting avatar upload for user:', user.id);
       
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -238,7 +240,7 @@ function StudentAttendanceContent() {
       const fileName = `${user.id}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
       
-      console.log('Uploading file to path:', filePath);
+      logger.log('Uploading file to path:', filePath);
       
       // Upload file to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -249,18 +251,18 @@ function StudentAttendanceContent() {
         });
       
       if (uploadError) {
-        console.error('Storage upload error:', uploadError);
+        logger.error('Storage upload error:', uploadError);
         throw new Error(`Failed to upload file: ${uploadError.message}`);
       }
       
-      console.log('File uploaded successfully:', uploadData);
+      logger.log('File uploaded successfully:', uploadData);
       
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
       
-      console.log('Public URL generated:', publicUrl);
+      logger.log('Public URL generated:', publicUrl);
       
       // Update user profile with avatar URL
       const { data: updateData, error: updateError } = await supabase
@@ -273,30 +275,30 @@ function StudentAttendanceContent() {
         .select();
       
       if (updateError) {
-        console.error('Database update error:', updateError);
+        logger.error('Database update error:', updateError);
         throw new Error(`Failed to update profile: ${updateError.message}`);
       }
       
-      console.log('Profile updated successfully:', updateData);
+      logger.log('Profile updated successfully:', updateData);
       
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, avatar_url: publicUrl }));
       
-      console.log('Avatar upload completed successfully');
+      logger.log('Avatar upload completed successfully');
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      logger.error('Error uploading avatar:', error);
       throw error;
     }
   };
 
   const handleDeleteAvatar = async () => {
     if (!user) {
-      console.error('No user found for avatar deletion');
+      logger.error('No user found for avatar deletion');
       throw new Error('User not authenticated');
     }
     
     try {
-      console.log('Starting avatar deletion for user:', user.id);
+      logger.log('Starting avatar deletion for user:', user.id);
       
       // Remove avatar from storage if it exists
       if (userProfile?.avatar_url) {
@@ -307,9 +309,9 @@ function StudentAttendanceContent() {
             .remove([`avatars/${fileName}`]);
           
           if (deleteError) {
-            console.warn('Error deleting avatar from storage:', deleteError);
+            logger.warn('Error deleting avatar from storage:', deleteError);
           } else {
-            console.log('Avatar deleted from storage successfully');
+            logger.log('Avatar deleted from storage successfully');
           }
         }
       }
@@ -325,18 +327,18 @@ function StudentAttendanceContent() {
         .select();
       
       if (updateError) {
-        console.error('Database update error:', updateError);
+        logger.error('Database update error:', updateError);
         throw new Error(`Failed to update profile: ${updateError.message}`);
       }
       
-      console.log('Profile updated successfully:', updateData);
+      logger.log('Profile updated successfully:', updateData);
       
       // Update local state
       setUserProfile((prev: any) => ({ ...prev, avatar_url: null }));
       
-      console.log('Avatar deletion completed successfully');
+      logger.log('Avatar deletion completed successfully');
     } catch (error) {
-      console.error('Error deleting avatar:', error);
+      logger.error('Error deleting avatar:', error);
       throw error;
     }
   };

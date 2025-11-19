@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { createLogger } from '../../lib/logger';
+const logger = createLogger('ai-assistant');
 import {
   MessageCircle,
   BookOpen,
@@ -67,7 +69,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
   const [masteryData, setMasteryData] = useState<{ [materialId: string]: any[] }>({});
   const [timelineFilter, setTimelineFilter] = useState<string>('all'); // Filter for timeline chart
 
-  console.log('🎓 StudentAIAssistant component rendered for class:', classId, 'student:', studentId);
+  logger.log('🎓 StudentAIAssistant component rendered for class:', classId, 'student:', studentId);
 
   // Load materials on component mount
   useEffect(() => {
@@ -85,12 +87,12 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
   const loadMaterials = async () => {
     try {
       setIsLoading(true);
-      console.log('📚 Loading materials for class:', classId);
+      logger.log('📚 Loading materials for class:', classId);
       
       const response = await fetch(`/api/students/${studentId}/classes/${classId}/materials`);
       const data = await response.json();
       
-      console.log('📚 Materials response:', data);
+      logger.log('📚 Materials response:', data);
       
       if (data.success) {
         setMaterials(data.materials);
@@ -98,10 +100,10 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
           setSelectedMaterial(data.materials[0].id);
         }
       } else {
-        console.error('❌ Failed to load materials:', data.error);
+        logger.error('❌ Failed to load materials:', data.error);
       }
     } catch (error) {
-      console.error('❌ Error loading materials:', error);
+      logger.error('❌ Error loading materials:', error);
     } finally {
       setIsLoading(false);
     }
@@ -109,7 +111,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
 
   const createChatSession = async () => {
     try {
-      console.log('💬 Creating chat session for class:', classId);
+      logger.log('💬 Creating chat session for class:', classId);
       
       const response = await fetch(`/api/students/${studentId}/classes/${classId}/ai/chat/session`, {
         method: 'POST',
@@ -125,12 +127,12 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
       
       if (data.success) {
         setChatSessionId(data.session.id);
-        console.log('💬 Chat session created:', data.session.id);
+        logger.log('💬 Chat session created:', data.session.id);
       } else {
-        console.error('❌ Failed to create chat session:', data.error);
+        logger.error('❌ Failed to create chat session:', data.error);
       }
     } catch (error) {
-      console.error('❌ Error creating chat session:', error);
+      logger.error('❌ Error creating chat session:', error);
     }
   };
 
@@ -151,7 +153,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
     setMessages(prev => [...prev, newUserMessage]);
 
     try {
-      console.log('💬 Sending message to AI:', userMessage);
+      logger.log('💬 Sending message to AI:', userMessage);
       
       const response = await fetch(`/api/students/${studentId}/classes/${classId}/ai/chat/message`, {
         method: 'POST',
@@ -174,9 +176,9 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
           timestamp: new Date().toISOString()
         };
         setMessages(prev => [...prev, aiMessage]);
-        console.log('🤖 AI Response received, tokens used:', data.tokens_used);
+        logger.log('🤖 AI Response received, tokens used:', data.tokens_used);
       } else {
-        console.error('❌ Failed to get AI response:', data.error);
+        logger.error('❌ Failed to get AI response:', data.error);
         const errorMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
@@ -186,7 +188,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
         setMessages(prev => [...prev, errorMessage]);
       }
     } catch (error) {
-      console.error('❌ Error sending message:', error);
+      logger.error('❌ Error sending message:', error);
       const errorMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -219,9 +221,9 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      console.log('📥 Downloading material:', material.file_name);
+      logger.log('📥 Downloading material:', material.file_name);
     } else {
-      console.error('❌ Material or file URL not available');
+      logger.error('❌ Material or file URL not available');
     }
   };
 
@@ -232,7 +234,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
     try {
       setIsGeneratingFlashcards(true);
       setFlashcardStudyStatus({}); // Clear previous study status
-      console.log('🃏 Generating flashcards for material:', selectedMaterial);
+      logger.log('🃏 Generating flashcards for material:', selectedMaterial);
       
       const response = await fetch(`/api/students/${studentId}/classes/${classId}/ai/flashcards/generate`, {
         method: 'POST',
@@ -251,12 +253,12 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
         setFlashcards(data.flashcards);
         setCurrentCardIndex(0);
         setIsFlipped(false);
-        console.log('✅ Flashcards generated:', data.flashcards.length);
+        logger.log('✅ Flashcards generated:', data.flashcards.length);
       } else {
-        console.error('❌ Failed to generate flashcards:', data.error);
+        logger.error('❌ Failed to generate flashcards:', data.error);
       }
     } catch (error) {
-      console.error('❌ Error generating flashcards:', error);
+      logger.error('❌ Error generating flashcards:', error);
     } finally {
       setIsGeneratingFlashcards(false);
     }
@@ -271,10 +273,10 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
         setFlashcards(data.flashcards || []);
         setCurrentCardIndex(0);
         setIsFlipped(false);
-        console.log('📚 Loaded flashcards:', data.flashcards.length);
+        logger.log('📚 Loaded flashcards:', data.flashcards.length);
       }
     } catch (error) {
-      console.error('❌ Error loading flashcards:', error);
+      logger.error('❌ Error loading flashcards:', error);
     }
   };
 
@@ -323,7 +325,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
     try {
       setIsGeneratingQuiz(true);
       setQuizResults(null); // Clear previous results immediately
-      console.log('📝 Generating quiz for material:', selectedMaterial);
+      logger.log('📝 Generating quiz for material:', selectedMaterial);
       
       const response = await fetch(`/api/students/${studentId}/classes/${classId}/ai/quiz/generate`, {
         method: 'POST',
@@ -343,12 +345,12 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
         setQuizQuestions(data.questions);
         setCurrentQuestionIndex(0);
         setSelectedAnswers({});
-        console.log('✅ Quiz generated:', data.questions.length);
+        logger.log('✅ Quiz generated:', data.questions.length);
       } else {
-        console.error('❌ Failed to generate quiz:', data.error);
+        logger.error('❌ Failed to generate quiz:', data.error);
       }
     } catch (error) {
-      console.error('❌ Error generating quiz:', error);
+      logger.error('❌ Error generating quiz:', error);
     } finally {
       setIsGeneratingQuiz(false);
     }
@@ -378,7 +380,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
 
     try {
       setIsSubmittingQuiz(true);
-      console.log('📝 Submitting quiz answers');
+      logger.log('📝 Submitting quiz answers');
       
       const response = await fetch(`/api/students/${studentId}/classes/${classId}/ai/quiz/submit`, {
         method: 'POST',
@@ -395,12 +397,12 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
       
       if (data.success) {
         setQuizResults(data);
-        console.log('✅ Quiz submitted. Score:', data.score, '/', data.total);
+        logger.log('✅ Quiz submitted. Score:', data.score, '/', data.total);
       } else {
-        console.error('❌ Failed to submit quiz:', data.error);
+        logger.error('❌ Failed to submit quiz:', data.error);
       }
     } catch (error) {
-      console.error('❌ Error submitting quiz:', error);
+      logger.error('❌ Error submitting quiz:', error);
     } finally {
       setIsSubmittingQuiz(false);
     }
@@ -429,22 +431,22 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
 
     try {
       setIsLoadingHistory(true);
-      console.log('📊 Loading quiz history for material:', selectedMaterial);
+      logger.log('📊 Loading quiz history for material:', selectedMaterial);
       const response = await fetch(
         `/api/students/${studentId}/classes/${classId}/ai/quiz/history?materialId=${selectedMaterial}`
       );
       const data = await response.json();
-      console.log('📊 Quiz history response:', data);
+      logger.log('📊 Quiz history response:', data);
 
       if (data.success) {
         setQuizHistory(data.history || []);
-        console.log('📊 Quiz history loaded:', data.history?.length || 0, 'attempts');
+        logger.log('📊 Quiz history loaded:', data.history?.length || 0, 'attempts');
         calculateMasteryProgress(data.history || []);
       } else {
-        console.error('❌ Failed to load quiz history:', data.error);
+        logger.error('❌ Failed to load quiz history:', data.error);
       }
     } catch (error) {
-      console.error('❌ Error loading quiz history:', error);
+      logger.error('❌ Error loading quiz history:', error);
     } finally {
       setIsLoadingHistory(false);
     }
@@ -453,7 +455,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
   // Calculate mastery progress from quiz history
   const calculateMasteryProgress = (history: any[]) => {
     if (!selectedMaterial || history.length === 0) {
-      console.log('📊 No history to calculate mastery for material:', selectedMaterial);
+      logger.log('📊 No history to calculate mastery for material:', selectedMaterial);
       return;
     }
 
@@ -466,7 +468,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
         attempt: index + 1
       }));
 
-    console.log('📊 Mastery data calculated:', materialHistory.length, 'attempts for material', selectedMaterial);
+    logger.log('📊 Mastery data calculated:', materialHistory.length, 'attempts for material', selectedMaterial);
     setMasteryData((prev) => ({
       ...prev,
       [selectedMaterial]: materialHistory
@@ -486,21 +488,21 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
   const loadAttemptDetails = async (attemptId: string) => {
     try {
       setIsLoadingAttempt(true);
-      console.log('📋 Loading attempt details:', attemptId);
+      logger.log('📋 Loading attempt details:', attemptId);
       const response = await fetch(
         `/api/students/${studentId}/classes/${classId}/ai/quiz/attempt/${attemptId}`
       );
       const data = await response.json();
-      console.log('📋 Attempt details response:', data);
+      logger.log('📋 Attempt details response:', data);
 
       if (data.success) {
         setSelectedAttempt(data.attempt);
-        console.log('📋 Attempt details loaded:', data.attempt.questions?.length || 0, 'questions');
+        logger.log('📋 Attempt details loaded:', data.attempt.questions?.length || 0, 'questions');
       } else {
-        console.error('❌ Failed to load attempt details:', data.error);
+        logger.error('❌ Failed to load attempt details:', data.error);
       }
     } catch (error) {
-      console.error('❌ Error loading attempt details:', error);
+      logger.error('❌ Error loading attempt details:', error);
     } finally {
       setIsLoadingAttempt(false);
     }

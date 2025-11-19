@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { createLogger } from './logger';
+const logger = createLogger('student-classes-service');
 
 export interface StudentClass {
   id: string;
@@ -40,7 +42,7 @@ export class StudentClassesService {
       // So we can directly use the userId
       return userId;
     } catch (error) {
-      console.error('Error in getStudentId:', error);
+      logger.error('Error in getStudentId:', error);
       return null;
     }
   }
@@ -50,29 +52,29 @@ export class StudentClassesService {
    */
   static async getStudentClasses(userId: string): Promise<StudentClass[]> {
     try {
-      console.log('🔍 StudentClassesService: Getting classes for user ID:', userId);
+      logger.log('🔍 StudentClassesService: Getting classes for user ID:', userId);
       
       const studentId = await this.getStudentId(userId);
-      console.log('🔍 StudentClassesService: Student ID resolved to:', studentId);
+      logger.log('🔍 StudentClassesService: Student ID resolved to:', studentId);
       
       if (!studentId) {
         throw new Error('Student profile not found');
       }
 
-      console.log('🔍 StudentClassesService: Fetching from API:', `/api/students/${studentId}/classes`);
+      logger.log('🔍 StudentClassesService: Fetching from API:', `/api/students/${studentId}/classes`);
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/students/${studentId}/classes`);
       const result = await response.json();
 
-      console.log('🔍 StudentClassesService: API response:', result);
+      logger.log('🔍 StudentClassesService: API response:', result);
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch classes');
       }
 
-      console.log('🔍 StudentClassesService: Returning classes:', result.classes?.length || 0);
+      logger.log('🔍 StudentClassesService: Returning classes:', result.classes?.length || 0);
       return result.classes || [];
     } catch (error) {
-      console.error('Error fetching student classes:', error);
+      logger.error('Error fetching student classes:', error);
       throw error;
     }
   }
@@ -101,7 +103,7 @@ export class StudentClassesService {
         upcomingClasses: 0
       };
     } catch (error) {
-      console.error('Error fetching class stats:', error);
+      logger.error('Error fetching class stats:', error);
       throw error;
     }
   }
@@ -124,7 +126,7 @@ export class StudentClassesService {
         stats
       };
     } catch (error) {
-      console.error('Error fetching all classes data:', error);
+      logger.error('Error fetching all classes data:', error);
       throw error;
     }
   }

@@ -28,6 +28,8 @@ import {
   Sun
 } from 'lucide-react';
 import { StudentAIAssistant } from '@/components/student/ai-assistant';
+import { createLogger } from '../../../../lib/logger';
+const logger = createLogger('page');
 
 function ClassDetailContent() {
   const params = useParams();
@@ -55,13 +57,13 @@ function ClassDetailContent() {
       setIsLoading(true);
       setError(null);
       
-      console.log('🔍 Fetching class detail for user:', user.id, 'class:', classId);
+      logger.log('🔍 Fetching class detail for user:', user.id, 'class:', classId);
       const data = await StudentClassDetailService.getClassDetail(user.id, classId);
-      console.log('🔍 Received class detail data:', data);
+      logger.log('🔍 Received class detail data:', data);
       setClassDetail(data);
       setLastUpdated(new Date());
     } catch (err) {
-      console.error('Error fetching class detail:', err);
+      logger.error('Error fetching class detail:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch class details');
     } finally {
       setIsLoading(false);

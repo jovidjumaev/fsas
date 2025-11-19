@@ -20,6 +20,8 @@ import ProfileEditModal from '@/components/profile/profile-edit-modal';
 import PasswordChangeModal from '@/components/profile/password-change-modal';
 import { AIAssistant } from '@/components/professor/ai-assistant';
 import { supabase } from '@/lib/supabase';
+import { createLogger } from '../../../../lib/logger';
+const logger = createLogger('page');
 
 interface ClassData {
   id: string;
@@ -161,7 +163,7 @@ function ClassManagementPageContent() {
       
       // Listen for attendance status updates
       socket.on('attendance_status_updated', (data) => {
-        console.log('📊 Received attendance status update:', data);
+        logger.log('📊 Received attendance status update:', data);
         
         // Refresh sessions data to get updated attendance counts
         fetchSessions();
@@ -210,11 +212,11 @@ function ClassManagementPageContent() {
       if (classInstance) {
         setClassData(classInstance);
       } else {
-        console.error('Class not found');
+        logger.error('Class not found');
         router.push('/professor/classes');
       }
     } catch (error) {
-      console.error('Error fetching class data:', error);
+      logger.error('Error fetching class data:', error);
       router.push('/professor/classes');
     } finally {
       setIsLoading(false);
@@ -229,7 +231,7 @@ function ClassManagementPageContent() {
         setStudents(data.data || []);
       }
     } catch (error) {
-      console.error('Error fetching students:', error);
+      logger.error('Error fetching students:', error);
     }
   };
 
@@ -242,7 +244,7 @@ function ClassManagementPageContent() {
         setSessions(data.data || []);
       }
     } catch (error) {
-      console.error('Error fetching sessions:', error);
+      logger.error('Error fetching sessions:', error);
       setSessions([]);
     } finally {
       setIsLoadingSessions(false);
@@ -258,7 +260,7 @@ function ClassManagementPageContent() {
         setAnalyticsData(data.data);
       }
     } catch (error) {
-      console.error('Error fetching analytics:', error);
+      logger.error('Error fetching analytics:', error);
       setAnalyticsData(null);
     } finally {
       setIsLoadingAnalytics(false);
@@ -284,7 +286,7 @@ function ClassManagementPageContent() {
         setClassData(prev => prev ? { ...prev, is_pinned: result.is_pinned } : null);
       }
     } catch (error) {
-      console.error('Error toggling pin:', error);
+      logger.error('Error toggling pin:', error);
     }
   };
 
@@ -315,7 +317,7 @@ function ClassManagementPageContent() {
         showNotification('error', errorData.error);
       }
     } catch (error) {
-      console.error('Error adding student:', error);
+      logger.error('Error adding student:', error);
       showNotification('error', 'Error adding student');
     }
   };
@@ -350,7 +352,7 @@ function ClassManagementPageContent() {
             showNotification('error', `Error removing student: ${errorData.error}`);
           }
         } catch (error) {
-          console.error('Error removing student:', error);
+          logger.error('Error removing student:', error);
           showNotification('error', 'Error removing student');
         }
       },
@@ -376,12 +378,12 @@ function ClassManagementPageContent() {
 
   const handleUploadAvatar = async (file: File) => {
     // Avatar upload functionality
-    console.log('Upload avatar:', file);
+    logger.log('Upload avatar:', file);
   };
 
   const handleDeleteAvatar = async () => {
     // Avatar delete functionality
-    console.log('Delete avatar');
+    logger.log('Delete avatar');
   };
 
   const handleStatusChange = async (newStatus: 'active' | 'inactive' | 'completed') => {
@@ -418,7 +420,7 @@ function ClassManagementPageContent() {
       window.dispatchEvent(new CustomEvent('classStatusChanged'));
       
     } catch (error) {
-      console.error('Error updating class status:', error);
+      logger.error('Error updating class status:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       showNotification('error', 'Failed to update class status', errorMessage);
     }
@@ -437,7 +439,7 @@ function ClassManagementPageContent() {
         setCurrentPage(page);
       }
     } catch (error) {
-      console.error('Error fetching all students:', error);
+      logger.error('Error fetching all students:', error);
     } finally {
       setIsLoadingStudents(false);
     }
@@ -460,7 +462,7 @@ function ClassManagementPageContent() {
         setShowSearchResults(true);
       }
     } catch (error) {
-      console.error('Error searching students:', error);
+      logger.error('Error searching students:', error);
     } finally {
       setIsSearching(false);
     }
@@ -585,7 +587,7 @@ function ClassManagementPageContent() {
         showNotification('error', result.error);
       }
     } catch (error) {
-      console.error('Error enrolling students:', error);
+      logger.error('Error enrolling students:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       showNotification('error', `Error enrolling students: ${errorMessage}`);
     }
@@ -612,7 +614,7 @@ function ClassManagementPageContent() {
         showNotification('error', errorData.error || 'Failed to start session');
       }
     } catch (error) {
-      console.error('Error starting session:', error);
+      logger.error('Error starting session:', error);
       showNotification('error', 'Error starting session');
     }
   };
@@ -658,7 +660,7 @@ function ClassManagementPageContent() {
         showNotification('error', errorData.error || 'Failed to complete session');
       }
     } catch (error) {
-      console.error('Error completing session:', error);
+      logger.error('Error completing session:', error);
       showNotification('error', `Failed to complete session: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -687,7 +689,7 @@ function ClassManagementPageContent() {
         showNotification('error', errorData.error || 'Failed to create session');
       }
     } catch (error) {
-      console.error('Error creating session:', error);
+      logger.error('Error creating session:', error);
       showNotification('error', 'Error creating session');
     }
   };

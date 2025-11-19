@@ -7,6 +7,8 @@ import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Input } from '../ui/input';
 import { NameChangeService, NameChangeInfo } from '@/lib/name-change-service';
+import { createLogger } from '../../lib/logger';
+const logger = createLogger('profile-edit-modal');
 
 interface ProfileEditModalProps {
   isOpen: boolean;
@@ -81,7 +83,7 @@ export default function ProfileEditModal({
       const info = await NameChangeService.getNameChangeInfo(user.id);
       setNameChangeInfo(info);
     } catch (error) {
-      console.error('Error checking name change info:', error);
+      logger.error('Error checking name change info:', error);
       // Fallback: assume user can change name if service fails
       setNameChangeInfo({
         canChange: true,
@@ -139,7 +141,7 @@ export default function ProfileEditModal({
         try {
           await onSave(formData);
         } catch (error) {
-          console.warn('Profile save had issues but continuing:', error);
+          logger.warn('Profile save had issues but continuing:', error);
           // Don't throw error here - we still want to show success message
         }
       } else {
@@ -147,7 +149,7 @@ export default function ProfileEditModal({
         try {
           await onSave(formData);
         } catch (error) {
-          console.warn('Profile save had issues but continuing:', error);
+          logger.warn('Profile save had issues but continuing:', error);
           // Don't throw error here - we still want to show success message
         }
       }
@@ -164,7 +166,7 @@ export default function ProfileEditModal({
         onClose();
       }, 2000);
     } catch (error) {
-      console.error('Error saving profile:', error);
+      logger.error('Error saving profile:', error);
       setErrors({ submit: 'Failed to save profile. Please try again.' });
     } finally {
       setIsLoading(false);

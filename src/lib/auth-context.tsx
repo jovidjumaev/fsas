@@ -3,14 +3,15 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase, supabaseAdmin } from './supabase';
-import { 
-  parseSupabaseError, 
-  logDetailedError, 
+import {
+  parseSupabaseError,
+  logDetailedError,
   testDatabaseConnection,
   retryOperation,
   validateRequiredFields,
   formatErrorForUser
 } from './error-handler';
+import { authLogger as logger } from './logger';
 
 const supabaseClient = supabase as any;
 const supabaseAdminClient = supabaseAdmin as any;
@@ -34,26 +35,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('🔐 AuthContext: Initializing...');
-    console.log('🔐 AuthContext: Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log('🔐 AuthContext: Supabase Key exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-    
+    logger.debug('Initializing...');
+    logger.debug('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+    logger.debug('Supabase Key exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+
     // Timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
-      console.warn('⚠️ AuthContext: Initialization timeout - forcing loading to false');
+      logger.warn('Initialization timeout - forcing loading to false');
       setLoading(false);
     }, 5000); // 5 second timeout
     
     // Get initial session
     const getInitialSession = async () => {
       try {
-        console.log('🔐 AuthContext: Getting initial session...');
+        logger.log('🔐 AuthContext: Getting initial session...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('❌ AuthContext: Session error:', error);
+          logger.error('❌ AuthContext: Session error:', error);
         } else {
-          console.log('🔐 AuthContext: Session result:', { 
+          logger.log('🔐 AuthContext: Session result:', { 
             hasSession: !!session, 
             hasUser: !!session?.user,
             userId: session?.user?.id 
@@ -61,17 +62,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         if (session?.user) {
-          console.log('🔐 AuthContext: User found, fetching role...');
+          logger.log('🔐 AuthContext: User found, fetching role...');
           setUser(session.user);
           await fetchUserRole(session.user.id);
         } else {
-          console.log('🔐 AuthContext: No user in session');
+          logger.log('🔐 AuthContext: No user in session');
         }
       } catch (error) {
-        console.error('❌ AuthContext: Initial session error:', error);
+        logger.error('❌ AuthContext: Initial session error:', error);
       } finally {
         clearTimeout(timeoutId);
-        console.log('🔐 AuthContext: Setting loading to false');
+        logger.log('🔐 AuthContext: Setting loading to false');
         setLoading(false);
       }
     };
@@ -79,10 +80,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     getInitialSession();
 
     // Listen for auth changes
-    console.log('🔐 AuthContext: Setting up auth state listener...');
+    logger.log('🔐 AuthContext: Setting up auth state listener...');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔐 AuthContext: Auth state changed:', { event, hasSession: !!session, hasUser: !!session?.user });
+        logger.log('🔐 AuthContext: Auth state changed:', { event, hasSession: !!session, hasUser: !!session?.user });
         
         if (session?.user) {
           setUser(session.user);
@@ -96,14 +97,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => {
-      console.log('🔐 AuthContext: Cleaning up auth listener');
+      logger.log('🔐 AuthContext: Cleaning up auth listener');
       subscription.unsubscribe();
     };
   }, []);
 
   const fetchUserRole = async (userId: string, retryCount = 0) => {
     try {
-      console.log('🔐 Fetching user role for:', userId, retryCount > 0 ? `(retry ${retryCount})` : '');
+      logger.log('🔐 Fetching user role for:', userId, retryCount > 0 ? `(retry ${retryCount})` : '');
       
       // Add timeout to prevent hanging - increased from 3s to 15s for better stability
       const rolePromise = supabaseClient
@@ -122,37 +123,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ]) as any;
 
       if (userError) {
-        console.error('Error fetching user role:', userError);
+        logger.error('Error fetching user role:', userError);
         
         // Retry logic for temporary failures - reduced retries to prevent loops
         if (retryCount < 1 && (userError.message?.includes('timeout') || userError.message?.includes('network'))) {
-          console.log('🔐 Retrying role fetch in 2 seconds...');
+          logger.log('🔐 Retrying role fetch in 2 seconds...');
           setTimeout(() => fetchUserRole(userId, retryCount + 1), 2000);
           return;
         }
         
-        console.log('🔐 Attempting fallback role detection...');
+        logger.log('🔐 Attempting fallback role detection...');
         
         // Fallback: Check if users table exists but couldn't find user
-        console.log('🔐 Could not fetch role from users table');
+        logger.log('🔐 Could not fetch role from users table');
         // No additional fallback needed - users is the main table
         
         // Don't set userRole to null on failure - keep existing role to prevent UI issues
-        console.log('🔐 Keeping existing role to prevent UI disruption');
+        logger.log('🔐 Keeping existing role to prevent UI disruption');
         return;
       }
 
       if (userData?.role) {
-        console.log('🔐 Found role:', userData.role);
+        logger.log('🔐 Found role:', userData.role);
         setUserRole(userData.role as 'student' | 'professor');
         return;
       }
 
-      console.warn('🔐 No role found for user');
+      logger.warn('🔐 No role found for user');
       // Don't set to null - keep existing role
-      console.log('🔐 Keeping existing role to prevent UI disruption');
+      logger.log('🔐 Keeping existing role to prevent UI disruption');
     } catch (error: unknown) {
-      console.error('Error fetching user role:', error);
+      logger.error('Error fetching user role:', error);
       
       // Retry logic for timeout errors - reduced retries
       if (
@@ -160,31 +161,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         error instanceof Error &&
         error.message?.includes('timeout')
       ) {
-        console.log('🔐 Retrying role fetch after timeout...');
+        logger.log('🔐 Retrying role fetch after timeout...');
         setTimeout(() => fetchUserRole(userId, retryCount + 1), 2000);
         return;
       }
       
       // Don't set userRole to null on failure - keep existing role
-      console.log('🔐 Keeping existing role to prevent UI disruption');
+      logger.log('🔐 Keeping existing role to prevent UI disruption');
     }
   };
 
   const signIn = async (email: string, password: string, role: 'student' | 'professor') => {
     try {
-      console.log('🔐 AuthContext: ===== SIGN-IN PROCESS STARTED =====');
-      console.log('🔐 AuthContext: Input parameters:', { 
+      logger.log('🔐 AuthContext: ===== SIGN-IN PROCESS STARTED =====');
+      logger.log('🔐 AuthContext: Input parameters:', { 
         email, 
         role, 
         passwordLength: password?.length || 0,
         passwordProvided: !!password
       });
-      console.log('🔐 AuthContext: Environment check:', {
+      logger.log('🔐 AuthContext: Environment check:', {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabaseKeyExists: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
         supabaseKeyLength: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length || 0
       });
-      console.log('🔐 AuthContext: Current state:', { 
+      logger.log('🔐 AuthContext: Current state:', { 
         user: !!user, 
         userRole,
         loading
@@ -192,28 +193,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Validate input
       if (!email || !password) {
-        console.error('❌ AuthContext: VALIDATION FAILED - Missing credentials');
-        console.error('❌ AuthContext: Email provided:', !!email);
-        console.error('❌ AuthContext: Password provided:', !!password);
+        logger.error('❌ AuthContext: VALIDATION FAILED - Missing credentials');
+        logger.error('❌ AuthContext: Email provided:', !!email);
+        logger.error('❌ AuthContext: Password provided:', !!password);
         return { success: false, error: 'Please provide both email and password' };
       }
 
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        console.error('❌ AuthContext: VALIDATION FAILED - Invalid email format');
+        logger.error('❌ AuthContext: VALIDATION FAILED - Invalid email format');
         return { success: false, error: 'Please enter a valid email address' };
       }
 
       // Validate password length
       if (password.length < 6) {
-        console.error('❌ AuthContext: VALIDATION FAILED - Password too short');
+        logger.error('❌ AuthContext: VALIDATION FAILED - Password too short');
         return { success: false, error: 'Password must be at least 6 characters long' };
       }
       
-      console.log('🔐 AuthContext: Input validation passed');
-      console.log('🔐 AuthContext: Attempting Supabase authentication...');
-      console.log('🔐 AuthContext: Start time:', new Date().toISOString());
+      logger.log('🔐 AuthContext: Input validation passed');
+      logger.log('🔐 AuthContext: Attempting Supabase authentication...');
+      logger.log('🔐 AuthContext: Start time:', new Date().toISOString());
       
       // Sign in without timeout - let Supabase handle it
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -221,10 +222,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
       });
       
-      console.log('🔐 AuthContext: Auth completed at:', new Date().toISOString());
+      logger.log('🔐 AuthContext: Auth completed at:', new Date().toISOString());
 
-      console.log('🔐 AuthContext: ===== SUPABASE AUTH RESPONSE =====');
-      console.log('🔐 AuthContext: Response data:', {
+      logger.log('🔐 AuthContext: ===== SUPABASE AUTH RESPONSE =====');
+      logger.log('🔐 AuthContext: Response data:', {
         hasData: !!data,
         hasUser: !!data?.user,
         hasSession: !!data?.session,
@@ -234,7 +235,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userCreatedAt: data?.user?.created_at,
         userLastSignIn: data?.user?.last_sign_in_at
       });
-      console.log('🔐 AuthContext: Response error:', {
+      logger.log('🔐 AuthContext: Response error:', {
         hasError: !!error,
         errorMessage: error?.message,
         errorStatus: error?.status,
@@ -257,7 +258,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Check if email is confirmed before proceeding
       if (data.user && !data.user.email_confirmed_at) {
-        console.log('🔐 AuthContext: Email not confirmed, blocking sign-in');
+        logger.log('🔐 AuthContext: Email not confirmed, blocking sign-in');
         return {
           success: false,
           error: 'Please check your email and click the confirmation link before signing in.\n\n📧 Check your spam folder if you don\'t see the confirmation email.'
@@ -265,9 +266,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data.user) {
-        console.log('✅ AuthContext: ===== AUTHENTICATION SUCCESSFUL =====');
-        console.log('✅ AuthContext: User authenticated successfully');
-        console.log('🔐 AuthContext: User details:', {
+        logger.log('✅ AuthContext: ===== AUTHENTICATION SUCCESSFUL =====');
+        logger.log('✅ AuthContext: User authenticated successfully');
+        logger.log('🔐 AuthContext: User details:', {
           id: data.user.id,
           email: data.user.email,
           emailConfirmed: data.user.email_confirmed_at ? 'YES' : 'NO',
@@ -279,21 +280,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
         
         // WORKAROUND: Database queries hanging in browser - use metadata instead
-        console.log('🔍 AuthContext: ===== CHECKING USER PROFILE =====');
-        console.log('🔍 AuthContext: Using user metadata instead of database query');
-        console.log('🔍 AuthContext: User metadata:', data.user.user_metadata);
-        console.log('🔍 AuthContext: Expected role:', role);
+        logger.log('🔍 AuthContext: ===== CHECKING USER PROFILE =====');
+        logger.log('🔍 AuthContext: Using user metadata instead of database query');
+        logger.log('🔍 AuthContext: User metadata:', data.user.user_metadata);
+        logger.log('🔍 AuthContext: Expected role:', role);
         
         // Get role from user metadata (set during registration)
         const userMetadata = data.user.user_metadata || {};
         const userRole = userMetadata.role;
         
-        console.log('🔍 AuthContext: Role from metadata:', userRole);
+        logger.log('🔍 AuthContext: Role from metadata:', userRole);
         
         // Verify role matches what was expected
         if (userRole !== role) {
-          console.error('❌ AuthContext: Role mismatch');
-          console.log('Expected:', role, 'Got:', userRole);
+          logger.error('❌ AuthContext: Role mismatch');
+          logger.log('Expected:', role, 'Got:', userRole);
           await supabase.auth.signOut();
           return {
             success: false,
@@ -301,38 +302,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
         }
         
-        console.log('✅ AuthContext: Role verified from metadata');
+        logger.log('✅ AuthContext: Role verified from metadata');
 
-        console.log('✅ AuthContext: ===== ROLE VERIFICATION PASSED =====');
-        console.log('✅ AuthContext: Role verified successfully');
-        console.log('✅ AuthContext: Welcome', data.user.email, `(${role})`);
+        logger.log('✅ AuthContext: ===== ROLE VERIFICATION PASSED =====');
+        logger.log('✅ AuthContext: Role verified successfully');
+        logger.log('✅ AuthContext: Welcome', data.user.email, `(${role})`);
         
         // Set user and role state
-        console.log('🔐 AuthContext: ===== UPDATING STATE =====');
+        logger.log('🔐 AuthContext: ===== UPDATING STATE =====');
         setUser(data.user);
         setUserRole(role);
         
-        console.log('🔐 AuthContext: State updated successfully:', { 
+        logger.log('🔐 AuthContext: State updated successfully:', { 
           user: !!data.user, 
           userRole: role,
           userId: data.user.id,
           userEmail: data.user.email
         });
         
-        console.log('🎉 AuthContext: ===== SIGN-IN COMPLETED SUCCESSFULLY =====');
+        logger.log('🎉 AuthContext: ===== SIGN-IN COMPLETED SUCCESSFULLY =====');
         return { success: true };
       }
 
-      console.error('❌ AuthContext: ===== NO USER RETURNED =====');
-      console.error('❌ AuthContext: Authentication succeeded but no user object returned');
+      logger.error('❌ AuthContext: ===== NO USER RETURNED =====');
+      logger.error('❌ AuthContext: Authentication succeeded but no user object returned');
       return { success: false, error: 'Sign in failed - no user data returned' };
     } catch (error: any) {
-      console.error('❌ AuthContext: ===== UNEXPECTED ERROR =====');
-      console.error('❌ AuthContext: Error type:', typeof error);
-      console.error('❌ AuthContext: Error message:', error?.message);
-      console.error('❌ AuthContext: Error code:', error?.code);
-      console.error('❌ AuthContext: Error name:', error?.name);
-      console.error('❌ AuthContext: Full error object:', error);
+      logger.error('❌ AuthContext: ===== UNEXPECTED ERROR =====');
+      logger.error('❌ AuthContext: Error type:', typeof error);
+      logger.error('❌ AuthContext: Error message:', error?.message);
+      logger.error('❌ AuthContext: Error code:', error?.code);
+      logger.error('❌ AuthContext: Error name:', error?.name);
+      logger.error('❌ AuthContext: Full error object:', error);
       
       return { 
         success: false, 
@@ -343,10 +344,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, role: 'student' | 'professor', additionalData: any) => {
     try {
-      console.log('🚀 AuthContext: Starting signUp process');
-      console.log('📧 Email:', email);
-      console.log('👤 Role:', role);
-      console.log('📝 Additional Data:', {
+      logger.log('🚀 AuthContext: Starting signUp process');
+      logger.log('📧 Email:', email);
+      logger.log('👤 Role:', role);
+      logger.log('📝 Additional Data:', {
         firstName: additionalData.firstName,
         lastName: additionalData.lastName,
         ...(role === 'student' ? { studentNumber: additionalData.studentNumber } : { employeeId: additionalData.employeeId })
@@ -362,7 +363,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       const validation = validateRequiredFields(additionalData, requiredFields);
       if (!validation.valid) {
-        console.error('❌ Required fields validation failed:', validation.missingFields);
+        logger.error('❌ Required fields validation failed:', validation.missingFields);
         return {
           success: false,
           error: validation.message || 'Please fill in all required fields'
@@ -373,36 +374,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (role === 'student') {
         const studentNumberRegex = /^\d{7}$/;
         if (!studentNumberRegex.test(additionalData.studentNumber?.trim() || '')) {
-          console.error('❌ Invalid student ID format:', additionalData.studentNumber);
+          logger.error('❌ Invalid student ID format:', additionalData.studentNumber);
           return {
             success: false,
             error: 'Student ID must be exactly 7 digits.\n\n💡 Example: 5002378\n\nPlease enter your official university student ID number.'
           };
         }
-        console.log('✅ Student ID format validated:', additionalData.studentNumber);
+        logger.log('✅ Student ID format validated:', additionalData.studentNumber);
         
         // Validate student ID uniqueness
-        console.log('🎓 ===== STUDENT ID UNIQUENESS VALIDATION START =====');
-        console.log('🎓 Validating student ID uniqueness...');
+        logger.log('🎓 ===== STUDENT ID UNIQUENESS VALIDATION START =====');
+        logger.log('🎓 Validating student ID uniqueness...');
         
         try {
           const { validateStudentIdUniqueness } = await import('./student-id-uniqueness-validator');
-          console.log('🎓 Import successful');
+          logger.log('🎓 Import successful');
           
           const studentIdUniquenessValidation = await validateStudentIdUniqueness(additionalData.studentNumber);
-          console.log('🎓 Validation result:', studentIdUniquenessValidation);
+          logger.log('🎓 Validation result:', studentIdUniquenessValidation);
           
           if (!studentIdUniquenessValidation.isUnique) {
-            console.error('❌ Student ID uniqueness validation failed:', studentIdUniquenessValidation.error);
+            logger.error('❌ Student ID uniqueness validation failed:', studentIdUniquenessValidation.error);
             return {
               success: false,
               error: studentIdUniquenessValidation.error || 'Student ID is not unique'
             };
           }
           
-          console.log('✅ Student ID uniqueness validation passed');
+          logger.log('✅ Student ID uniqueness validation passed');
         } catch (validationError) {
-          console.error('❌ Error during student ID validation:', validationError);
+          logger.error('❌ Error during student ID validation:', validationError);
           return {
             success: false,
             error: 'Student ID validation failed. Please try again.'
@@ -412,12 +413,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Validate employee ID format and uniqueness (for professors)
       if (role === 'professor') {
-        console.log('👨‍🏫 ===== EMPLOYEE ID VALIDATION START =====');
-        console.log('👨‍🏫 Validating employee ID format and uniqueness...');
+        logger.log('👨‍🏫 ===== EMPLOYEE ID VALIDATION START =====');
+        logger.log('👨‍🏫 Validating employee ID format and uniqueness...');
         
         // Basic format validation
         if (!additionalData.employeeId || additionalData.employeeId.trim().length !== 7) {
-          console.error('❌ Invalid employee ID format:', additionalData.employeeId);
+          logger.error('❌ Invalid employee ID format:', additionalData.employeeId);
           return {
             success: false,
             error: 'Employee ID must be exactly 7 digits.\n\n💡 Example: 1234567\n\nPlease enter your official employee ID number.'
@@ -427,35 +428,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Format validation (exactly 7 digits)
         const employeeIdRegex = /^\d{7}$/;
         if (!employeeIdRegex.test(additionalData.employeeId.trim())) {
-          console.error('❌ Invalid employee ID format:', additionalData.employeeId);
+          logger.error('❌ Invalid employee ID format:', additionalData.employeeId);
           return {
             success: false,
             error: 'Employee ID must be exactly 7 digits.\n\n💡 Example: 1234567\n\nPlease enter your official employee ID number.'
           };
         }
-        console.log('✅ Employee ID format validated:', additionalData.employeeId);
+        logger.log('✅ Employee ID format validated:', additionalData.employeeId);
         
         // Validate employee ID uniqueness
-        console.log('👨‍🏫 Validating employee ID uniqueness...');
+        logger.log('👨‍🏫 Validating employee ID uniqueness...');
         
         try {
           const { validateEmployeeIdUniqueness } = await import('./employee-id-uniqueness-validator');
-          console.log('👨‍🏫 Import successful');
+          logger.log('👨‍🏫 Import successful');
           
           const employeeIdValidation = await validateEmployeeIdUniqueness(additionalData.employeeId);
-          console.log('👨‍🏫 Validation result:', employeeIdValidation);
+          logger.log('👨‍🏫 Validation result:', employeeIdValidation);
           
           if (!employeeIdValidation.isUnique) {
-            console.error('❌ Employee ID uniqueness validation failed:', employeeIdValidation.error);
+            logger.error('❌ Employee ID uniqueness validation failed:', employeeIdValidation.error);
             return {
               success: false,
               error: employeeIdValidation.error || 'Employee ID is not unique'
             };
           }
           
-          console.log('✅ Employee ID uniqueness validation passed');
+          logger.log('✅ Employee ID uniqueness validation passed');
         } catch (validationError) {
-          console.error('❌ Error during employee ID validation:', validationError);
+          logger.error('❌ Error during employee ID validation:', validationError);
           return {
             success: false,
             error: 'Employee ID validation failed. Please try again.'
@@ -464,24 +465,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       // Test database connection first
-      console.log('🔍 Testing database connection...');
+      logger.log('🔍 Testing database connection...');
       const dbTest = await testDatabaseConnection(supabase);
       if (dbTest) {
-        console.error('❌ Database connection test failed');
+        logger.error('❌ Database connection test failed');
         return {
           success: false,
           error: formatErrorForUser(dbTest)
         };
       }
-      console.log('✅ Database connection successful');
+      logger.log('✅ Database connection successful');
       
       // Validate password strength
-      console.log('🔐 Validating password strength...');
+      logger.log('🔐 Validating password strength...');
       const { validatePassword } = await import('./password-validator');
       const passwordValidation = validatePassword(password);
       
       if (!passwordValidation.isValid) {
-        console.error('❌ Password validation failed:', passwordValidation.errors);
+        logger.error('❌ Password validation failed:', passwordValidation.errors);
         return { 
           success: false, 
           error: passwordValidation.errors[0] || 'Password does not meet security requirements' 
@@ -489,22 +490,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       if (!passwordValidation.strength.isValid) {
-        console.error('❌ Password strength insufficient');
+        logger.error('❌ Password strength insufficient');
         return { 
           success: false, 
           error: 'Password is not strong enough. Please create a more secure password.' 
         };
       }
       
-      console.log('✅ Password validation passed');
+      logger.log('✅ Password validation passed');
       
       // Validate email domain and uniqueness (only allow @furman.edu and must be unique)
-      console.log('📧 ===== EMAIL VALIDATION START =====');
-      console.log('📧 Validating email domain and uniqueness...');
+      logger.log('📧 ===== EMAIL VALIDATION START =====');
+      logger.log('📧 Validating email domain and uniqueness...');
       
       // Check email domain
       if (!email.endsWith('@furman.edu')) {
-        console.error('❌ Email domain validation failed');
+        logger.error('❌ Email domain validation failed');
         return {
           success: false,
           error: 'Only @furman.edu email addresses are allowed for registration.\n\n💡 Please use your official Furman University email address.'
@@ -512,7 +513,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       // Check if email already exists in users table
-      console.log('🔍 Checking if email already exists in users table...');
+      logger.log('🔍 Checking if email already exists in users table...');
       const { data: existingUser, error: userCheckError } = await supabaseClient
         .from('users')
         .select('id, role, first_name, last_name')
@@ -520,7 +521,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
       
       if (userCheckError && userCheckError.code !== 'PGRST116') { // PGRST116 = no rows found
-        console.error('❌ Error checking users table:', userCheckError);
+        logger.error('❌ Error checking users table:', userCheckError);
         return {
           success: false,
           error: 'Unable to verify email availability. Please try again or contact support.'
@@ -528,36 +529,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       if (existingUser) {
-        console.error('❌ Email already exists in users table:', existingUser.id);
+        logger.error('❌ Email already exists in users table:', existingUser.id);
         return {
           success: false,
           error: `This email is already registered as a ${existingUser.role}.\n\n💡 Please sign in instead:\n   • Go to /${existingUser.role}/login\n   • Use your email and password\n   • Or click "Forgot Password" if needed`
         };
       }
       
-      console.log('✅ Email validation passed');
+      logger.log('✅ Email validation passed');
       
       // Validate password uniqueness
-      console.log('🔐 ===== PASSWORD UNIQUENESS VALIDATION START =====');
-      console.log('🔐 Password to validate:', password);
-      console.log('🔐 Validating password uniqueness...');
+      logger.log('🔐 ===== PASSWORD UNIQUENESS VALIDATION START =====');
+      logger.log('🔐 Password to validate:', password);
+      logger.log('🔐 Validating password uniqueness...');
       
       try {
         const { validatePasswordUniqueness, validatePasswordPersonalInfo } = await import('./password-uniqueness-validator');
-        console.log('🔐 Import successful');
+        logger.log('🔐 Import successful');
         
         const passwordUniquenessValidation = await validatePasswordUniqueness(password);
-        console.log('🔐 Validation result:', passwordUniquenessValidation);
+        logger.log('🔐 Validation result:', passwordUniquenessValidation);
         
         if (!passwordUniquenessValidation.isUnique) {
-          console.error('❌ Password uniqueness validation failed:', passwordUniquenessValidation.error);
+          logger.error('❌ Password uniqueness validation failed:', passwordUniquenessValidation.error);
           return {
             success: false,
             error: passwordUniquenessValidation.error || 'Password is not unique'
           };
         }
         
-        console.log('✅ Password uniqueness validation passed');
+        logger.log('✅ Password uniqueness validation passed');
         
         // Check if password contains personal information
         const personalInfoValidation = validatePasswordPersonalInfo(password, {
@@ -569,16 +570,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
         
         if (!personalInfoValidation.isUnique) {
-          console.error('❌ Password personal info validation failed:', personalInfoValidation.error);
+          logger.error('❌ Password personal info validation failed:', personalInfoValidation.error);
           return {
             success: false,
             error: personalInfoValidation.error || 'Password contains personal information'
           };
         }
         
-        console.log('✅ Password personal info validation passed');
+        logger.log('✅ Password personal info validation passed');
       } catch (validationError) {
-        console.error('❌ Error during password validation:', validationError);
+        logger.error('❌ Error during password validation:', validationError);
         return {
           success: false,
           error: 'Password validation failed. Please try again.'
@@ -586,7 +587,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       // Email uniqueness already validated above, proceeding with registration
-      console.log('✅ Email is available, proceeding with registration...');
+      logger.log('✅ Email is available, proceeding with registration...');
       
       // First, create the auth user with metadata and email confirmation
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
@@ -603,7 +604,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-      console.log('AuthContext: Supabase auth response', { authData, signUpError });
+      logger.log('AuthContext: Supabase auth response', { authData, signUpError });
 
       if (signUpError) {
         logDetailedError('Supabase Auth SignUp', signUpError, {
@@ -624,7 +625,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!authData.user) {
-        console.error('AuthContext: No user created');
+        logger.error('AuthContext: No user created');
         return { 
           success: false, 
           error: 'Account creation failed. No user data returned.\n\n💡 Please try again or contact support if this persists.' 
@@ -633,7 +634,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Check if email confirmation is required for new users
       if (!authData.user.email_confirmed_at) {
-        console.log('AuthContext: Email confirmation required for new user');
+        logger.log('AuthContext: Email confirmation required for new user');
         return {
           success: true,
           requiresEmailConfirmation: true,
@@ -642,7 +643,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Wait for the trigger to create the user profile, then verify it exists
-      console.log('AuthContext: Waiting for user profile creation...');
+      logger.log('AuthContext: Waiting for user profile creation...');
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Check if user profile was created by trigger using admin client to bypass RLS
@@ -653,7 +654,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (userProfileError && userProfileError.code !== 'PGRST116') {
-        console.error('AuthContext: Error checking user profile:', userProfileError);
+        logger.error('AuthContext: Error checking user profile:', userProfileError);
         const parsedError = parseSupabaseError(userProfileError, 'user profile check');
         return {
           success: false,
@@ -662,7 +663,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!userProfile) {
-        console.log('AuthContext: User profile not created by trigger, creating manually...');
+        logger.log('AuthContext: User profile not created by trigger, creating manually...');
 
         // Create user profile manually using admin client to bypass RLS
         const { error: userError } = await supabaseAdminClient
@@ -678,7 +679,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (userError) {
           // Check if it's a duplicate key error (record was created by trigger after our check)
           if (userError.code === '23505') {
-            console.log('ℹ️ User profile already exists (created by trigger), continuing...');
+            logger.log('ℹ️ User profile already exists (created by trigger), continuing...');
           } else {
             logDetailedError('Create User Profile', userError, {
               userId: authData.user.id,
@@ -696,13 +697,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } else {
-        console.log('✅ User profile already exists (created by trigger)');
+        logger.log('✅ User profile already exists (created by trigger)');
       }
 
       // Create role-specific data with proper error handling
       try {
         if (role === 'student') {
-          console.log('🎓 Creating student record...');
+          logger.log('🎓 Creating student record...');
           
           const { data: existingStudent, error: existingStudentError } = await supabaseAdminClient
             .from('students')
@@ -715,7 +716,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           if (existingStudent) {
-            console.log('ℹ️ Student record already exists, skipping insert');
+            logger.log('ℹ️ Student record already exists, skipping insert');
           } else {
             // Generate a student ID if none provided
             let studentId = additionalData.studentNumber;
@@ -724,7 +725,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               const timestamp = Date.now();
               const random = Math.floor(Math.random() * 1000);
               studentId = `500${timestamp.toString().slice(-6)}${random.toString().padStart(3, '0')}`;
-              console.log('🔢 Generated student ID:', studentId);
+              logger.log('🔢 Generated student ID:', studentId);
             }
             
             const { data: studentData, error: studentError } = await supabaseAdminClient
@@ -741,18 +742,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (studentError) {
               if (studentError.code === '23505') {
-                console.warn('⚠️ Duplicate student record detected during insert, continuing');
+                logger.warn('⚠️ Duplicate student record detected during insert, continuing');
               } else {
-                console.error('❌ Failed to create student record:', studentError);
+                logger.error('❌ Failed to create student record:', studentError);
                 // This is critical - fail the registration if student record creation fails
                 throw new Error(`Failed to create student record: ${studentError.message}`);
               }
             } else {
-              console.log('✅ Student record created successfully:', studentData);
+              logger.log('✅ Student record created successfully:', studentData);
             }
           }
         } else if (role === 'professor') {
-          console.log('👨‍🏫 Creating professor record...');
+          logger.log('👨‍🏫 Creating professor record...');
 
           const { data: existingProfessor, error: existingProfessorError } = await supabaseAdminClient
             .from('professors')
@@ -765,7 +766,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           if (existingProfessor) {
-            console.log('ℹ️ Professor record already exists, skipping insert');
+            logger.log('ℹ️ Professor record already exists, skipping insert');
           } else {
             const { data: professorData, error: professorError } = await supabaseAdminClient
               .from('professors')
@@ -782,27 +783,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (professorError) {
               if (professorError.code === '23505') {
-                console.warn('⚠️ Duplicate professor record detected during insert, continuing');
+                logger.warn('⚠️ Duplicate professor record detected during insert, continuing');
               } else {
-                console.error('❌ Failed to create professor record:', professorError);
+                logger.error('❌ Failed to create professor record:', professorError);
                 // This is critical - fail the registration if professor record creation fails
                 throw new Error(`Failed to create professor record: ${professorError.message}`);
               }
             } else {
-              console.log('✅ Professor record created successfully:', professorData);
+              logger.log('✅ Professor record created successfully:', professorData);
             }
           }
         }
       } catch (roleError: unknown) {
-        console.error('❌ Role-specific record creation failed:', roleError);
+        logger.error('❌ Role-specific record creation failed:', roleError);
         
         // Clean up: Delete the user if role-specific record creation failed
-        console.log('🧹 Cleaning up user record due to role creation failure...');
+        logger.log('🧹 Cleaning up user record due to role creation failure...');
         try {
           await supabaseAdminClient.auth.admin.deleteUser(authData.user.id);
-          console.log('✅ User record cleaned up successfully');
+          logger.log('✅ User record cleaned up successfully');
         } catch (cleanupError) {
-          console.error('❌ Failed to clean up user record:', cleanupError);
+          logger.error('❌ Failed to clean up user record:', cleanupError);
         }
         
         // Return error to user
@@ -814,23 +815,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      console.log('✅ User profile created with role:', role);
+      logger.log('✅ User profile created with role:', role);
 
       // Record password hash for uniqueness tracking
-      console.log('📝 Recording password hash for uniqueness tracking...');
+      logger.log('📝 Recording password hash for uniqueness tracking...');
       const { recordPasswordHash } = await import('./password-uniqueness-validator');
       await recordPasswordHash(authData.user.id, password);
 
       // Record student ID hash for uniqueness tracking (if student)
       if (role === 'student' && additionalData.studentNumber) {
-        console.log('📝 Recording student ID hash for uniqueness tracking...');
+        logger.log('📝 Recording student ID hash for uniqueness tracking...');
         const { recordStudentIdHash } = await import('./student-id-uniqueness-validator');
         await recordStudentIdHash(authData.user.id, additionalData.studentNumber);
       }
 
       // Record employee ID hash for uniqueness tracking (if professor)
       if (role === 'professor' && additionalData.employeeId) {
-        console.log('📝 Recording employee ID hash for uniqueness tracking...');
+        logger.log('📝 Recording employee ID hash for uniqueness tracking...');
         const { recordEmployeeIdHash } = await import('./employee-id-uniqueness-validator');
         await recordEmployeeIdHash(authData.user.id, additionalData.employeeId);
       }
@@ -839,40 +840,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserRole(role);
       return { success: true };
     } catch (error: unknown) {
-      console.error('Sign up error:', error);
+      logger.error('Sign up error:', error);
       const message = error instanceof Error ? error.message : 'An unexpected error occurred';
       return { success: false, error: message };
     }
   };
 
   const signOut = async () => {
-    console.log('🔐 AuthContext: Starting sign out process...');
+    logger.log('🔐 AuthContext: Starting sign out process...');
     
     // Store the current user role before clearing it
     const currentUserRole = userRole;
     
     try {
       await supabase.auth.signOut();
-      console.log('🔐 AuthContext: Supabase sign out completed');
+      logger.log('🔐 AuthContext: Supabase sign out completed');
       setUser(null);
       setUserRole(null);
-      console.log('🔐 AuthContext: User state cleared');
+      logger.log('🔐 AuthContext: User state cleared');
       
       // Redirect to appropriate login page based on user role
       if (typeof window !== 'undefined') {
         if (currentUserRole === 'student') {
-          console.log('🔐 AuthContext: Redirecting to student login page');
+          logger.log('🔐 AuthContext: Redirecting to student login page');
           window.location.href = '/student/login';
         } else if (currentUserRole === 'professor') {
-          console.log('🔐 AuthContext: Redirecting to professor login page');
+          logger.log('🔐 AuthContext: Redirecting to professor login page');
           window.location.href = '/professor/login';
         } else {
-          console.log('🔐 AuthContext: No role detected, redirecting to main page');
+          logger.log('🔐 AuthContext: No role detected, redirecting to main page');
           window.location.href = '/';
         }
       }
     } catch (error) {
-      console.error('🔐 AuthContext: Sign out error:', error);
+      logger.error('🔐 AuthContext: Sign out error:', error);
       // Even if there's an error, clear the local state
       setUser(null);
       setUserRole(null);
@@ -880,13 +881,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Force navigation to appropriate login page even on error
       if (typeof window !== 'undefined') {
         if (currentUserRole === 'student') {
-          console.log('🔐 AuthContext: Error occurred, redirecting to student login page');
+          logger.log('🔐 AuthContext: Error occurred, redirecting to student login page');
           window.location.href = '/student/login';
         } else if (currentUserRole === 'professor') {
-          console.log('🔐 AuthContext: Error occurred, redirecting to professor login page');
+          logger.log('🔐 AuthContext: Error occurred, redirecting to professor login page');
           window.location.href = '/professor/login';
         } else {
-          console.log('🔐 AuthContext: Error occurred, no role detected, redirecting to main page');
+          logger.log('🔐 AuthContext: Error occurred, no role detected, redirecting to main page');
           window.location.href = '/';
         }
       }
@@ -895,8 +896,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string, role: 'student' | 'professor') => {
     try {
-      console.log('🔐 AuthContext: ===== PASSWORD RESET REQUEST =====');
-      console.log('🔐 AuthContext: Email:', email, 'Role:', role);
+      logger.log('🔐 AuthContext: ===== PASSWORD RESET REQUEST =====');
+      logger.log('🔐 AuthContext: Email:', email, 'Role:', role);
       
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -905,7 +906,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Simplified approach: Check users table first, then try password reset
-      console.log('🔐 AuthContext: Checking users table for user...');
+      logger.log('🔐 AuthContext: Checking users table for user...');
       
       const { data: userData, error: userError } = await supabaseAdminClient
         .from('users')
@@ -917,19 +918,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (userError && userError.code === 'PGRST116') {
         // User not found in users table - assume they exist in Auth and use provided role
-        console.log('🔐 AuthContext: User not found in users table, using provided role:', role);
+        logger.log('🔐 AuthContext: User not found in users table, using provided role:', role);
         userRole = role;
       } else if (userError) {
-        console.error('🔐 AuthContext: Error querying users table:', userError);
+        logger.error('🔐 AuthContext: Error querying users table:', userError);
         return { success: false, error: 'Unable to verify account. Please try again.' };
       } else {
         userRole = userData.role;
-        console.log('🔐 AuthContext: User found in users table with role:', userRole);
+        logger.log('🔐 AuthContext: User found in users table with role:', userRole);
       }
 
       // Verify role matches
       if (userRole !== role) {
-        console.log('🔐 AuthContext: Role mismatch - expected:', role, 'found:', userRole);
+        logger.log('🔐 AuthContext: Role mismatch - expected:', role, 'found:', userRole);
         return { 
           success: false, 
           error: `This email is registered as a ${userRole}. Please use the ${userRole} forgot password page.` 
@@ -947,14 +948,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        console.error('🔐 AuthContext: Password reset error:', error);
+        logger.error('🔐 AuthContext: Password reset error:', error);
         return { success: false, error: error.message };
       }
 
-      console.log('✅ AuthContext: Password reset email sent successfully');
+      logger.log('✅ AuthContext: Password reset email sent successfully');
       return { success: true };
     } catch (error: unknown) {
-      console.error('🔐 AuthContext: Password reset error:', error);
+      logger.error('🔐 AuthContext: Password reset error:', error);
       const message = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
       return { success: false, error: message };
     }
@@ -962,8 +963,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const verifyOtp = async (otpCode: string) => {
     try {
-      console.log('🔐 AuthContext: ===== VERIFY OTP =====');
-      console.log('🔐 AuthContext: OTP Code:', otpCode);
+      logger.log('🔐 AuthContext: ===== VERIFY OTP =====');
+      logger.log('🔐 AuthContext: OTP Code:', otpCode);
       
       // Verify the OTP token
       const { data, error } = await supabase.auth.verifyOtp({
@@ -972,22 +973,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        console.error('🔐 AuthContext: OTP verification error:', error);
+        logger.error('🔐 AuthContext: OTP verification error:', error);
         return { success: false, error: 'Invalid or expired verification code. Please try again.' };
       }
 
-      console.log('✅ AuthContext: OTP verified successfully');
+      logger.log('✅ AuthContext: OTP verified successfully');
       return { success: true, data };
     } catch (error) {
-      console.error('🔐 AuthContext: OTP verification error:', error);
+      logger.error('🔐 AuthContext: OTP verification error:', error);
       return { success: false, error: 'An unexpected error occurred. Please try again.' };
     }
   };
 
   const updatePassword = async (otpCode: string, password: string, type: 'student' | 'professor') => {
     try {
-      console.log('🔐 AuthContext: ===== UPDATE PASSWORD =====');
-      console.log('🔐 AuthContext: OTP Code:', otpCode, 'Type:', type);
+      logger.log('🔐 AuthContext: ===== UPDATE PASSWORD =====');
+      logger.log('🔐 AuthContext: OTP Code:', otpCode, 'Type:', type);
       
       // Validate password
       if (password.length < 6) {
@@ -1001,7 +1002,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        console.error('🔐 AuthContext: OTP verification error:', error);
+        logger.error('🔐 AuthContext: OTP verification error:', error);
         return { success: false, error: 'Invalid or expired verification code. Please try again.' };
       }
 
@@ -1011,14 +1012,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (updateError) {
-        console.error('🔐 AuthContext: Password update error:', updateError);
+        logger.error('🔐 AuthContext: Password update error:', updateError);
         return { success: false, error: updateError.message };
       }
 
-      console.log('✅ AuthContext: Password updated successfully');
+      logger.log('✅ AuthContext: Password updated successfully');
       return { success: true };
     } catch (error) {
-      console.error('🔐 AuthContext: Password update error:', error);
+      logger.error('🔐 AuthContext: Password update error:', error);
       return { success: false, error: 'An unexpected error occurred. Please try again.' };
     }
   };

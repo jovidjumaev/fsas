@@ -4,6 +4,8 @@
  */
 
 import { supabase, supabaseAdmin } from './supabase';
+import { createLogger } from './logger';
+const logger = createLogger('email-uniqueness-validator');
 
 export interface EmailValidationResult {
   isValid: boolean;
@@ -16,7 +18,7 @@ export interface EmailValidationResult {
  */
 function validateEmailDomain(email: string): { isValid: boolean; error?: string } {
   try {
-    console.log('📧 Validating email domain for:', email);
+    logger.log('📧 Validating email domain for:', email);
     
     // Check if email is valid format first
     const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -49,18 +51,18 @@ function validateEmailDomain(email: string): { isValid: boolean; error?: string 
     );
 
     if (!isAllowed) {
-      console.log('❌ Email domain not allowed:', domain);
+      logger.log('❌ Email domain not allowed:', domain);
       return {
         isValid: false,
         error: 'Only @furman.edu email addresses are allowed for registration.\n\n💡 Please use your official Furman University email address.'
       };
     }
 
-    console.log('✅ Email domain is valid:', domain);
+    logger.log('✅ Email domain is valid:', domain);
     return { isValid: true };
 
   } catch (error) {
-    console.error('❌ Error validating email domain:', error);
+    logger.error('❌ Error validating email domain:', error);
     return {
       isValid: false,
       error: 'Unable to validate email address. Please try again.'
@@ -73,14 +75,14 @@ function validateEmailDomain(email: string): { isValid: boolean; error?: string 
  */
 async function checkEmailUniqueness(email: string): Promise<{ isUnique: boolean; error?: string }> {
   try {
-    console.log('🔍 Checking email uniqueness for:', email);
+    logger.log('🔍 Checking email uniqueness for:', email);
     
     // Check 1: Supabase Auth users
-    console.log('🔍 Checking Supabase Auth users...');
+    logger.log('🔍 Checking Supabase Auth users...');
     const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
     
     if (authError) {
-      console.error('❌ Error checking auth users:', authError);
+      logger.error('❌ Error checking auth users:', authError);
       return {
         isUnique: false,
         error: 'Unable to verify email availability. Please try again or contact support.'
@@ -90,7 +92,7 @@ async function checkEmailUniqueness(email: string): Promise<{ isUnique: boolean;
     const duplicateAuthUser = authUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
     
     if (duplicateAuthUser) {
-      console.log('❌ Email found in auth users:', duplicateAuthUser.id);
+      logger.log('❌ Email found in auth users:', duplicateAuthUser.id);
       
       // Check if they have a profile to give better guidance
       const { data: existingProfile } = await supabaseAdmin
@@ -112,10 +114,10 @@ async function checkEmailUniqueness(email: string): Promise<{ isUnique: boolean;
       }
     }
 
-    console.log('✅ Email not found in auth users');
+    logger.log('✅ Email not found in auth users');
 
     // Check 2: Users table (additional check)
-    console.log('🔍 Checking users table...');
+    logger.log('🔍 Checking users table...');
     const { data: usersData, error: usersError } = await supabaseAdmin
       .from('users')
       .select('id, email, role, first_name, last_name')
@@ -123,7 +125,7 @@ async function checkEmailUniqueness(email: string): Promise<{ isUnique: boolean;
       .single();
 
     if (usersError && usersError.code !== 'PGRST116') { // PGRST116 = no rows found
-      console.error('❌ Error checking users table:', usersError);
+      logger.error('❌ Error checking users table:', usersError);
       return {
         isUnique: false,
         error: 'Unable to verify email availability. Please try again or contact support.'
@@ -131,18 +133,18 @@ async function checkEmailUniqueness(email: string): Promise<{ isUnique: boolean;
     }
 
     if (usersData) {
-      console.log('❌ Email found in users table:', usersData.id);
+      logger.log('❌ Email found in users table:', usersData.id);
       return {
         isUnique: false,
         error: `This email is already registered as a ${usersData.role}.\n\n💡 Please sign in instead:\n   • Go to /${usersData.role}/login\n   • Use your email and password\n   • Or click "Forgot Password" if needed`
       };
     }
 
-    console.log('✅ Email not found in users table');
+    logger.log('✅ Email not found in users table');
     return { isUnique: true };
 
   } catch (error) {
-    console.error('❌ Exception in checkEmailUniqueness:', error);
+    logger.error('❌ Exception in checkEmailUniqueness:', error);
     return {
       isUnique: false,
       error: 'Unable to verify email availability. Please try again or contact support.'
@@ -154,14 +156,14 @@ async function checkEmailUniqueness(email: string): Promise<{ isUnique: boolean;
  * Comprehensive email validation (domain + uniqueness)
  */
 export async function validateEmailUniqueness(email: string): Promise<EmailValidationResult> {
-  console.log('📧 ===== EMAIL UNIQUENESS VALIDATION START =====');
-  console.log('📧 Email to validate:', email);
+  logger.log('📧 ===== EMAIL UNIQUENESS VALIDATION START =====');
+  logger.log('📧 Email to validate:', email);
   
   try {
     // Step 1: Validate email format and domain
     const domainValidation = validateEmailDomain(email);
     if (!domainValidation.isValid) {
-      console.log('❌ Email domain validation failed:', domainValidation.error);
+      logger.log('❌ Email domain validation failed:', domainValidation.error);
       return {
         isValid: false,
         isUnique: false,
@@ -169,12 +171,12 @@ export async function validateEmailUniqueness(email: string): Promise<EmailValid
       };
     }
     
-    console.log('✅ Email domain validation passed');
+    logger.log('✅ Email domain validation passed');
 
     // Step 2: Check email uniqueness
     const uniquenessValidation = await checkEmailUniqueness(email);
     if (!uniquenessValidation.isUnique) {
-      console.log('❌ Email uniqueness validation failed:', uniquenessValidation.error);
+      logger.log('❌ Email uniqueness validation failed:', uniquenessValidation.error);
       return {
         isValid: true,
         isUnique: false,
@@ -182,8 +184,8 @@ export async function validateEmailUniqueness(email: string): Promise<EmailValid
       };
     }
 
-    console.log('✅ Email uniqueness validation passed');
-    console.log('📧 ===== EMAIL UNIQUENESS VALIDATION END =====');
+    logger.log('✅ Email uniqueness validation passed');
+    logger.log('📧 ===== EMAIL UNIQUENESS VALIDATION END =====');
     
     return {
       isValid: true,
@@ -191,7 +193,7 @@ export async function validateEmailUniqueness(email: string): Promise<EmailValid
     };
 
   } catch (error) {
-    console.error('❌ Exception in validateEmailUniqueness:', error);
+    logger.error('❌ Exception in validateEmailUniqueness:', error);
     return {
       isValid: false,
       isUnique: false,

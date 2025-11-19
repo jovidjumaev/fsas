@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
+import { createLogger } from '../../../lib/logger';
+const logger = createLogger('page');
 
 function EmailConfirmContent() {
   const router = useRouter();
@@ -17,7 +19,7 @@ function EmailConfirmContent() {
   useEffect(() => {
     const confirmEmail = async () => {
       try {
-        console.log('🔐 Email confirmation page loaded');
+        logger.log('🔐 Email confirmation page loaded');
         
         // Get the token and type from URL parameters
         // Supabase might use different parameter names
@@ -33,21 +35,21 @@ function EmailConfirmContent() {
           setUserType(type);
         }
 
-        console.log('🔐 Email confirmation page loaded with params:', { token, type });
-        console.log('🔐 Full URL:', window.location.href);
-        console.log('🔐 Search params:', Object.fromEntries(searchParams.entries()));
-        console.log('🔐 All available params:', Array.from(searchParams.keys()));
+        logger.log('🔐 Email confirmation page loaded with params:', { token, type });
+        logger.log('🔐 Full URL:', window.location.href);
+        logger.log('🔐 Search params:', Object.fromEntries(searchParams.entries()));
+        logger.log('🔐 All available params:', Array.from(searchParams.keys()));
 
         // Check if we have a token in the URL
         if (!token) {
-          console.error('❌ No confirmation token found in URL');
-          console.log('🔐 Available search params:', Array.from(searchParams.keys()));
-          console.log('🔐 This might be a direct link without token - checking if user is already confirmed');
+          logger.error('❌ No confirmation token found in URL');
+          logger.log('🔐 Available search params:', Array.from(searchParams.keys()));
+          logger.log('🔐 This might be a direct link without token - checking if user is already confirmed');
           
           // Check if user is already signed in and confirmed
           const { data: { user } } = await supabase.auth.getUser();
           if (user && user.email_confirmed_at) {
-            console.log('✅ User is already confirmed:', user.email);
+            logger.log('✅ User is already confirmed:', user.email);
             setStatus('success');
             setMessage('🎉 Your email is already confirmed! You can now sign in to your account.');
             return;
@@ -58,7 +60,7 @@ function EmailConfirmContent() {
           return;
         }
 
-        console.log('🔐 Confirming email with token...');
+        logger.log('🔐 Confirming email with token...');
         
         // Try different confirmation methods
         let data, error;
@@ -74,7 +76,7 @@ function EmailConfirmContent() {
         
         // Method 2: If that fails, try with the token directly
         if (error) {
-          console.log('🔐 Trying alternative confirmation method...');
+          logger.log('🔐 Trying alternative confirmation method...');
           const altResult = await supabase.auth.verifyOtp({
             token: token,
             type: 'email'
@@ -85,8 +87,8 @@ function EmailConfirmContent() {
         }
 
         if (error) {
-          console.error('❌ Email confirmation error:', error);
-          console.log('🔐 Error details:', {
+          logger.error('❌ Email confirmation error:', error);
+          logger.log('🔐 Error details:', {
             message: error.message,
             status: error.status,
             code: error.code
@@ -103,7 +105,7 @@ function EmailConfirmContent() {
         }
 
         if (data?.user) {
-          console.log('✅ Email confirmed successfully for user:', data.user.id);
+          logger.log('✅ Email confirmed successfully for user:', data.user.id);
           setStatus('success');
           setMessage('🎉 Congratulations! Your email has been confirmed successfully!\n\nYou can now sign in to your account and access all features.');
         } else {
@@ -112,7 +114,7 @@ function EmailConfirmContent() {
         }
 
       } catch (error) {
-        console.error('❌ Email confirmation exception:', error);
+        logger.error('❌ Email confirmation exception:', error);
         setStatus('error');
         setMessage('An unexpected error occurred. Please try again or contact support.');
       }
@@ -130,7 +132,7 @@ function EmailConfirmContent() {
       // For now, redirect to registration page
       router.push(`/${userType || 'student'}/register`);
     } catch (error) {
-      console.error('❌ Resend confirmation error:', error);
+      logger.error('❌ Resend confirmation error:', error);
       setStatus('error');
       setMessage('Failed to resend confirmation email. Please try registering again.');
     }

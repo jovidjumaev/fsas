@@ -18,6 +18,8 @@ import {
   Trash2
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { createLogger } from '../../lib/logger';
+const logger = createLogger('profile-dropdown');
 
 interface ProfileDropdownProps {
   user: User | null;
@@ -84,7 +86,7 @@ export default function ProfileDropdown({
     try {
       await onUploadAvatar(file);
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      logger.error('Error uploading avatar:', error);
       alert('Failed to upload avatar. Please try again.');
     } finally {
       setIsUploading(false);
@@ -103,7 +105,7 @@ export default function ProfileDropdown({
     try {
       await onDeleteAvatar();
     } catch (error) {
-      console.error('Error deleting avatar:', error);
+      logger.error('Error deleting avatar:', error);
       alert('Failed to delete avatar. Please try again.');
     }
   };

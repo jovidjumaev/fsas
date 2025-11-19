@@ -8,6 +8,8 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/lib/auth-context';
 import { GraduationCap, Mail, Lock, ArrowRight, AlertCircle, Zap, Moon, Sun } from 'lucide-react';
+import { createLogger } from '../../../lib/logger';
+const logger = createLogger('page');
 
 export default function StudentLogin() {
   const [email, setEmail] = useState('');
@@ -39,8 +41,8 @@ export default function StudentLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🎓 Student Login: ===== FORM SUBMISSION STARTED =====');
-    console.log('🎓 Student Login: Form data:', { 
+    logger.log('🎓 Student Login: ===== FORM SUBMISSION STARTED =====');
+    logger.log('🎓 Student Login: Form data:', { 
       email, 
       passwordLength: password?.length || 0,
       passwordProvided: !!password,
@@ -52,15 +54,15 @@ export default function StudentLogin() {
     setError('');
 
     try {
-      console.log('🎓 Student Login: Starting login process...');
-      console.log('🎓 Student Login: AuthContext available:', !!signIn);
-      console.log('🎓 Student Login: Router available:', !!router);
+      logger.log('🎓 Student Login: Starting login process...');
+      logger.log('🎓 Student Login: AuthContext available:', !!signIn);
+      logger.log('🎓 Student Login: Router available:', !!router);
       
       // Validate input
       if (!email || !password) {
-        console.error('🎓 Student Login: VALIDATION FAILED - Missing fields');
-        console.error('🎓 Student Login: Email provided:', !!email);
-        console.error('🎓 Student Login: Password provided:', !!password);
+        logger.error('🎓 Student Login: VALIDATION FAILED - Missing fields');
+        logger.error('🎓 Student Login: Email provided:', !!email);
+        logger.error('🎓 Student Login: Password provided:', !!password);
         setError('Please fill in all fields');
         return;
       }
@@ -68,70 +70,70 @@ export default function StudentLogin() {
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        console.error('🎓 Student Login: VALIDATION FAILED - Invalid email format');
+        logger.error('🎓 Student Login: VALIDATION FAILED - Invalid email format');
         setError('Please enter a valid email address');
         return;
       }
 
       // Validate password length
       if (password.length < 6) {
-        console.error('🎓 Student Login: VALIDATION FAILED - Password too short');
+        logger.error('🎓 Student Login: VALIDATION FAILED - Password too short');
         setError('Password must be at least 6 characters long');
         return;
       }
       
-      console.log('🎓 Student Login: Input validation passed');
-      console.log('🎓 Student Login: Calling signIn function...');
+      logger.log('🎓 Student Login: Input validation passed');
+      logger.log('🎓 Student Login: Calling signIn function...');
       
       const result = await signIn(email, password, 'student');
       
-      console.log('🎓 Student Login: ===== SIGN-IN RESULT =====');
-      console.log('🎓 Student Login: Result object:', result);
-      console.log('🎓 Student Login: Success:', result.success);
-      console.log('🎓 Student Login: Error:', result.error);
+      logger.log('🎓 Student Login: ===== SIGN-IN RESULT =====');
+      logger.log('🎓 Student Login: Result object:', result);
+      logger.log('🎓 Student Login: Success:', result.success);
+      logger.log('🎓 Student Login: Error:', result.error);
       
       if (result.success) {
-        console.log('✅ Student Login: SUCCESS - Redirecting to dashboard');
-        console.log('🎓 Student Login: Router push to /student/dashboard');
+        logger.log('✅ Student Login: SUCCESS - Redirecting to dashboard');
+        logger.log('🎓 Student Login: Router push to /student/dashboard');
         router.push('/student/dashboard');
       } else {
-        console.error('❌ Student Login: FAILED - Processing error');
-        console.error('❌ Student Login: Error message:', result.error);
+        logger.error('❌ Student Login: FAILED - Processing error');
+        logger.error('❌ Student Login: Error message:', result.error);
         
         let errorMessage = result.error || 'Login failed. Please check your credentials.';
         
         // Handle specific error cases
         if (result.error?.includes('Please sign in as a')) {
           errorMessage = 'This account is not registered as a student. Please use the professor login page.';
-          console.error('🎓 Student Login: SPECIFIC ERROR - Role mismatch');
+          logger.error('🎓 Student Login: SPECIFIC ERROR - Role mismatch');
         } else if (result.error?.includes('Invalid email or password')) {
           errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-          console.error('🎓 Student Login: SPECIFIC ERROR - Invalid credentials');
+          logger.error('🎓 Student Login: SPECIFIC ERROR - Invalid credentials');
         } else if (result.error?.includes('Email not confirmed')) {
           errorMessage = 'Please check your email and click the confirmation link before signing in.';
-          console.error('🎓 Student Login: SPECIFIC ERROR - Email not confirmed');
+          logger.error('🎓 Student Login: SPECIFIC ERROR - Email not confirmed');
         } else if (result.error?.includes('User profile not found')) {
           errorMessage = 'Account setup incomplete. Please contact support or try registering again.';
-          console.error('🎓 Student Login: SPECIFIC ERROR - Profile not found');
+          logger.error('🎓 Student Login: SPECIFIC ERROR - Profile not found');
         } else if (result.error?.includes('Database error')) {
           errorMessage = 'System error. Please try again or contact support.';
-          console.error('🎓 Student Login: SPECIFIC ERROR - Database error');
+          logger.error('🎓 Student Login: SPECIFIC ERROR - Database error');
         } else {
-          console.error('🎓 Student Login: GENERIC ERROR - Using provided message');
+          logger.error('🎓 Student Login: GENERIC ERROR - Using provided message');
         }
         
         setError(errorMessage);
       }
     } catch (err: any) {
-      console.error('❌ Student Login: ===== UNEXPECTED ERROR =====');
-      console.error('❌ Student Login: Error type:', typeof err);
-      console.error('❌ Student Login: Error message:', err?.message);
-      console.error('❌ Student Login: Error stack:', err?.stack);
-      console.error('❌ Student Login: Full error:', JSON.stringify(err, null, 2));
+      logger.error('❌ Student Login: ===== UNEXPECTED ERROR =====');
+      logger.error('❌ Student Login: Error type:', typeof err);
+      logger.error('❌ Student Login: Error message:', err?.message);
+      logger.error('❌ Student Login: Error stack:', err?.stack);
+      logger.error('❌ Student Login: Full error:', JSON.stringify(err, null, 2));
       setError('An unexpected error occurred. Please try again.');
     } finally {
-      console.log('🎓 Student Login: ===== FORM SUBMISSION COMPLETED =====');
-      console.log('🎓 Student Login: Setting loading to false');
+      logger.log('🎓 Student Login: ===== FORM SUBMISSION COMPLETED =====');
+      logger.log('🎓 Student Login: Setting loading to false');
       setIsLoading(false);
     }
   };
