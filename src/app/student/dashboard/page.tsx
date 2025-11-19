@@ -16,7 +16,7 @@ import { StatsCard } from '@/components/student/stats-card';
 import { ClassCard } from '@/components/student/class-card';
 import { supabase } from '@/lib/supabase';
 import { StudentDashboardService } from '@/lib/student-dashboard-service';
-import { useStudentDashboard } from '@/hooks/use-student-dashboard';
+import { useStudentDashboard } from '@/hooks/use-student-dashboard-cached';
 import { createLogger } from '../../../lib/logger';
 const logger = createLogger('page');
 import { 
@@ -605,10 +605,14 @@ function StudentDashboardContent() {
                     </div>
                   ))
                 ) : todayClasses.length > 0 ? (
-                  todayClasses.map((classData) => (
+                  todayClasses.map((classSession) => (
                     <ClassCard
-                      key={classData.id}
-                      classData={classData}
+                      key={classSession.id}
+                      classData={{
+                        ...classSession,
+                        schedule: classSession.time, // Map time to schedule
+                        attendance_rate: 0, // Default value since it's not available in ClassSession
+                      } as any}
                       showAttendanceStatus={true}
                       compact={true}
                     />
