@@ -895,6 +895,89 @@ router.get('/api/students/:studentId/classes/:classId/ai/quiz/history', async (r
 });
 
 /**
+ * Get quiz attempt details with questions and answers
+ * GET /api/students/:studentId/classes/:classId/ai/quiz/attempt/:attemptId
+ */
+router.get('/api/students/:studentId/classes/:classId/ai/quiz/attempt/:attemptId', async (req, res) => {
+  try {
+    const { studentId, classId, attemptId } = req.params;
+
+    console.log('📋 Getting quiz attempt details:', attemptId);
+
+    // Verify student enrollment
+    const { data: enrollment, error: enrollmentError } = await supabase
+      .from('enrollments')
+      .select('id')
+      .eq('student_id', studentId)
+      .eq('class_instance_id', classId)
+      .eq('status', 'active')
+      .single();
+
+    if (enrollmentError || !enrollment) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied - not enrolled in this class'
+      });
+    }
+
+    // Get quiz session
+    const { data: session, error: sessionError } = await supabase
+      .from('student_quiz_sessions')
+      .select(`
+        id,
+        material_id,
+        total_questions,
+        correct_answers,
+        score_percentage,
+        completed_at,
+        class_materials!inner(file_name)
+      `)
+      .eq('id', attemptId)
+      .eq('student_id', studentId)
+      .single();
+
+    if (sessionError || !session) {
+      console.error('❌ Error fetching quiz session:', sessionError);
+      return res.status(404).json({
+        success: false,
+        error: 'Quiz attempt not found'
+      });
+    }
+
+    // Get all questions for this quiz session with user's answers
+    const { data: questions, error: questionsError } = await supabase
+      .from('student_quiz_questions')
+      .select('*')
+      .eq('quiz_session_id', attemptId)
+      .eq('student_id', studentId)
+      .order('question_order', { ascending: true });
+
+    if (questionsError) {
+      console.error('❌ Error fetching questions:', questionsError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch quiz questions'
+      });
+    }
+
+    res.json({
+      success: true,
+      attempt: {
+        ...session,
+        questions: questions || []
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Get quiz attempt details error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+/**
  * Submit quiz answers
  * POST /api/students/:studentId/classes/:classId/ai/quiz/submit
  */
@@ -953,11 +1036,12 @@ router.post('/api/students/:studentId/classes/:classId/ai/quiz/submit', async (r
         correct_answer: question.correct_answer,
         is_correct: isCorrect
       });
-      
-      // Update question statistics
+
+      // Update question with user's answer and statistics
       supabase
         .from('student_quiz_questions')
         .update({
+          user_answer: userAnswer,
           times_answered: question.times_answered + 1,
           correct_answers: question.correct_answers + (isCorrect ? 1 : 0),
           last_answered: new Date().toISOString()

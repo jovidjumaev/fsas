@@ -61,8 +61,9 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
 
   // Quiz history and mastery state
   const [quizHistory, setQuizHistory] = useState<any[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
+  const [selectedAttempt, setSelectedAttempt] = useState<any>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isLoadingAttempt, setIsLoadingAttempt] = useState(false);
   const [masteryData, setMasteryData] = useState<{ [materialId: string]: any[] }>({});
 
   console.log('🎓 StudentAIAssistant component rendered for class:', classId, 'student:', studentId);
@@ -475,8 +476,33 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
   useEffect(() => {
     if (activeSubTab === 'quiz' && selectedMaterial) {
       loadQuizHistory();
+      setSelectedAttempt(null); // Clear selected attempt when material changes
     }
   }, [activeSubTab, selectedMaterial]);
+
+  // Load attempt details
+  const loadAttemptDetails = async (attemptId: string) => {
+    try {
+      setIsLoadingAttempt(true);
+      console.log('📋 Loading attempt details:', attemptId);
+      const response = await fetch(
+        `/api/students/${studentId}/classes/${classId}/ai/quiz/attempt/${attemptId}`
+      );
+      const data = await response.json();
+      console.log('📋 Attempt details response:', data);
+
+      if (data.success) {
+        setSelectedAttempt(data.attempt);
+        console.log('📋 Attempt details loaded:', data.attempt.questions?.length || 0, 'questions');
+      } else {
+        console.error('❌ Failed to load attempt details:', data.error);
+      }
+    } catch (error) {
+      console.error('❌ Error loading attempt details:', error);
+    } finally {
+      setIsLoadingAttempt(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -916,37 +942,44 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
             )}
           </div>
 
-          {/* History Sidebar and Mastery Chart */}
+          {/* Quiz History and Progress */}
           {quizQuestions.length === 0 && !quizResults && (
-            <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 mb-6">
               {/* Quiz History Sidebar */}
-              <Card className="p-4 bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600">
+              <Card className="p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
                     <History className="w-4 h-4 mr-2" />
                     Quiz History
                   </h4>
-                  <Badge variant="secondary">{quizHistory.length}</Badge>
+                  <Badge variant="secondary" className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                    {quizHistory.length}
+                  </Badge>
                 </div>
 
-                <div className="space-y-2 max-h-96 overflow-y-auto">
+                <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
                   {quizHistory.length > 0 ? (
                     quizHistory.map((attempt: any, index: number) => (
                       <div
                         key={attempt.id}
-                        className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 transition-colors cursor-pointer"
+                        onClick={() => loadAttemptDetails(attempt.id)}
+                        className={`p-3 rounded-lg border transition-all cursor-pointer ${
+                          selectedAttempt?.id === attempt.id
+                            ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-600'
+                            : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600'
+                        }`}
                       >
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                            Attempt #{quizHistory.length - index}
+                          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                            Attempt #{index + 1}
                           </span>
                           <Badge
                             className={
                               attempt.score_percentage >= 80
-                                ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
                                 : attempt.score_percentage >= 60
-                                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
-                                : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300'
+                                : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
                             }
                           >
                             {attempt.score_percentage}%
@@ -972,75 +1005,253 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                 </div>
               </Card>
 
-              {/* Mastery Progress Chart */}
-              <Card className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-700">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Mastery Progress
-                  </h4>
-                  {masteryData[selectedMaterial]?.length > 1 && (
-                    <Badge variant="secondary">
-                      {masteryData[selectedMaterial][masteryData[selectedMaterial].length - 1].score -
-                        masteryData[selectedMaterial][0].score >= 0
-                        ? '↑'
-                        : '↓'}{' '}
-                      {Math.abs(
+              {/* Timeline Progress Chart and Attempt Details */}
+              <div className="space-y-4">
+                {/* Timeline Chart */}
+                <Card className="p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Progress Timeline - {materials.find(m => m.id === selectedMaterial)?.file_name}
+                    </h4>
+                    {masteryData[selectedMaterial]?.length > 1 && (
+                      <Badge className={`${
                         masteryData[selectedMaterial][masteryData[selectedMaterial].length - 1].score -
-                          masteryData[selectedMaterial][0].score
-                      ).toFixed(0)}
-                      %
-                    </Badge>
-                  )}
-                </div>
+                        masteryData[selectedMaterial][0].score >= 0
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                          : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
+                      }`}>
+                        {masteryData[selectedMaterial][masteryData[selectedMaterial].length - 1].score -
+                          masteryData[selectedMaterial][0].score >= 0
+                          ? '↑'
+                          : '↓'}{' '}
+                        {Math.abs(
+                          masteryData[selectedMaterial][masteryData[selectedMaterial].length - 1].score -
+                            masteryData[selectedMaterial][0].score
+                        ).toFixed(0)}%
+                      </Badge>
+                    )}
+                  </div>
 
-                {masteryData[selectedMaterial]?.length > 0 ? (
-                  <div className="relative h-48">
-                    {/* Chart */}
-                    <div className="absolute inset-0 flex items-end justify-around px-2">
-                      {masteryData[selectedMaterial].map((data: any, index: number) => {
-                        const height = data.score;
-                        const color =
-                          height >= 80
-                            ? 'bg-green-500'
-                            : height >= 60
-                            ? 'bg-yellow-500'
-                            : 'bg-red-500';
+                  {masteryData[selectedMaterial]?.length > 0 ? (
+                    <div className="h-48 relative">
+                      <div className="absolute inset-0 px-4 pb-10 pt-2">
+                        {/* Y-axis labels */}
+                        <div className="absolute left-0 top-0 bottom-10 w-10 flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400">
+                          <span>100%</span>
+                          <span>75%</span>
+                          <span>50%</span>
+                          <span>25%</span>
+                          <span>0%</span>
+                        </div>
 
-                        return (
-                          <div key={index} className="flex-1 flex flex-col items-center group px-1">
-                            <div
-                              className="opacity-0 group-hover:opacity-100 transition-opacity mb-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded px-2 py-1 whitespace-nowrap"
-                            >
-                              {height.toFixed(0)}%
-                            </div>
-
-                            <div
-                              className="w-full relative"
-                              style={{ height: '150px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
-                            >
+                        {/* Chart Area */}
+                        <div className="ml-10 h-full pb-10 relative">
+                          {/* Grid lines */}
+                          <div className="absolute inset-0">
+                            {[0, 25, 50, 75, 100].map((line) => (
                               <div
-                                className={`${color} rounded-t transition-all duration-300 hover:opacity-80 w-full`}
-                                style={{ height: `${height}%` }}
+                                key={line}
+                                className="absolute w-full border-t border-gray-200 dark:border-gray-600"
+                                style={{ top: `${100 - line}%` }}
                               />
-                            </div>
-
-                            <div className="mt-2 text-center">
-                              <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                #{data.attempt}
-                              </div>
-                            </div>
+                            ))}
                           </div>
-                        );
-                      })}
+
+                          {/* Line Chart */}
+                          <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+                            <defs>
+                              <linearGradient id="lineGradient" x1="0" x2="0" y1="0" y2="1">
+                                <stop offset="0%" stopColor="rgb(139, 92, 246)" stopOpacity="0.2" />
+                                <stop offset="100%" stopColor="rgb(139, 92, 246)" stopOpacity="0.05" />
+                              </linearGradient>
+                            </defs>
+
+                            {/* Area fill under line */}
+                            <path
+                              d={(() => {
+                                const points = masteryData[selectedMaterial].map((data: any, index: number) => {
+                                  const x = (index / Math.max(masteryData[selectedMaterial].length - 1, 1)) * 100;
+                                  const y = 100 - data.score;
+                                  return { x, y };
+                                });
+
+                                if (points.length === 0) return '';
+                                const firstPoint = points[0];
+                                const lastPoint = points[points.length - 1];
+
+                                let path = `M ${firstPoint.x} 100 L ${firstPoint.x} ${firstPoint.y}`;
+
+                                for (let i = 1; i < points.length; i++) {
+                                  const curr = points[i];
+                                  path += ` L ${curr.x} ${curr.y}`;
+                                }
+
+                                path += ` L ${lastPoint.x} 100 Z`;
+                                return path;
+                              })()}
+                              fill="url(#lineGradient)"
+                            />
+
+                            {/* Line */}
+                            <path
+                              d={(() => {
+                                const points = masteryData[selectedMaterial].map((data: any, index: number) => {
+                                  const x = (index / Math.max(masteryData[selectedMaterial].length - 1, 1)) * 100;
+                                  const y = 100 - data.score;
+                                  return { x, y };
+                                });
+
+                                if (points.length === 0) return '';
+                                let path = `M ${points[0].x} ${points[0].y}`;
+
+                                for (let i = 1; i < points.length; i++) {
+                                  const curr = points[i];
+                                  path += ` L ${curr.x} ${curr.y}`;
+                                }
+
+                                return path;
+                              })()}
+                              fill="none"
+                              stroke="rgb(139, 92, 246)"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+
+                            {/* Data points */}
+                            {masteryData[selectedMaterial].map((data: any, index: number) => {
+                              const x = (index / Math.max(masteryData[selectedMaterial].length - 1, 1)) * 100;
+                              const y = 100 - data.score;
+                              const color = data.score >= 80 ? 'rgb(34, 197, 94)' : data.score >= 60 ? 'rgb(234, 179, 8)' : 'rgb(239, 68, 68)';
+                              return (
+                                <circle
+                                  key={index}
+                                  cx={`${x}%`}
+                                  cy={`${y}%`}
+                                  r="5"
+                                  fill={color}
+                                  stroke="white"
+                                  strokeWidth="2"
+                                  className="hover:r-7 transition-all cursor-pointer"
+                                >
+                                  <title>Attempt {data.attempt}: {data.score.toFixed(0)}%</title>
+                                </circle>
+                              );
+                            })}
+                          </svg>
+                        </div>
+
+                        {/* X-axis labels */}
+                        <div className="absolute bottom-0 left-10 right-0 flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                          <span>Attempt 1</span>
+                          {masteryData[selectedMaterial].length > 1 && (
+                            <span>Attempt {masteryData[selectedMaterial].length}</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
-                    Complete quizzes to see your progress
-                  </div>
+                  ) : (
+                    <div className="text-center py-12 text-gray-500 dark:text-gray-400 text-sm">
+                      Complete quizzes to see your progress timeline
+                    </div>
+                  )}
+                </Card>
+
+                {/* Attempt Details */}
+                {selectedAttempt && (
+                  <Card className="p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+                        Attempt Details
+                      </h4>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedAttempt(null)}
+                        className="h-8 px-2"
+                      >
+                        ✕
+                      </Button>
+                    </div>
+
+                    {isLoadingAttempt ? (
+                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                        Loading attempt details...
+                      </div>
+                    ) : (
+                      <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                        {selectedAttempt.questions?.map((q: any, index: number) => {
+                          const userAnswer = q.user_answer ?? -1;
+                          const isCorrect = userAnswer === q.correct_answer;
+
+                          return (
+                            <div
+                              key={q.id}
+                              className={`p-4 rounded-lg border ${
+                                isCorrect
+                                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700'
+                                  : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700'
+                              }`}
+                            >
+                              <div className="flex items-start gap-2 mb-2">
+                                <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                                  isCorrect
+                                    ? 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200'
+                                    : 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200'
+                                }`}>
+                                  Q{index + 1}
+                                </span>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white flex-1">
+                                  {q.question}
+                                </p>
+                              </div>
+
+                              <div className="space-y-2 ml-2">
+                                {q.options?.map((option: string, optIndex: number) => {
+                                  const isUserAnswer = userAnswer === optIndex;
+                                  const isCorrectAnswer = q.correct_answer === optIndex;
+
+                                  return (
+                                    <div
+                                      key={optIndex}
+                                      className={`p-2 rounded text-sm ${
+                                        isCorrectAnswer
+                                          ? 'bg-green-100 dark:bg-green-900/40 border border-green-300 dark:border-green-600 text-green-900 dark:text-green-100 font-medium'
+                                          : isUserAnswer
+                                          ? 'bg-red-100 dark:bg-red-900/40 border border-red-300 dark:border-red-600 text-red-900 dark:text-red-100'
+                                          : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span>{option}</span>
+                                        {isCorrectAnswer && (
+                                          <span className="text-xs text-green-700 dark:text-green-300">✓ Correct</span>
+                                        )}
+                                        {isUserAnswer && !isCorrectAnswer && (
+                                          <span className="text-xs text-red-700 dark:text-red-300">✗ Your answer</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {q.explanation && (
+                                <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded">
+                                  <p className="text-xs text-blue-900 dark:text-blue-100">
+                                    <strong>Explanation:</strong> {q.explanation}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </Card>
                 )}
-              </Card>
+              </div>
             </div>
           )}
 
