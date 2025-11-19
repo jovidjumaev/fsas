@@ -1667,7 +1667,7 @@ function ClassManagementPageContent() {
             </Card>
 
             {analyticsData && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6">
                 {/* Student List - Left Side */}
                 <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
                   <div className="flex items-center justify-between mb-4">
