@@ -65,6 +65,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isLoadingAttempt, setIsLoadingAttempt] = useState(false);
   const [masteryData, setMasteryData] = useState<{ [materialId: string]: any[] }>({});
+  const [timelineFilter, setTimelineFilter] = useState<string>('all'); // Filter for timeline chart
 
   console.log('🎓 StudentAIAssistant component rendered for class:', classId, 'student:', studentId);
 
@@ -477,6 +478,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
     if (activeSubTab === 'quiz' && selectedMaterial) {
       loadQuizHistory();
       setSelectedAttempt(null); // Clear selected attempt when material changes
+      setTimelineFilter(selectedMaterial); // Set timeline filter to current material
     }
   }, [activeSubTab, selectedMaterial]);
 
@@ -985,6 +987,9 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                             {attempt.score_percentage}%
                           </Badge>
                         </div>
+                        <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mb-1 truncate">
+                          {attempt.class_materials?.file_name || 'Unknown Material'}
+                        </p>
                         <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
                           {attempt.correct_answers}/{attempt.total_questions} correct
                         </p>
@@ -1012,150 +1017,180 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
                       <BarChart3 className="w-4 h-4 mr-2" />
-                      Progress Timeline - {materials.find(m => m.id === selectedMaterial)?.file_name}
+                      Progress Timeline
                     </h4>
-                    {masteryData[selectedMaterial]?.length > 1 && (
-                      <Badge className={`${
-                        masteryData[selectedMaterial][masteryData[selectedMaterial].length - 1].score -
-                        masteryData[selectedMaterial][0].score >= 0
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
-                          : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
-                      }`}>
-                        {masteryData[selectedMaterial][masteryData[selectedMaterial].length - 1].score -
-                          masteryData[selectedMaterial][0].score >= 0
-                          ? '↑'
-                          : '↓'}{' '}
-                        {Math.abs(
-                          masteryData[selectedMaterial][masteryData[selectedMaterial].length - 1].score -
-                            masteryData[selectedMaterial][0].score
-                        ).toFixed(0)}%
-                      </Badge>
-                    )}
+                    <select
+                      value={timelineFilter}
+                      onChange={(e) => setTimelineFilter(e.target.value)}
+                      className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      <option value="all">All Materials</option>
+                      {materials.map((material) => (
+                        <option key={material.id} value={material.id}>
+                          {material.file_name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  {masteryData[selectedMaterial]?.length > 0 ? (
-                    <div className="h-48 relative">
-                      <div className="absolute inset-0 px-4 pb-10 pt-2">
-                        {/* Y-axis labels */}
-                        <div className="absolute left-0 top-0 bottom-10 w-10 flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400">
-                          <span>100%</span>
-                          <span>75%</span>
-                          <span>50%</span>
-                          <span>25%</span>
-                          <span>0%</span>
-                        </div>
+                  {(() => {
+                    const displayData = timelineFilter === 'all'
+                      ? Object.values(masteryData).flat().sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                      : masteryData[timelineFilter] || [];
 
-                        {/* Chart Area */}
-                        <div className="ml-10 h-full pb-10 relative">
-                          {/* Grid lines */}
-                          <div className="absolute inset-0">
-                            {[0, 25, 50, 75, 100].map((line) => (
-                              <div
-                                key={line}
-                                className="absolute w-full border-t border-gray-200 dark:border-gray-600"
-                                style={{ top: `${100 - line}%` }}
-                              />
-                            ))}
+                    const hasBadgeData = timelineFilter !== 'all' && displayData.length > 1;
+
+                    return (
+                      <>
+                        {hasBadgeData && (
+                          <div className="mb-2 flex justify-end">
+                            <Badge className={`${
+                              displayData[displayData.length - 1].score - displayData[0].score >= 0
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                                : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
+                            }`}>
+                              {displayData[displayData.length - 1].score - displayData[0].score >= 0 ? '↑' : '↓'}{' '}
+                              {Math.abs(displayData[displayData.length - 1].score - displayData[0].score).toFixed(0)}%
+                            </Badge>
                           </div>
+                        )}
 
-                          {/* Line Chart */}
-                          <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-                            <defs>
-                              <linearGradient id="lineGradient" x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="0%" stopColor="rgb(139, 92, 246)" stopOpacity="0.2" />
-                                <stop offset="100%" stopColor="rgb(139, 92, 246)" stopOpacity="0.05" />
-                              </linearGradient>
-                            </defs>
+                        {displayData.length > 0 ? (
+                          <div className="h-48 relative">
+                            <div className="absolute inset-0 px-4 pb-10 pt-2">
+                              {/* Y-axis labels */}
+                              <div className="absolute left-0 top-0 bottom-10 w-10 flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400">
+                                <span>100%</span>
+                                <span>75%</span>
+                                <span>50%</span>
+                                <span>25%</span>
+                                <span>0%</span>
+                              </div>
 
-                            {/* Area fill under line */}
-                            <path
-                              d={(() => {
-                                const points = masteryData[selectedMaterial].map((data: any, index: number) => {
-                                  const x = (index / Math.max(masteryData[selectedMaterial].length - 1, 1)) * 100;
-                                  const y = 100 - data.score;
-                                  return { x, y };
-                                });
+                              {/* Chart Area */}
+                              <div className="ml-10 h-full pb-10 relative">
+                                {/* Grid lines */}
+                                <div className="absolute inset-0">
+                                  {[0, 25, 50, 75, 100].map((line) => (
+                                    <div
+                                      key={line}
+                                      className="absolute w-full border-t border-gray-200 dark:border-gray-600"
+                                      style={{ top: `${100 - line}%` }}
+                                    />
+                                  ))}
+                                </div>
 
-                                if (points.length === 0) return '';
-                                const firstPoint = points[0];
-                                const lastPoint = points[points.length - 1];
+                                {/* Line Chart */}
+                                <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+                                  <defs>
+                                    <linearGradient id="lineGradient" x1="0" x2="0" y1="0" y2="1">
+                                      <stop offset="0%" stopColor="rgb(139, 92, 246)" stopOpacity="0.2" />
+                                      <stop offset="100%" stopColor="rgb(139, 92, 246)" stopOpacity="0.05" />
+                                    </linearGradient>
+                                  </defs>
 
-                                let path = `M ${firstPoint.x} 100 L ${firstPoint.x} ${firstPoint.y}`;
+                                  {/* Area fill under line */}
+                                  <path
+                                    d={(() => {
+                                      const points = displayData.map((data: any, index: number) => {
+                                        const x = (index / Math.max(displayData.length - 1, 1)) * 100;
+                                        const y = 100 - data.score;
+                                        return { x, y };
+                                      });
 
-                                for (let i = 1; i < points.length; i++) {
-                                  const curr = points[i];
-                                  path += ` L ${curr.x} ${curr.y}`;
-                                }
+                                      if (points.length === 0) return '';
+                                      const firstPoint = points[0];
+                                      const lastPoint = points[points.length - 1];
 
-                                path += ` L ${lastPoint.x} 100 Z`;
-                                return path;
-                              })()}
-                              fill="url(#lineGradient)"
-                            />
+                                      let path = `M ${firstPoint.x} 100 L ${firstPoint.x} ${firstPoint.y}`;
 
-                            {/* Line */}
-                            <path
-                              d={(() => {
-                                const points = masteryData[selectedMaterial].map((data: any, index: number) => {
-                                  const x = (index / Math.max(masteryData[selectedMaterial].length - 1, 1)) * 100;
-                                  const y = 100 - data.score;
-                                  return { x, y };
-                                });
+                                      for (let i = 1; i < points.length; i++) {
+                                        const curr = points[i];
+                                        path += ` L ${curr.x} ${curr.y}`;
+                                      }
 
-                                if (points.length === 0) return '';
-                                let path = `M ${points[0].x} ${points[0].y}`;
+                                      path += ` L ${lastPoint.x} 100 Z`;
+                                      return path;
+                                    })()}
+                                    fill="url(#lineGradient)"
+                                  />
 
-                                for (let i = 1; i < points.length; i++) {
-                                  const curr = points[i];
-                                  path += ` L ${curr.x} ${curr.y}`;
-                                }
+                                  {/* Line */}
+                                  <path
+                                    d={(() => {
+                                      const points = displayData.map((data: any, index: number) => {
+                                        const x = (index / Math.max(displayData.length - 1, 1)) * 100;
+                                        const y = 100 - data.score;
+                                        return { x, y };
+                                      });
 
-                                return path;
-                              })()}
-                              fill="none"
-                              stroke="rgb(139, 92, 246)"
-                              strokeWidth="3"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
+                                      if (points.length === 0) return '';
+                                      let path = `M ${points[0].x} ${points[0].y}`;
 
-                            {/* Data points */}
-                            {masteryData[selectedMaterial].map((data: any, index: number) => {
-                              const x = (index / Math.max(masteryData[selectedMaterial].length - 1, 1)) * 100;
-                              const y = 100 - data.score;
-                              const color = data.score >= 80 ? 'rgb(34, 197, 94)' : data.score >= 60 ? 'rgb(234, 179, 8)' : 'rgb(239, 68, 68)';
-                              return (
-                                <circle
-                                  key={index}
-                                  cx={`${x}%`}
-                                  cy={`${y}%`}
-                                  r="5"
-                                  fill={color}
-                                  stroke="white"
-                                  strokeWidth="2"
-                                  className="hover:r-7 transition-all cursor-pointer"
-                                >
-                                  <title>Attempt {data.attempt}: {data.score.toFixed(0)}%</title>
-                                </circle>
-                              );
-                            })}
-                          </svg>
-                        </div>
+                                      for (let i = 1; i < points.length; i++) {
+                                        const curr = points[i];
+                                        path += ` L ${curr.x} ${curr.y}`;
+                                      }
 
-                        {/* X-axis labels */}
-                        <div className="absolute bottom-0 left-10 right-0 flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                          <span>Attempt 1</span>
-                          {masteryData[selectedMaterial].length > 1 && (
-                            <span>Attempt {masteryData[selectedMaterial].length}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 text-gray-500 dark:text-gray-400 text-sm">
-                      Complete quizzes to see your progress timeline
-                    </div>
-                  )}
+                                      return path;
+                                    })()}
+                                    fill="none"
+                                    stroke="rgb(139, 92, 246)"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+
+                                  {/* Data points */}
+                                  {displayData.map((data: any, index: number) => {
+                                    const x = (index / Math.max(displayData.length - 1, 1)) * 100;
+                                    const y = 100 - data.score;
+                                    const color = data.score >= 80 ? 'rgb(34, 197, 94)' : data.score >= 60 ? 'rgb(234, 179, 8)' : 'rgb(239, 68, 68)';
+                                    return (
+                                      <circle
+                                        key={index}
+                                        cx={`${x}%`}
+                                        cy={`${y}%`}
+                                        r="5"
+                                        fill={color}
+                                        stroke="white"
+                                        strokeWidth="2"
+                                        className="hover:r-7 transition-all cursor-pointer"
+                                      >
+                                        <title>Attempt {index + 1}: {data.score.toFixed(0)}%</title>
+                                      </circle>
+                                    );
+                                  })}
+                                </svg>
+                              </div>
+
+                              {/* X-axis labels with proper alignment */}
+                              <div className="absolute bottom-0 left-10 right-0 h-6">
+                                <div className="relative w-full h-full">
+                                  {displayData.map((data: any, index: number) => {
+                                    const x = (index / Math.max(displayData.length - 1, 1)) * 100;
+                                    return (
+                                      <div
+                                        key={index}
+                                        className="absolute text-xs text-gray-500 dark:text-gray-400 transform -translate-x-1/2"
+                                        style={{ left: `${x}%` }}
+                                      >
+                                        {index}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center py-12 text-gray-500 dark:text-gray-400 text-sm">
+                            Complete quizzes to see your progress timeline
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </Card>
 
                 {/* Attempt Details */}
