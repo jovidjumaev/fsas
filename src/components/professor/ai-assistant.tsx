@@ -956,7 +956,7 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
                     </div>
                   )}
 
-                  <div className="grid gap-4 lg:grid-cols-[2fr,1.2fr]">
+                  <div className="grid gap-4 lg:grid-cols-[350px,1fr]">
                     <div className="space-y-2">
                       {filteredStudents.length > 0 ? (
                         filteredStudents.map((student) => {
