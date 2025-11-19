@@ -12,6 +12,7 @@ import {
   formatErrorForUser
 } from './error-handler';
 import { authLogger as logger } from './logger';
+import { SignOutService } from './sign-out-service';
 
 const supabaseClient = supabase as any;
 const supabaseAdminClient = supabaseAdmin as any;
@@ -847,51 +848,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    logger.log('🔐 AuthContext: Starting sign out process...');
-    
+    logger.log('🔐 AuthContext: Starting optimized sign out process...');
+
     // Store the current user role before clearing it
     const currentUserRole = userRole;
-    
-    try {
-      await supabase.auth.signOut();
-      logger.log('🔐 AuthContext: Supabase sign out completed');
-      setUser(null);
-      setUserRole(null);
-      logger.log('🔐 AuthContext: User state cleared');
-      
-      // Redirect to appropriate login page based on user role
-      if (typeof window !== 'undefined') {
-        if (currentUserRole === 'student') {
-          logger.log('🔐 AuthContext: Redirecting to student login page');
-          window.location.href = '/student/login';
-        } else if (currentUserRole === 'professor') {
-          logger.log('🔐 AuthContext: Redirecting to professor login page');
-          window.location.href = '/professor/login';
-        } else {
-          logger.log('🔐 AuthContext: No role detected, redirecting to main page');
-          window.location.href = '/';
-        }
-      }
-    } catch (error) {
-      logger.error('🔐 AuthContext: Sign out error:', error);
-      // Even if there's an error, clear the local state
-      setUser(null);
-      setUserRole(null);
-      
-      // Force navigation to appropriate login page even on error
-      if (typeof window !== 'undefined') {
-        if (currentUserRole === 'student') {
-          logger.log('🔐 AuthContext: Error occurred, redirecting to student login page');
-          window.location.href = '/student/login';
-        } else if (currentUserRole === 'professor') {
-          logger.log('🔐 AuthContext: Error occurred, redirecting to professor login page');
-          window.location.href = '/professor/login';
-        } else {
-          logger.log('🔐 AuthContext: Error occurred, no role detected, redirecting to main page');
-          window.location.href = '/';
-        }
-      }
+
+    // OPTIMIZATION: Clear all SWR caches immediately
+    await SignOutService.clearAllCaches();
+    logger.log('🔐 AuthContext: SWR caches cleared');
+
+    // OPTIMIZATION: Clear local state immediately for instant UI response
+    setUser(null);
+    setUserRole(null);
+    logger.log('🔐 AuthContext: Local state cleared immediately');
+
+    // OPTIMIZATION: Start navigation immediately (don't wait for Supabase)
+    if (typeof window !== 'undefined') {
+      const redirectUrl = currentUserRole === 'student'
+        ? '/student/login'
+        : currentUserRole === 'professor'
+        ? '/professor/login'
+        : '/';
+
+      logger.log(`🔐 AuthContext: Redirecting immediately to ${redirectUrl}`);
+
+      // Use replace instead of href for better performance
+      window.location.replace(redirectUrl);
+
+      // Sign out from Supabase in background (fire and forget)
+      // This happens after redirect starts, so user doesn't wait
+      supabase.auth.signOut().then(() => {
+        logger.log('🔐 AuthContext: Supabase sign out completed in background');
+      }).catch((error) => {
+        logger.error('🔐 AuthContext: Background sign out error:', error);
+        // Error is non-critical since we already cleared local state
+      });
     }
+
+    // No need for try-catch since we're not waiting for the sign out
   };
 
   const resetPassword = async (email: string, role: 'student' | 'professor') => {
