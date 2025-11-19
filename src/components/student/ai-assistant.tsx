@@ -961,20 +961,24 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
 
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
                   {quizHistory.length > 0 ? (
-                    quizHistory.map((attempt: any, index: number) => (
-                      <div
-                        key={attempt.id}
-                        onClick={() => loadAttemptDetails(attempt.id)}
-                        className={`p-3 rounded-lg border transition-all cursor-pointer ${
-                          selectedAttempt?.id === attempt.id
-                            ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-600'
-                            : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                            Attempt #{index + 1}
-                          </span>
+                    quizHistory.map((attempt: any, index: number) => {
+                      // Calculate the correct attempt number (oldest = 1, newest = length)
+                      const attemptNumber = quizHistory.length - index;
+
+                      return (
+                        <div
+                          key={attempt.id}
+                          onClick={() => loadAttemptDetails(attempt.id)}
+                          className={`p-3 rounded-lg border transition-all cursor-pointer ${
+                            selectedAttempt?.id === attempt.id
+                              ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-600'
+                              : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                              Attempt #{attemptNumber}
+                            </span>
                           <Badge
                             className={
                               attempt.score_percentage >= 80
@@ -1001,7 +1005,8 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                           })}
                         </p>
                       </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
                       No quiz attempts yet. Complete a quiz to track your progress!
