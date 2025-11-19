@@ -5,12 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { 
-  MessageCircle, 
-  BookOpen, 
-  HelpCircle, 
-  Send, 
-  Upload, 
+import {
+  MessageCircle,
+  BookOpen,
+  HelpCircle,
+  Send,
+  Upload,
   RefreshCw,
   Brain,
   FileText,
@@ -22,7 +22,10 @@ import {
   RotateCcw,
   Check,
   X,
-  Download
+  Download,
+  History,
+  BarChart3,
+  Eye
 } from 'lucide-react';
 
 interface StudentAIAssistantProps {
@@ -55,6 +58,12 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const [quizResults, setQuizResults] = useState<any>(null);
   const [isSubmittingQuiz, setIsSubmittingQuiz] = useState(false);
+
+  // Quiz history and mastery state
+  const [quizHistory, setQuizHistory] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [masteryData, setMasteryData] = useState<{ [materialId: string]: any[] }>({});
 
   console.log('🎓 StudentAIAssistant component rendered for class:', classId, 'student:', studentId);
 
@@ -412,6 +421,54 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
     return quizQuestions.length > 0 && quizQuestions.every(q => selectedAnswers[q.id] !== undefined);
   };
 
+  // Load quiz history for selected material
+  const loadQuizHistory = async () => {
+    if (!selectedMaterial) return;
+
+    try {
+      setIsLoadingHistory(true);
+      const response = await fetch(
+        `/api/students/${studentId}/classes/${classId}/ai/quiz/history?materialId=${selectedMaterial}`
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        setQuizHistory(data.history || []);
+        calculateMasteryProgress(data.history || []);
+      }
+    } catch (error) {
+      console.error('Error loading quiz history:', error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // Calculate mastery progress from quiz history
+  const calculateMasteryProgress = (history: any[]) => {
+    if (!selectedMaterial || history.length === 0) return;
+
+    const materialHistory = history
+      .filter((h) => h.material_id === selectedMaterial)
+      .sort((a, b) => new Date(a.completed_at).getTime() - new Date(b.completed_at).getTime())
+      .map((h) => ({
+        date: new Date(h.completed_at),
+        score: h.score_percentage,
+        attempt: h.attempt_number || 1
+      }));
+
+    setMasteryData((prev) => ({
+      ...prev,
+      [selectedMaterial]: materialHistory
+    }));
+  };
+
+  // Load history when quiz tab is active or material changes
+  useEffect(() => {
+    if (activeSubTab === 'quiz' && selectedMaterial) {
+      loadQuizHistory();
+    }
+  }, [activeSubTab, selectedMaterial]);
+
   return (
     <div className="space-y-6">
       {/* Material Selection Card */}
@@ -580,12 +637,14 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               placeholder="Ask about your class materials, attendance, or study topics..."
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
+              {...({
+                onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
                 }
-              }}
+              } as any)}
               disabled={isSendingMessage || !chatSessionId}
               maxLength={200}
               className="flex-1"
@@ -847,7 +906,129 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
             </Button>
             )}
           </div>
-          
+
+          {/* History Sidebar and Mastery Chart */}
+          {quizQuestions.length === 0 && !quizResults && quizHistory.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4 mb-6">
+              {/* Quiz History Sidebar */}
+              <Card className="p-4 bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                    <History className="w-4 h-4 mr-2" />
+                    Quiz History
+                  </h4>
+                  <Badge variant="secondary">{quizHistory.length}</Badge>
+                </div>
+
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {quizHistory.map((attempt: any, index: number) => (
+                    <div
+                      key={attempt.id}
+                      className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                          Attempt #{quizHistory.length - index}
+                        </span>
+                        <Badge
+                          className={
+                            attempt.score_percentage >= 80
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                              : attempt.score_percentage >= 60
+                              ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                              : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                          }
+                        >
+                          {attempt.score_percentage}%
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                        {attempt.correct_answers}/{attempt.total_questions} correct
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500">
+                        {new Date(attempt.completed_at).toLocaleDateString()} at{' '}
+                        {new Date(attempt.completed_at).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Mastery Progress Chart */}
+              <Card className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-700">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Mastery Progress
+                  </h4>
+                  {masteryData[selectedMaterial]?.length > 1 && (
+                    <Badge variant="secondary">
+                      {masteryData[selectedMaterial][masteryData[selectedMaterial].length - 1].score -
+                        masteryData[selectedMaterial][0].score >= 0
+                        ? '↑'
+                        : '↓'}{' '}
+                      {Math.abs(
+                        masteryData[selectedMaterial][masteryData[selectedMaterial].length - 1].score -
+                          masteryData[selectedMaterial][0].score
+                      ).toFixed(0)}
+                      %
+                    </Badge>
+                  )}
+                </div>
+
+                {masteryData[selectedMaterial]?.length > 0 ? (
+                  <div className="relative h-48">
+                    {/* Chart */}
+                    <div className="absolute inset-0 flex items-end justify-around px-2">
+                      {masteryData[selectedMaterial].map((data: any, index: number) => {
+                        const height = data.score;
+                        const color =
+                          height >= 80
+                            ? 'bg-green-500'
+                            : height >= 60
+                            ? 'bg-yellow-500'
+                            : 'bg-red-500';
+
+                        return (
+                          <div key={index} className="flex-1 flex flex-col items-center group px-1">
+                            <div
+                              className="opacity-0 group-hover:opacity-100 transition-opacity mb-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded px-2 py-1 whitespace-nowrap"
+                            >
+                              {height.toFixed(0)}%
+                            </div>
+
+                            <div
+                              className="w-full relative"
+                              style={{ height: '150px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+                            >
+                              <div
+                                className={`${color} rounded-t transition-all duration-300 hover:opacity-80 w-full`}
+                                style={{ height: `${height}%` }}
+                              />
+                            </div>
+
+                            <div className="mt-2 text-center">
+                              <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                #{data.attempt}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
+                    Complete quizzes to see your progress
+                  </div>
+                )}
+              </Card>
+            </div>
+          )}
+
           {quizQuestions.length === 0 ? (
           <div className="text-center py-12">
             <HelpCircle className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
