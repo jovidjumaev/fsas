@@ -1670,15 +1670,15 @@ function ClassManagementPageContent() {
               <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6">
                 {/* Student List - Left Side */}
                 <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-lg font-semibold text-slate-900 dark:text-white">Student Attendance</h4>
+                  <div className="mb-4">
+                    <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">Student Attendance</h4>
                     <div className="relative">
                       <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
                       <Input
                         placeholder="Search students..."
                         value={analyticsSearchQuery}
                         onChange={(e) => setAnalyticsSearchQuery(e.target.value)}
-                        className="pl-10 w-64"
+                        className="pl-10 w-full"
                       />
                     </div>
                   </div>
@@ -1733,86 +1733,56 @@ function ClassManagementPageContent() {
                 <div className="space-y-6">
                   {/* Attendance Trend Timeline Chart */}
                   <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
-                    <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Attendance Trend Timeline</h4>
+                    <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Session Attendance Rates</h4>
                     <div className="h-64 relative">
                       {/* Chart Container */}
-                      <div className="absolute inset-0 p-4">
-                        {/* Y-axis labels */}
-                        <div className="absolute left-0 top-0 bottom-0 w-8 flex flex-col justify-between text-xs text-slate-500 dark:text-slate-400">
-                          <span>100%</span>
-                          <span>75%</span>
-                          <span>50%</span>
-                          <span>25%</span>
-                          <span>0%</span>
-                        </div>
-                        
-                        {/* Chart Area */}
-                        <div className="ml-8 mr-4 h-full relative">
-                          {/* Grid lines */}
-                          <div className="absolute inset-0">
-                            {[0, 25, 50, 75, 100].map((line) => (
-                              <div
-                                key={line}
-                                className="absolute w-full border-t border-slate-200 dark:border-slate-600"
-                                style={{ bottom: `${line}%` }}
-                              ></div>
-                            ))}
-                          </div>
-                          
-                          {/* Data points and line */}
-                          {analyticsData.attendance_trends.length > 0 && (
-                            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                              {/* Line path */}
-                              <polyline
-                                fill="none"
-                                stroke="rgb(59, 130, 246)"
-                                strokeWidth="0.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                points={analyticsData.attendance_trends.map((trend: any, index: number) => {
-                                  const x = (index / (analyticsData.attendance_trends.length - 1)) * 100;
-                                  const y = 100 - trend.attendance_rate;
-                                  return `${x},${y}`;
-                                }).join(' ')}
-                              />
-                              
-                              {/* Data points */}
-                              {analyticsData.attendance_trends.map((trend: any, index: number) => {
-                                const x = (index / (analyticsData.attendance_trends.length - 1)) * 100;
-                                const y = 100 - trend.attendance_rate;
-                                return (
-                                  <circle
-                                    key={trend.session_id}
-                                    cx={x}
-                                    cy={y}
-                                    r="1.5"
-                                    fill="rgb(59, 130, 246)"
-                                    className="hover:r-2 transition-all duration-200"
-                                  />
-                                );
-                              })}
-                            </svg>
-                          )}
-                        </div>
-                        
-                        {/* X-axis labels */}
-                        <div className="absolute bottom-0 left-8 right-4 flex justify-between text-xs text-slate-500 dark:text-slate-400">
-                          {analyticsData.attendance_trends.map((trend: any, index: number) => (
-                            <div key={trend.session_id} className="text-center">
-                              <div className="font-medium">S{trend.session_number}</div>
-                              <div className="text-xs">
-                                {new Date(trend.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      <div className="h-full flex items-end justify-around gap-2 px-4 pb-12">
+                        {analyticsData.attendance_trends.map((trend: any) => {
+                          const height = trend.attendance_rate;
+                          const color = height >= 80 ? 'bg-emerald-500' : height >= 60 ? 'bg-yellow-500' : 'bg-red-500';
+
+                          return (
+                            <div key={trend.session_id} className="flex-1 flex flex-col items-center group">
+                              {/* Tooltip */}
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity mb-2 bg-slate-900 dark:bg-slate-700 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+                                {height.toFixed(1)}%
+                              </div>
+
+                              {/* Bar */}
+                              <div className="w-full relative flex flex-col justify-end" style={{ height: '200px' }}>
+                                <div
+                                  className={`${color} rounded-t transition-all duration-300 hover:opacity-80 w-full`}
+                                  style={{ height: `${height}%` }}
+                                />
+                              </div>
+
+                              {/* Label */}
+                              <div className="mt-2 text-center">
+                                <div className="text-xs font-medium text-slate-900 dark:text-white">S{trend.session_number}</div>
+                                <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                  {new Date(trend.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </div>
                               </div>
                             </div>
-                          ))}
-                        </div>
+                          );
+                        })}
                       </div>
-                      
+
                       {/* Legend */}
                       <div className="absolute top-2 right-2 bg-white dark:bg-slate-700 rounded-lg px-3 py-2 shadow-sm">
-                        <div className="flex items-center space-x-2 text-xs">
-                          <div className="w-3 h-0.5 bg-blue-500"></div>
-                          <span className="text-slate-600 dark:text-slate-300">Attendance Rate</span>
+                        <div className="flex items-center space-x-3 text-xs">
+                          <div className="flex items-center space-x-1">
+                            <div className="w-3 h-3 bg-emerald-500 rounded"></div>
+                            <span className="text-slate-600 dark:text-slate-300">≥80%</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+                            <span className="text-slate-600 dark:text-slate-300">60-79%</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <div className="w-3 h-3 bg-red-500 rounded"></div>
+                            <span className="text-slate-600 dark:text-slate-300">&lt;60%</span>
+                          </div>
                         </div>
                       </div>
                     </div>
