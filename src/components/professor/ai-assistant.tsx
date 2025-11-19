@@ -670,20 +670,42 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
       list = list.filter((student) => !student.hasAttempted);
     }
 
+    // Material filter: show all students but prioritize those with attempts for the focused material
     if (selectedMaterialId !== 'all') {
-      list = list.filter((student) =>
-        student.materialSnapshots.some(
-          (snapshot) =>
-            snapshot.materialId === selectedMaterialId && snapshot.isCompleted
-        )
-      );
+      // Don't filter out students, just sort by their attempt status for this material
+      list = list.sort((a, b) => {
+        const aHasMaterial = a.materialSnapshots.some(s => s.materialId === selectedMaterialId);
+        const bHasMaterial = b.materialSnapshots.some(s => s.materialId === selectedMaterialId);
+
+        // Students with attempts for this material come first
+        if (aHasMaterial && !bHasMaterial) return -1;
+        if (!aHasMaterial && bHasMaterial) return 1;
+
+        // Within each group, sort by completion status and score
+        const aSnapshot = a.materialSnapshots.find(s => s.materialId === selectedMaterialId);
+        const bSnapshot = b.materialSnapshots.find(s => s.materialId === selectedMaterialId);
+
+        if (aSnapshot && bSnapshot) {
+          // Both have attempts - sort completed first, then by score
+          if (aSnapshot.isCompleted && !bSnapshot.isCompleted) return -1;
+          if (!aSnapshot.isCompleted && bSnapshot.isCompleted) return 1;
+          if (aSnapshot.isCompleted && bSnapshot.isCompleted) {
+            return (bSnapshot.scorePercentage || 0) - (aSnapshot.scorePercentage || 0);
+          }
+        }
+
+        return 0;
+      });
+    } else {
+      // Default sort by latest attempt
+      list = list.sort((a, b) => {
+        const aLatest = a.latestAttempt?.completedAt || a.latestAttempt?.startedAt || '';
+        const bLatest = b.latestAttempt?.completedAt || b.latestAttempt?.startedAt || '';
+        return (bLatest || '').localeCompare(aLatest || '');
+      });
     }
 
-    return list.sort((a, b) => {
-      const aLatest = a.latestAttempt?.completedAt || a.latestAttempt?.startedAt || '';
-      const bLatest = b.latestAttempt?.completedAt || b.latestAttempt?.startedAt || '';
-      return (bLatest || '').localeCompare(aLatest || '');
-    });
+    return list;
   }, [quizInsights, studentFilter, selectedMaterialId]);
 
   const focusStudent = useMemo(() => {
@@ -1045,32 +1067,46 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
                               Clear
                             </Button>
                           </div>
-                          {focusStudent.materialSnapshots.length > 0 && (
-                            <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                              {focusStudent.materialSnapshots.map((snapshot) => (
-                                <span
-                                  key={`${snapshot.materialId}-${snapshot.quizSessionId}`}
-                                  className={`rounded-md px-2 py-1 ${
-                                    snapshot.isCompleted
-                                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
-                                      : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200'
-                                  }`}
-                                >
-                                  {snapshot.materialName}:{' '}
-                                  {snapshot.isCompleted
-                                    ? formatScore(snapshot.scorePercentage)
-                                    : 'In progress'}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+                          {(() => {
+                            const snapshots = selectedMaterialId !== 'all'
+                              ? focusStudent.materialSnapshots.filter(s => s.materialId === selectedMaterialId)
+                              : focusStudent.materialSnapshots;
+                            return snapshots.length > 0 && (
+                              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                                {snapshots.map((snapshot) => (
+                                  <span
+                                    key={`${snapshot.materialId}-${snapshot.quizSessionId}`}
+                                    className={`rounded-md px-2 py-1 ${
+                                      snapshot.isCompleted
+                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
+                                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200'
+                                    }`}
+                                  >
+                                    {snapshot.materialName}:{' '}
+                                    {snapshot.isCompleted
+                                      ? formatScore(snapshot.scorePercentage)
+                                      : 'In progress'}
+                                  </span>
+                                ))}
+                              </div>
+                            );
+                          })()}
                           <div className="mt-4">
                             <p className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-300">
                               Attempt History
+                              {selectedMaterialId !== 'all' && selectedMaterial && (
+                                <span className="ml-2 text-blue-600 dark:text-blue-300">
+                                  ({selectedMaterial.materialName})
+                                </span>
+                              )}
                             </p>
-                            {focusStudent.attemptHistory.length > 0 ? (
-                              <div className="mt-2 max-h-72 space-y-2 overflow-y-auto pr-1">
-                                {focusStudent.attemptHistory.map((attempt, index) => {
+                            {(() => {
+                              const attempts = selectedMaterialId !== 'all'
+                                ? focusStudent.attemptHistory.filter(a => a.materialId === selectedMaterialId)
+                                : focusStudent.attemptHistory;
+                              return attempts.length > 0 ? (
+                                <div className="mt-2 max-h-72 space-y-2 overflow-y-auto pr-1">
+                                  {attempts.map((attempt, index) => {
                                   const isLatest = index === 0;
                                   return (
                                     <div
@@ -1121,9 +1157,12 @@ export function AIAssistant({ classId, professorId }: AIAssistantProps) {
                               </div>
                             ) : (
                               <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                                No quiz attempts recorded yet.
+                                {selectedMaterialId !== 'all'
+                                  ? `No quiz attempts for this material yet.`
+                                  : `No quiz attempts recorded yet.`}
                               </p>
-                            )}
+                            );
+                          })()}
                           </div>
                         </>
                       ) : (
