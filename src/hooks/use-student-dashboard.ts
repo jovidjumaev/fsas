@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
-// Use the optimized service for 60% faster dashboard loading
-import { OptimizedStudentDashboardService as StudentDashboardService, StudentData, ClassSession, AttendanceRecord, AttendanceStats } from '@/lib/student-dashboard-service-optimized';
+// Use optimized V2 service with better error handling and fallback
+import { OptimizedStudentDashboardServiceV2 as StudentDashboardService, StudentData, ClassSession, AttendanceRecord, AttendanceStats } from '@/lib/student-dashboard-service-optimized-v2';
 import { createLogger } from '../lib/logger';
 const logger = createLogger('use-student-dashboard');
 
