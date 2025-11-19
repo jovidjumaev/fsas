@@ -22,6 +22,35 @@ export class SignOutService {
   }
 
   /**
+   * Clear all browser storage to prevent session persistence
+   */
+  static clearBrowserStorage() {
+    logger.debug('Clearing browser storage');
+
+    if (typeof window !== 'undefined') {
+      // Clear all localStorage items related to Supabase
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('supabase') || key.includes('auth'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      // Clear sessionStorage completely
+      sessionStorage.clear();
+
+      // Clear cookies if possible (limited by browser security)
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+    }
+
+    logger.debug('Browser storage cleared');
+  }
+
+  /**
    * Clear specific user-related caches
    */
   static async clearUserCaches(userId: string) {

@@ -853,16 +853,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Store the current user role before clearing it
     const currentUserRole = userRole;
 
-    // OPTIMIZATION: Clear all SWR caches immediately
+    // CRITICAL: Clear Supabase session immediately to prevent auto-login
+    // We must wait for this to complete before redirecting
+    try {
+      logger.log('🔐 AuthContext: Clearing Supabase session...');
+      await supabase.auth.signOut();
+      logger.log('🔐 AuthContext: Supabase session cleared successfully');
+    } catch (error) {
+      logger.error('🔐 AuthContext: Error clearing session:', error);
+      // Continue with sign-out even if there's an error
+    }
+
+    // Clear all browser storage to ensure no session persists
+    if (typeof window !== 'undefined') {
+      // Clear localStorage
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.clear();
+
+      // Clear sessionStorage
+      sessionStorage.clear();
+
+      logger.log('🔐 AuthContext: Browser storage cleared');
+    }
+
+    // Clear all SWR caches
     await SignOutService.clearAllCaches();
     logger.log('🔐 AuthContext: SWR caches cleared');
 
-    // OPTIMIZATION: Clear local state immediately for instant UI response
+    // Clear local state
     setUser(null);
     setUserRole(null);
-    logger.log('🔐 AuthContext: Local state cleared immediately');
+    logger.log('🔐 AuthContext: Local state cleared');
 
-    // OPTIMIZATION: Start navigation immediately (don't wait for Supabase)
+    // Now redirect - session is fully cleared
     if (typeof window !== 'undefined') {
       const redirectUrl = currentUserRole === 'student'
         ? '/student/login'
@@ -870,22 +893,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ? '/professor/login'
         : '/';
 
-      logger.log(`🔐 AuthContext: Redirecting immediately to ${redirectUrl}`);
+      logger.log(`🔐 AuthContext: Redirecting to ${redirectUrl}`);
 
-      // Use replace instead of href for better performance
-      window.location.replace(redirectUrl);
-
-      // Sign out from Supabase in background (fire and forget)
-      // This happens after redirect starts, so user doesn't wait
-      supabase.auth.signOut().then(() => {
-        logger.log('🔐 AuthContext: Supabase sign out completed in background');
-      }).catch((error) => {
-        logger.error('🔐 AuthContext: Background sign out error:', error);
-        // Error is non-critical since we already cleared local state
-      });
+      // Small delay to ensure all state updates are processed
+      setTimeout(() => {
+        window.location.replace(redirectUrl);
+      }, 100);
     }
-
-    // No need for try-catch since we're not waiting for the sign out
   };
 
   const resetPassword = async (email: string, role: 'student' | 'professor') => {
