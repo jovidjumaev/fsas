@@ -1081,7 +1081,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                                 </div>
 
                                 {/* Line Chart */}
-                                <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+                                <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
                                   <defs>
                                     <linearGradient id="lineGradient" x1="0" x2="0" y1="0" y2="1">
                                       <stop offset="0%" stopColor="rgb(139, 92, 246)" stopOpacity="0.2" />
@@ -1089,96 +1089,98 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                                     </linearGradient>
                                   </defs>
 
-                                  {/* Area fill under line */}
-                                  <path
-                                    d={(() => {
-                                      const points = displayData.map((data: any, index: number) => {
-                                        const x = (index / Math.max(displayData.length - 1, 1)) * 100;
-                                        const y = 100 - data.score;
-                                        return { x, y };
-                                      });
+                                  {(() => {
+                                    // Calculate proper spacing with padding
+                                    const padding = 5; // 5% padding on each side
+                                    const usableWidth = 100 - (2 * padding);
+                                    const spacing = displayData.length > 1 ? usableWidth / (displayData.length - 1) : 0;
 
-                                      if (points.length === 0) return '';
-                                      const firstPoint = points[0];
-                                      const lastPoint = points[points.length - 1];
+                                    const points = displayData.map((data: any, index: number) => {
+                                      const x = padding + (index * spacing);
+                                      const y = 100 - data.score;
+                                      return { x, y, score: data.score };
+                                    });
 
-                                      let path = `M ${firstPoint.x} 100 L ${firstPoint.x} ${firstPoint.y}`;
-
-                                      for (let i = 1; i < points.length; i++) {
-                                        const curr = points[i];
-                                        path += ` L ${curr.x} ${curr.y}`;
-                                      }
-
-                                      path += ` L ${lastPoint.x} 100 Z`;
-                                      return path;
-                                    })()}
-                                    fill="url(#lineGradient)"
-                                  />
-
-                                  {/* Line */}
-                                  <path
-                                    d={(() => {
-                                      const points = displayData.map((data: any, index: number) => {
-                                        const x = (index / Math.max(displayData.length - 1, 1)) * 100;
-                                        const y = 100 - data.score;
-                                        return { x, y };
-                                      });
-
-                                      if (points.length === 0) return '';
-                                      let path = `M ${points[0].x} ${points[0].y}`;
-
-                                      for (let i = 1; i < points.length; i++) {
-                                        const curr = points[i];
-                                        path += ` L ${curr.x} ${curr.y}`;
-                                      }
-
-                                      return path;
-                                    })()}
-                                    fill="none"
-                                    stroke="rgb(139, 92, 246)"
-                                    strokeWidth="3"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-
-                                  {/* Data points */}
-                                  {displayData.map((data: any, index: number) => {
-                                    const x = (index / Math.max(displayData.length - 1, 1)) * 100;
-                                    const y = 100 - data.score;
-                                    const color = data.score >= 80 ? 'rgb(34, 197, 94)' : data.score >= 60 ? 'rgb(234, 179, 8)' : 'rgb(239, 68, 68)';
                                     return (
-                                      <circle
-                                        key={index}
-                                        cx={`${x}%`}
-                                        cy={`${y}%`}
-                                        r="5"
-                                        fill={color}
-                                        stroke="white"
-                                        strokeWidth="2"
-                                        className="hover:r-7 transition-all cursor-pointer"
-                                      >
-                                        <title>Attempt {index + 1}: {data.score.toFixed(0)}%</title>
-                                      </circle>
+                                      <>
+                                        {/* Area fill under line */}
+                                        <path
+                                          d={(() => {
+                                            if (points.length === 0) return '';
+                                            const firstPoint = points[0];
+                                            const lastPoint = points[points.length - 1];
+
+                                            let path = `M ${firstPoint.x} 100 L ${firstPoint.x} ${firstPoint.y}`;
+
+                                            for (let i = 1; i < points.length; i++) {
+                                              const curr = points[i];
+                                              path += ` L ${curr.x} ${curr.y}`;
+                                            }
+
+                                            path += ` L ${lastPoint.x} 100 Z`;
+                                            return path;
+                                          })()}
+                                          fill="url(#lineGradient)"
+                                        />
+
+                                        {/* Line */}
+                                        <path
+                                          d={(() => {
+                                            if (points.length === 0) return '';
+                                            let path = `M ${points[0].x} ${points[0].y}`;
+
+                                            for (let i = 1; i < points.length; i++) {
+                                              const curr = points[i];
+                                              path += ` L ${curr.x} ${curr.y}`;
+                                            }
+
+                                            return path;
+                                          })()}
+                                          fill="none"
+                                          stroke="rgb(139, 92, 246)"
+                                          strokeWidth="1"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          vectorEffect="non-scaling-stroke"
+                                        />
+
+                                        {/* Data points */}
+                                        {points.map((point, index) => {
+                                          const color = point.score >= 80 ? 'rgb(34, 197, 94)' : point.score >= 60 ? 'rgb(234, 179, 8)' : 'rgb(239, 68, 68)';
+                                          return (
+                                            <circle
+                                              key={index}
+                                              cx={point.x}
+                                              cy={point.y}
+                                              r="1.5"
+                                              fill={color}
+                                              stroke="white"
+                                              strokeWidth="0.5"
+                                              className="cursor-pointer"
+                                              vectorEffect="non-scaling-stroke"
+                                            >
+                                              <title>Attempt {index}: {point.score.toFixed(0)}%</title>
+                                            </circle>
+                                          );
+                                        })}
+                                      </>
                                     );
-                                  })}
+                                  })()}
                                 </svg>
                               </div>
 
                               {/* X-axis labels with proper alignment */}
                               <div className="absolute bottom-0 left-10 right-0 h-6">
-                                <div className="relative w-full h-full">
-                                  {displayData.map((data: any, index: number) => {
-                                    const x = (index / Math.max(displayData.length - 1, 1)) * 100;
-                                    return (
-                                      <div
-                                        key={index}
-                                        className="absolute text-xs text-gray-500 dark:text-gray-400 transform -translate-x-1/2"
-                                        style={{ left: `${x}%` }}
-                                      >
-                                        {index}
-                                      </div>
-                                    );
-                                  })}
+                                <div className="relative w-full h-full flex justify-between items-center px-1">
+                                  {displayData.map((data: any, index: number) => (
+                                    <div
+                                      key={index}
+                                      className="text-xs text-gray-500 dark:text-gray-400 text-center"
+                                      style={{ minWidth: '20px' }}
+                                    >
+                                      {index}
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
                             </div>
