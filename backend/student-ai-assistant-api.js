@@ -822,6 +822,79 @@ router.get('/api/students/:studentId/classes/:classId/ai/quiz', async (req, res)
 });
 
 /**
+ * Get quiz history for a student
+ * GET /api/students/:studentId/classes/:classId/ai/quiz/history
+ */
+router.get('/api/students/:studentId/classes/:classId/ai/quiz/history', async (req, res) => {
+  try {
+    const { studentId, classId } = req.params;
+    const { materialId } = req.query;
+
+    console.log('📊 Getting quiz history for student:', studentId, 'material:', materialId);
+
+    // Verify student enrollment
+    const { data: enrollment, error: enrollmentError } = await supabase
+      .from('enrollments')
+      .select('id')
+      .eq('student_id', studentId)
+      .eq('class_instance_id', classId)
+      .eq('status', 'active')
+      .single();
+
+    if (enrollmentError || !enrollment) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied - not enrolled in this class'
+      });
+    }
+
+    // Build query for quiz sessions
+    let query = supabase
+      .from('student_quiz_sessions')
+      .select(`
+        id,
+        material_id,
+        total_questions,
+        correct_answers,
+        score_percentage,
+        completed_at,
+        class_materials!inner(file_name)
+      `)
+      .eq('student_id', studentId)
+      .eq('class_instance_id', classId)
+      .eq('is_completed', true)
+      .order('completed_at', { ascending: true });
+
+    // Filter by material if provided
+    if (materialId && materialId !== 'all') {
+      query = query.eq('material_id', materialId);
+    }
+
+    const { data: quizHistory, error: historyError } = await query;
+
+    if (historyError) {
+      console.error('❌ Error fetching quiz history:', historyError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch quiz history'
+      });
+    }
+
+    res.json({
+      success: true,
+      history: quizHistory || []
+    });
+
+  } catch (error) {
+    console.error('❌ Get quiz history error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+/**
  * Submit quiz answers
  * POST /api/students/:studentId/classes/:classId/ai/quiz/submit
  */

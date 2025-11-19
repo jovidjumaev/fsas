@@ -427,17 +427,22 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
 
     try {
       setIsLoadingHistory(true);
+      console.log('📊 Loading quiz history for material:', selectedMaterial);
       const response = await fetch(
         `/api/students/${studentId}/classes/${classId}/ai/quiz/history?materialId=${selectedMaterial}`
       );
       const data = await response.json();
+      console.log('📊 Quiz history response:', data);
 
       if (data.success) {
         setQuizHistory(data.history || []);
+        console.log('📊 Quiz history loaded:', data.history?.length || 0, 'attempts');
         calculateMasteryProgress(data.history || []);
+      } else {
+        console.error('❌ Failed to load quiz history:', data.error);
       }
     } catch (error) {
-      console.error('Error loading quiz history:', error);
+      console.error('❌ Error loading quiz history:', error);
     } finally {
       setIsLoadingHistory(false);
     }
@@ -445,17 +450,21 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
 
   // Calculate mastery progress from quiz history
   const calculateMasteryProgress = (history: any[]) => {
-    if (!selectedMaterial || history.length === 0) return;
+    if (!selectedMaterial || history.length === 0) {
+      console.log('📊 No history to calculate mastery for material:', selectedMaterial);
+      return;
+    }
 
     const materialHistory = history
       .filter((h) => h.material_id === selectedMaterial)
       .sort((a, b) => new Date(a.completed_at).getTime() - new Date(b.completed_at).getTime())
-      .map((h) => ({
+      .map((h, index) => ({
         date: new Date(h.completed_at),
         score: h.score_percentage,
-        attempt: h.attempt_number || 1
+        attempt: index + 1
       }));
 
+    console.log('📊 Mastery data calculated:', materialHistory.length, 'attempts for material', selectedMaterial);
     setMasteryData((prev) => ({
       ...prev,
       [selectedMaterial]: materialHistory
@@ -908,7 +917,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
           </div>
 
           {/* History Sidebar and Mastery Chart */}
-          {quizQuestions.length === 0 && !quizResults && quizHistory.length > 0 && (
+          {quizQuestions.length === 0 && !quizResults && (
             <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4 mb-6">
               {/* Quiz History Sidebar */}
               <Card className="p-4 bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600">
@@ -921,39 +930,45 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                 </div>
 
                 <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {quizHistory.map((attempt: any, index: number) => (
-                    <div
-                      key={attempt.id}
-                      className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                          Attempt #{quizHistory.length - index}
-                        </span>
-                        <Badge
-                          className={
-                            attempt.score_percentage >= 80
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                              : attempt.score_percentage >= 60
-                              ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
-                              : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
-                          }
-                        >
-                          {attempt.score_percentage}%
-                        </Badge>
+                  {quizHistory.length > 0 ? (
+                    quizHistory.map((attempt: any, index: number) => (
+                      <div
+                        key={attempt.id}
+                        className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                            Attempt #{quizHistory.length - index}
+                          </span>
+                          <Badge
+                            className={
+                              attempt.score_percentage >= 80
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                : attempt.score_percentage >= 60
+                                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                                : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                            }
+                          >
+                            {attempt.score_percentage}%
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          {attempt.correct_answers}/{attempt.total_questions} correct
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                          {new Date(attempt.completed_at).toLocaleDateString()} at{' '}
+                          {new Date(attempt.completed_at).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
                       </div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                        {attempt.correct_answers}/{attempt.total_questions} correct
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500">
-                        {new Date(attempt.completed_at).toLocaleDateString()} at{' '}
-                        {new Date(attempt.completed_at).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
+                      No quiz attempts yet. Complete a quiz to track your progress!
                     </div>
-                  ))}
+                  )}
                 </div>
               </Card>
 
