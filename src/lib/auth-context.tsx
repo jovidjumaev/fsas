@@ -39,11 +39,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logger.debug('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
     logger.debug('Supabase Key exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
-    // Timeout to prevent infinite loading
+    // Timeout to prevent infinite loading - reduced for faster load
     const timeoutId = setTimeout(() => {
       logger.warn('Initialization timeout - forcing loading to false');
       setLoading(false);
-    }, 5000); // 5 second timeout
+    }, 1500); // 1.5 second timeout for faster initialization
     
     // Get initial session
     const getInitialSession = async () => {
@@ -113,8 +113,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', userId)
         .single();
       
-      const timeoutPromise = new Promise((unused, reject) => 
-        setTimeout(() => reject(new Error('Role fetch timeout')), 15000) // Increased to 15 seconds
+      const timeoutPromise = new Promise((unused, reject) =>
+        setTimeout(() => reject(new Error('Role fetch timeout')), 3000) // 3 seconds for faster initialization
       );
       
       const { data: userData, error: userError } = await Promise.race([
