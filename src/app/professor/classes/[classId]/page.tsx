@@ -1733,55 +1733,131 @@ function ClassManagementPageContent() {
                 <div className="space-y-6">
                   {/* Attendance Trend Timeline Chart */}
                   <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
-                    <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Session Attendance Rates</h4>
+                    <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Attendance Trend Over Time</h4>
                     <div className="h-64 relative">
                       {/* Chart Container */}
-                      <div className="h-full flex items-end justify-around gap-2 px-4 pb-12">
-                        {analyticsData.attendance_trends.map((trend: any) => {
-                          const height = trend.attendance_rate;
-                          const color = height >= 80 ? 'bg-emerald-500' : height >= 60 ? 'bg-yellow-500' : 'bg-red-500';
+                      <div className="absolute inset-0 px-4 pb-10 pt-2">
+                        {/* Y-axis labels */}
+                        <div className="absolute left-0 top-0 bottom-10 w-10 flex flex-col justify-between text-xs text-slate-500 dark:text-slate-400">
+                          <span>100%</span>
+                          <span>75%</span>
+                          <span>50%</span>
+                          <span>25%</span>
+                          <span>0%</span>
+                        </div>
 
-                          return (
-                            <div key={trend.session_id} className="flex-1 flex flex-col items-center group">
-                              {/* Tooltip */}
-                              <div className="opacity-0 group-hover:opacity-100 transition-opacity mb-2 bg-slate-900 dark:bg-slate-700 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
-                                {height.toFixed(1)}%
-                              </div>
+                        {/* Chart Area */}
+                        <div className="ml-10 h-full pb-10 relative">
+                          {/* Grid lines */}
+                          <div className="absolute inset-0">
+                            {[0, 25, 50, 75, 100].map((line) => (
+                              <div
+                                key={line}
+                                className="absolute w-full border-t border-slate-200 dark:border-slate-600"
+                                style={{ top: `${100 - line}%` }}
+                              />
+                            ))}
+                          </div>
 
-                              {/* Bar */}
-                              <div className="w-full relative flex flex-col justify-end" style={{ height: '200px' }}>
-                                <div
-                                  className={`${color} rounded-t transition-all duration-300 hover:opacity-80 w-full`}
-                                  style={{ height: `${height}%` }}
-                                />
-                              </div>
+                          {/* Area Chart with Gradient */}
+                          {analyticsData.attendance_trends.length > 0 && (
+                            <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
+                              <defs>
+                                <linearGradient id="areaGradient" x1="0" x2="0" y1="0" y2="1">
+                                  <stop offset="0%" stopColor="rgb(59, 130, 246)" stopOpacity="0.3" />
+                                  <stop offset="100%" stopColor="rgb(59, 130, 246)" stopOpacity="0.05" />
+                                </linearGradient>
+                              </defs>
 
-                              {/* Label */}
-                              <div className="mt-2 text-center">
-                                <div className="text-xs font-medium text-slate-900 dark:text-white">S{trend.session_number}</div>
-                                <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                                  {new Date(trend.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                </div>
-                              </div>
+                              {/* Area fill */}
+                              <path
+                                d={(() => {
+                                  const points = analyticsData.attendance_trends.map((trend: any, index: number) => {
+                                    const x = (index / (analyticsData.attendance_trends.length - 1)) * 100;
+                                    const y = 100 - trend.attendance_rate;
+                                    return { x, y };
+                                  });
+
+                                  const firstPoint = points[0];
+                                  const lastPoint = points[points.length - 1];
+
+                                  let path = `M ${firstPoint.x} 100 L ${firstPoint.x} ${firstPoint.y}`;
+
+                                  for (let i = 1; i < points.length; i++) {
+                                    const prev = points[i - 1];
+                                    const curr = points[i];
+                                    const cpX = (prev.x + curr.x) / 2;
+                                    path += ` Q ${cpX} ${prev.y}, ${curr.x} ${curr.y}`;
+                                  }
+
+                                  path += ` L ${lastPoint.x} 100 Z`;
+                                  return path;
+                                })()}
+                                fill="url(#areaGradient)"
+                              />
+
+                              {/* Smooth curve line */}
+                              <path
+                                d={(() => {
+                                  const points = analyticsData.attendance_trends.map((trend: any, index: number) => {
+                                    const x = (index / (analyticsData.attendance_trends.length - 1)) * 100;
+                                    const y = 100 - trend.attendance_rate;
+                                    return { x, y };
+                                  });
+
+                                  let path = `M ${points[0].x} ${points[0].y}`;
+
+                                  for (let i = 1; i < points.length; i++) {
+                                    const prev = points[i - 1];
+                                    const curr = points[i];
+                                    const cpX = (prev.x + curr.x) / 2;
+                                    path += ` Q ${cpX} ${prev.y}, ${curr.x} ${curr.y}`;
+                                  }
+
+                                  return path;
+                                })()}
+                                fill="none"
+                                stroke="rgb(59, 130, 246)"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                              />
+
+                              {/* Data points */}
+                              {analyticsData.attendance_trends.map((trend: any, index: number) => {
+                                const x = (index / (analyticsData.attendance_trends.length - 1)) * 100;
+                                const y = 100 - trend.attendance_rate;
+                                return (
+                                  <circle
+                                    key={trend.session_id}
+                                    cx={`${x}%`}
+                                    cy={`${y}%`}
+                                    r="4"
+                                    fill="white"
+                                    stroke="rgb(59, 130, 246)"
+                                    strokeWidth="2"
+                                    className="hover:r-6 transition-all cursor-pointer"
+                                  >
+                                    <title>{trend.attendance_rate.toFixed(1)}%</title>
+                                  </circle>
+                                );
+                              })}
+                            </svg>
+                          )}
+                        </div>
+
+                        {/* X-axis: First and Last Session */}
+                        <div className="absolute bottom-0 left-10 right-0 flex justify-between text-xs text-slate-500 dark:text-slate-400">
+                          <div className="text-left">
+                            <div className="font-medium">
+                              {new Date(analyticsData.attendance_trends[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Legend */}
-                      <div className="absolute top-2 right-2 bg-white dark:bg-slate-700 rounded-lg px-3 py-2 shadow-sm">
-                        <div className="flex items-center space-x-3 text-xs">
-                          <div className="flex items-center space-x-1">
-                            <div className="w-3 h-3 bg-emerald-500 rounded"></div>
-                            <span className="text-slate-600 dark:text-slate-300">≥80%</span>
+                            <div className="text-[10px]">Session 1</div>
                           </div>
-                          <div className="flex items-center space-x-1">
-                            <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-                            <span className="text-slate-600 dark:text-slate-300">60-79%</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <div className="w-3 h-3 bg-red-500 rounded"></div>
-                            <span className="text-slate-600 dark:text-slate-300">&lt;60%</span>
+                          <div className="text-right">
+                            <div className="font-medium">
+                              {new Date(analyticsData.attendance_trends[analyticsData.attendance_trends.length - 1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </div>
+                            <div className="text-[10px]">Session {analyticsData.attendance_trends.length}</div>
                           </div>
                         </div>
                       </div>
