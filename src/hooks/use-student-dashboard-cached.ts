@@ -42,41 +42,81 @@ export function useStudentDashboard(user: User | null): UseStudentDashboardRetur
 
       logger.debug('Fetching dashboard data for user:', user.id);
 
-      // Fetch dashboard data using the optimized service
-      const dashboardData = await StudentDashboardService.getAllDashboardData(user.id);
+      try {
+        // Fetch dashboard data using the optimized service with timeout
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Dashboard fetch timeout')), 15000)
+        );
 
-      logger.debug('Dashboard data fetched:', {
-        hasStudentData: !!dashboardData.studentData,
-        todayClassesCount: dashboardData.todayClasses.length,
-        stats: dashboardData.stats
-      });
+        const dataPromise = StudentDashboardService.getAllDashboardData(user.id);
 
-      // Return the data, or apply fallback for student data
-      const studentData = dashboardData.studentData || {
-        student_id: user.id,
-        student_number: user.user_metadata?.student_number || 'N/A',
-        enrollment_year: 2024,
-        major: user.user_metadata?.major || 'Computer Science',
-        graduation_year: 2028,
-        first_name: user.user_metadata?.first_name || 'Student',
-        last_name: user.user_metadata?.last_name || 'User',
-        email: user.email || '',
-        phone: user.user_metadata?.phone || '',
-        is_active: true,
-        account_created: user.created_at || new Date().toISOString()
-      };
+        const dashboardData = await Promise.race([dataPromise, timeoutPromise]) as any;
 
-      return {
-        ...dashboardData,
-        studentData,
-        lastUpdated: new Date()
-      };
+        logger.debug('Dashboard data fetched:', {
+          hasStudentData: !!dashboardData.studentData,
+          todayClassesCount: dashboardData.todayClasses.length,
+          stats: dashboardData.stats
+        });
+
+        // Return the data, or apply fallback for student data
+        const studentData = dashboardData.studentData || {
+          student_id: user.id,
+          student_number: user.user_metadata?.student_number || 'N/A',
+          enrollment_year: 2024,
+          major: user.user_metadata?.major || 'Computer Science',
+          graduation_year: 2028,
+          first_name: user.user_metadata?.first_name || 'Student',
+          last_name: user.user_metadata?.last_name || 'User',
+          email: user.email || '',
+          phone: user.user_metadata?.phone || '',
+          is_active: true,
+          account_created: user.created_at || new Date().toISOString()
+        };
+
+        return {
+          ...dashboardData,
+          studentData,
+          lastUpdated: new Date()
+        };
+      } catch (err) {
+        logger.error('Error fetching dashboard data:', err);
+
+        // Return minimal fallback data on error
+        return {
+          studentData: {
+            student_id: user.id,
+            student_number: user.user_metadata?.student_number || 'N/A',
+            enrollment_year: 2024,
+            major: user.user_metadata?.major || 'Computer Science',
+            graduation_year: 2028,
+            first_name: user.user_metadata?.first_name || 'Student',
+            last_name: user.user_metadata?.last_name || 'User',
+            email: user.email || '',
+            phone: user.user_metadata?.phone || '',
+            is_active: true,
+            account_created: user.created_at || new Date().toISOString()
+          },
+          todayClasses: [],
+          stats: {
+            overallAttendance: 0,
+            totalClasses: 0,
+            classesToday: 0,
+            attendanceStreak: 0
+          },
+          lastUpdated: new Date()
+        };
+      }
     },
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       dedupingInterval: 60000, // Cache for 1 minute
       keepPreviousData: true, // Keep showing old data while fetching new
+      onError: (err) => {
+        logger.error('SWR error in student dashboard:', err);
+      },
+      errorRetryCount: 2,
+      errorRetryInterval: 3000,
       fallbackData: {
         studentData: null,
         todayClasses: [],
