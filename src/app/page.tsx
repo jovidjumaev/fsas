@@ -5,22 +5,22 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
-import { 
-  GraduationCap, 
-  BookOpen, 
-  QrCode, 
-  Activity, 
-  Shield, 
-  Smartphone,
+import {
+  GraduationCap,
+  BookOpen,
+  QrCode,
+  Activity,
+  Shield,
   BarChart3,
-  CheckCircle2,
   ArrowRight,
   Zap,
   Users,
-  Clock,
   Sparkles,
   Moon,
-  Sun
+  Sun,
+  Brain,
+  MapPin,
+  Fingerprint
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -170,40 +170,47 @@ export default function LandingPage() {
             </div>
             
             <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black text-gray-900 dark:text-white mb-6 leading-none">
-              Attendance Tracking
+              Smart Attendance
               <br />
               <span className="bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 dark:from-blue-400 dark:via-cyan-400 dark:to-blue-400 bg-clip-text text-transparent animate-gradient">
-                Elevated
+                AI-Powered Learning
               </span>
             </h1>
-            
+
             <p className="text-xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto mb-16 leading-relaxed">
-              Revolutionize classroom management with intelligent QR technology, 
-              real-time insights, and enterprise-grade security
+              The only attendance system that combines tamper-proof QR codes, geofencing security,
+              AI study tools, and real-time analytics - trusted by Furman University
             </p>
 
             {/* Stats */}
             <div className="flex flex-wrap justify-center gap-12 mb-20">
               <div className="text-center group cursor-pointer">
                 <div className="flex items-center justify-center mb-2">
-                  <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400 mr-2 group-hover:scale-110 transition-transform" />
-                  <div className="text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">2s</div>
-                </div>
-                <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Check-in Time</div>
-              </div>
-              <div className="text-center group cursor-pointer">
-                <div className="flex items-center justify-center mb-2">
-                  <Users className="w-6 h-6 text-blue-600 dark:text-blue-400 mr-2 group-hover:scale-110 transition-transform" />
-                  <div className="text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">99.9%</div>
-                </div>
-                <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Accuracy</div>
-              </div>
-              <div className="text-center group cursor-pointer">
-                <div className="flex items-center justify-center mb-2">
                   <Shield className="w-6 h-6 text-blue-600 dark:text-blue-400 mr-2 group-hover:scale-110 transition-transform" />
-                  <div className="text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">100%</div>
+                  <div className="text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">30s</div>
                 </div>
-                <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Secure</div>
+                <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Tamper-Proof QR Refresh</div>
+              </div>
+              <div className="text-center group cursor-pointer">
+                <div className="flex items-center justify-center mb-2">
+                  <Sparkles className="w-6 h-6 text-blue-600 dark:text-blue-400 mr-2 group-hover:scale-110 transition-transform" />
+                  <div className="text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">AI</div>
+                </div>
+                <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Study Assistant</div>
+              </div>
+              <div className="text-center group cursor-pointer">
+                <div className="flex items-center justify-center mb-2">
+                  <Activity className="w-6 h-6 text-blue-600 dark:text-blue-400 mr-2 group-hover:scale-110 transition-transform" />
+                  <div className="text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">Live</div>
+                </div>
+                <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Real-Time Updates</div>
+              </div>
+              <div className="text-center group cursor-pointer">
+                <div className="flex items-center justify-center mb-2">
+                  <QrCode className="w-6 h-6 text-blue-600 dark:text-blue-400 mr-2 group-hover:scale-110 transition-transform" />
+                  <div className="text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">100m</div>
+                </div>
+                <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Geofencing Radius</div>
               </div>
             </div>
           </div>
@@ -233,7 +240,7 @@ export default function LandingPage() {
                     
                     <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Student Portal</h2>
                     <p className="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed text-lg">
-                      Scan QR codes instantly, track your attendance, and access detailed analytics
+                      Scan secure QR codes, access AI study tools, track attendance streaks, and get real-time notifications
                     </p>
                     
                     <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white h-14 text-base font-bold rounded-2xl shadow-xl shadow-blue-600/30 group-hover:shadow-2xl group-hover:shadow-blue-600/40 transition-all">
@@ -270,7 +277,7 @@ export default function LandingPage() {
                     
                     <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Professor Portal</h2>
                     <p className="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed text-lg">
-                      Generate QR codes, monitor attendance in real-time, and gain powerful insights
+                      Live attendance monitoring, tamper-proof QR codes, automatic session generation, and advanced analytics
                     </p>
                     
                     <Button className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white h-14 text-base font-bold rounded-2xl shadow-xl shadow-cyan-600/30 group-hover:shadow-2xl group-hover:shadow-cyan-600/40 transition-all">
@@ -299,49 +306,49 @@ export default function LandingPage() {
                 <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">Why Choose FSAS</span>
               </div>
               <h2 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white mb-4">
-                Powerful Features
+                Enterprise-Grade Features
               </h2>
               <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                Everything you need for modern attendance management
+                Military-grade security meets AI-powered learning in one unified platform
               </p>
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
-                { 
-                  icon: QrCode, 
-                  title: "Instant QR Scanning", 
-                  desc: "Generate and validate attendance with secure, time-limited QR codes",
+                {
+                  icon: Shield,
+                  title: "Tamper-Proof QR Codes",
+                  desc: "HMAC-SHA256 signatures refresh every 30 seconds to prevent fraud",
                   gradient: "from-blue-500 to-cyan-500"
                 },
-                { 
-                  icon: Activity, 
-                  title: "Live Monitoring", 
-                  desc: "Track attendance in real-time with instant notifications",
+                {
+                  icon: Brain,
+                  title: "AI Study Assistant",
+                  desc: "Generate flashcards, quizzes, and chat about course materials with GPT",
                   gradient: "from-cyan-500 to-blue-500"
                 },
-                { 
-                  icon: Shield, 
-                  title: "Smart Security", 
-                  desc: "Device fingerprinting and geofencing prevent fraud",
+                {
+                  icon: MapPin,
+                  title: "GPS Geofencing",
+                  desc: "100-meter radius validation ensures students are physically in class",
                   gradient: "from-blue-600 to-blue-500"
                 },
-                { 
-                  icon: BarChart3, 
-                  title: "Advanced Analytics", 
-                  desc: "Comprehensive dashboards with insights and trends",
+                {
+                  icon: Activity,
+                  title: "WebSocket Live Updates",
+                  desc: "Real-time attendance tracking with instant notifications",
                   gradient: "from-cyan-600 to-cyan-500"
                 },
-                { 
-                  icon: Smartphone, 
-                  title: "Mobile First", 
-                  desc: "Perfect experience on any device and screen size",
+                {
+                  icon: Fingerprint,
+                  title: "Device Fingerprinting",
+                  desc: "10+ factors validate device identity to prevent spoofing",
                   gradient: "from-blue-500 to-cyan-600"
                 },
-                { 
-                  icon: CheckCircle2, 
-                  title: "Role Management", 
-                  desc: "Granular access control for all user types",
+                {
+                  icon: BarChart3,
+                  title: "Performance Analytics",
+                  desc: "Track attendance streaks, quiz scores, and learning progress",
                   gradient: "from-cyan-500 to-blue-600"
                 }
               ].map((feature, index) => (
