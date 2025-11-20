@@ -4,14 +4,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   Home,
   QrCode,
   BarChart3,
   Menu,
   X,
-  BookOpen,
-  Settings
+  BookOpen
 } from 'lucide-react';
 
 interface StudentNavigationProps {
@@ -46,14 +45,6 @@ export default function StudentNavigation({ className = '' }: StudentNavigationP
       label: 'Classes',
       icon: BookOpen,
       isActive: pathname === '/student/classes'
-    }
-  ];
-
-  const secondaryItems = [
-    {
-      href: '/student/settings',
-      label: 'Settings',
-      icon: Settings
     }
   ];
 
@@ -110,7 +101,7 @@ export default function StudentNavigation({ className = '' }: StudentNavigationP
               </h3>
               
               {/* Primary Navigation */}
-              <div className="space-y-2 mb-4">
+              <div className="space-y-2">
                 {navigationItems.map((item) => (
                   <Link
                     key={item.href}
@@ -126,26 +117,6 @@ export default function StudentNavigation({ className = '' }: StudentNavigationP
                     <span className="font-medium">{item.label}</span>
                   </Link>
                 ))}
-              </div>
-
-              {/* Secondary Navigation */}
-              <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
-                <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
-                  More
-                </h4>
-                <div className="space-y-2">
-                  {secondaryItems.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400"
-                    >
-                      <item.icon className="w-4 h-4" />
-                      <span className="text-sm">{item.label}</span>
-                    </Link>
-                  ))}
-                </div>
               </div>
             </div>
           </div>
