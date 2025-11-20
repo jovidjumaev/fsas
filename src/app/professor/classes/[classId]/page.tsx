@@ -163,7 +163,7 @@ function ClassManagementPageContent() {
       
       // Listen for attendance status updates
       socket.on('attendance_status_updated', (data) => {
-        logger.log('📊 Received attendance status update:', data);
+        // logger.debug('📊 Received attendance status update:', data);
         
         // Refresh sessions data to get updated attendance counts
         fetchSessions();
@@ -378,12 +378,12 @@ function ClassManagementPageContent() {
 
   const handleUploadAvatar = async (file: File) => {
     // Avatar upload functionality
-    logger.log('Upload avatar:', file);
+    // logger.debug('Upload avatar:', file);
   };
 
   const handleDeleteAvatar = async () => {
     // Avatar delete functionality
-    logger.log('Delete avatar');
+    // logger.debug('Delete avatar');
   };
 
   const handleStatusChange = async (newStatus: 'active' | 'inactive' | 'completed') => {

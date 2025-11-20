@@ -216,7 +216,7 @@ function ActiveSessionContent() {
         const now = new Date();
         const remaining = Math.max(0, Math.floor((sessionEndTime.getTime() - now.getTime()) / 1000));
         
-        logger.log('🕐 Timer calculation:', {
+        // logger.debug('🕐 Timer calculation:', {
           activated_at: activeSession.activated_at,
           activationTime: activationTime.toISOString(),
           sessionEndTime: sessionEndTime.toISOString(),
@@ -229,12 +229,12 @@ function ActiveSessionContent() {
         
         // If session has expired, automatically complete it
         if (remaining === 0) {
-          logger.log('⏰ Session has expired, completing automatically');
+          // logger.debug('⏰ Session has expired, completing automatically');
           handleStopSession();
         }
       } else {
         // For non-active sessions or sessions without activation time, set to 0
-        logger.log('⏹️ Session not active or no activation time:', {
+        // logger.debug('⏹️ Session not active or no activation time:', {
           status: activeSession.status,
           activated_at: activeSession.activated_at
         });
@@ -256,13 +256,13 @@ function ActiveSessionContent() {
       socketRef.current = socket; // Store socket reference
       
       socket.on('connect', () => {
-        logger.log('🔗 Connected to WebSocket for real-time updates');
-        logger.log('📡 Joining session room:', sessionId);
+        // logger.debug('🔗 Connected to WebSocket for real-time updates');
+        // logger.debug('📡 Joining session room:', sessionId);
         socket.emit('join-session', sessionId);
       });
       
       socket.on('disconnect', () => {
-        logger.log('🔌 WebSocket disconnected');
+        // logger.debug('🔌 WebSocket disconnected');
       });
       
       socket.on('error', (error) => {
@@ -270,7 +270,7 @@ function ActiveSessionContent() {
       });
 
       socket.on('attendance_update', (data) => {
-        logger.log('🎯 Real-time attendance update received:', data);
+        // logger.debug('🎯 Real-time attendance update received:', data);
         
         // Refresh attendance records to get the full list with correct counts
         fetchAttendanceRecords();
@@ -283,7 +283,7 @@ function ActiveSessionContent() {
       });
 
       socket.on('qr_code_update', (data) => {
-        logger.log('Real-time QR code update received:', data);
+        // logger.debug('Real-time QR code update received:', data);
         if (data.sessionId === sessionId) {
           setSession(prev => prev ? {
             ...prev,
@@ -489,7 +489,7 @@ function ActiveSessionContent() {
   const handlePauseSession = async () => {
     try {
       setIsPausing(true);
-      logger.log('Pausing session:', sessionId);
+      // logger.debug('Pausing session:', sessionId);
       
       // Call the backend API to pause the session
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/pause`, {
@@ -506,7 +506,7 @@ function ActiveSessionContent() {
           stopQRRefreshTimer();
           // Refresh attendance records to ensure counts are accurate
           await fetchAttendanceRecords();
-          logger.log('✅ Session paused successfully');
+          // logger.debug('✅ Session paused successfully');
         } else {
           throw new Error(data.error || 'Failed to pause session');
         }
@@ -524,7 +524,7 @@ function ActiveSessionContent() {
   const handleResumeSession = async () => {
     try {
       setIsResuming(true);
-      logger.log('Resuming session:', sessionId);
+      // logger.debug('Resuming session:', sessionId);
       
       // Call the backend API to resume the session
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/sessions/${sessionId}/resume`, {
@@ -541,7 +541,7 @@ function ActiveSessionContent() {
           startQRRefreshTimer();
           // Refresh attendance records to ensure counts are accurate
           await fetchAttendanceRecords();
-          logger.log('✅ Session resumed successfully');
+          // logger.debug('✅ Session resumed successfully');
         } else {
           throw new Error(data.error || 'Failed to resume session');
         }

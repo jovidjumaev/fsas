@@ -16,7 +16,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useProfessorSessions } from "@/hooks/use-professor-sessions-cached";import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import ProfessorHeader from '@/components/professor/professor-header';
 import ProfileEditModal from '@/components/profile/profile-edit-modal';
 import PasswordChangeModal from '@/components/profile/password-change-modal';

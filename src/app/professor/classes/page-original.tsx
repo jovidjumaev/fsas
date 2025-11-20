@@ -23,7 +23,7 @@ import PasswordChangeModal from '@/components/profile/password-change-modal';
 import { supabase } from '@/lib/supabase';
 import { io } from 'socket.io-client';
 import { createLogger } from '../../../lib/logger';
-import { useProfessorClasses } from "@/hooks/use-professor-classes-cached";const logger = createLogger('page');
+const logger = createLogger('page');
 
 interface ClassData {
   id: string;

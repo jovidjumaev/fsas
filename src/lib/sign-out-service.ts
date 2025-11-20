@@ -67,12 +67,19 @@ export class SignOutService {
 
     // Clear specific cache keys related to the user
     const cacheKeys = [
+      // Student caches
       ['student-dashboard-cached', userId],
       ['student-attendance-cached', userId],
       ['student-classes-cached', userId],
       ['class-detail', userId],
       ['student-classes', userId],
       ['student-attendance', userId],
+      // Professor caches
+      [`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${userId}/dashboard`],
+      [`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${userId}/classes`],
+      [`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${userId}/sessions`],
+      [`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/courses/available`],
+      [`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/academic-periods`],
     ];
 
     // Clear each cache key

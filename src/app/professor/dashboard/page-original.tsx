@@ -18,7 +18,7 @@ import PasswordChangeModal from '@/components/profile/password-change-modal';
 import { supabase } from '@/lib/supabase';
 import { io } from 'socket.io-client';
 import { createLogger } from '../../../lib/logger';
-import { useProfessorDashboard } from "@/hooks/use-professor-dashboard-cached";const logger = createLogger('page');
+const logger = createLogger('page');
 
 interface ProfessorStats {
   totalClasses: number;
