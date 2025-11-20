@@ -63,8 +63,29 @@
   * {
     @apply border-border;
   }
+
+  html {
+    /* Prevent white space on over-scroll in dark mode */
+    background-color: #0f172a; /* slate-900 */
+    overscroll-behavior-y: none;
+  }
+
+  html.dark {
+    background-color: #0f172a; /* slate-900 */
+  }
+
+  html:not(.dark) {
+    background-color: #f8fafc; /* slate-50 */
+  }
+
   body {
     @apply bg-background text-foreground;
+    /* Prevent pull-to-refresh on mobile */
+    overscroll-behavior-y: none;
+    /* Smooth scrolling */
+    -webkit-overflow-scrolling: touch;
+    /* Prevent horizontal scroll */
+    overflow-x: hidden;
   }
 }
 
@@ -218,10 +239,45 @@
     width: 100vw;
     margin-left: calc(-50vw + 50%);
   }
-  
+
   .mobile-padding {
     padding-left: 1rem;
     padding-right: 1rem;
+  }
+
+  /* Better touch targets on mobile */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Safe area insets for mobile devices with notches */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+/* Prevent over-scroll bounce on iOS */
+@supports (-webkit-overflow-scrolling: touch) {
+  html, body {
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
