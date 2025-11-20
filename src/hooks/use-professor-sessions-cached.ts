@@ -36,16 +36,33 @@ const sessionsFetcher = async (url: string) => {
   const response = await fetch(url);
 
   if (!response.ok) {
+    logger.error('Failed to fetch sessions:', response.statusText);
     throw new Error(`Failed to fetch sessions: ${response.statusText}`);
   }
 
   const data = await response.json();
+  logger.debug('Sessions API response:', { success: data.success, count: data.sessions?.length });
 
   if (!data.success) {
-    throw new Error(data.message || 'Failed to fetch sessions');
+    logger.error('Sessions API error:', data.message || data.error);
+    throw new Error(data.message || data.error || 'Failed to fetch sessions');
   }
 
-  return data.data || [];
+  // Backend returns sessions in data.sessions, not data.data
+  // Transform the data to match the expected interface
+  const sessions = (data.sessions || []).map((session: any) => ({
+    ...session,
+    class_id: session.class_instance_id || session.class_id,
+    class_code: session.class_instances?.courses?.code || session.class_code || 'Unknown',
+    class_name: session.class_instances?.courses?.name || session.class_name || 'Unknown Class',
+    enrolled_students: session.total_enrolled || session.enrolled_students || 0,
+    attendance_rate: session.total_enrolled > 0
+      ? (session.attendance_count / session.total_enrolled) * 100
+      : 0
+  }));
+
+  logger.debug('Transformed sessions:', sessions.length);
+  return sessions;
 };
 
 const classesFetcher = async (url: string) => {
