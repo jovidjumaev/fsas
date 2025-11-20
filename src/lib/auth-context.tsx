@@ -850,64 +850,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     logger.log('🔐 AuthContext: Starting optimized sign out process...');
 
-    // Store the current user role before clearing it
+    // CRITICAL: Store the current user role FIRST before any clearing
+    // This ensures we always have the correct role for redirect
     const currentUserRole = userRole;
 
-    // CRITICAL: Clear Supabase session immediately to prevent auto-login
-    // We must wait for this to complete before redirecting
-    try {
-      logger.log('🔐 AuthContext: Clearing Supabase session...');
-      await supabase.auth.signOut();
-      logger.log('🔐 AuthContext: Supabase session cleared successfully');
-    } catch (error) {
-      logger.error('🔐 AuthContext: Error clearing session:', error);
-      // Continue with sign-out even if there's an error
+    // Determine redirect URL immediately to avoid any state race conditions
+    const redirectUrl = currentUserRole === 'professor'
+      ? '/professor/login'
+      : currentUserRole === 'student'
+      ? '/student/login'
+      : '/'; // Fallback to home only if no role is set
+
+    logger.log(`🔐 AuthContext: Will redirect to ${redirectUrl} (role: ${currentUserRole})`);
+
+    // Start the redirect immediately to provide instant feedback
+    // This prevents the homepage from showing while we clean up
+    if (typeof window !== 'undefined') {
+      // Use replace to prevent back button issues
+      window.location.replace(redirectUrl);
     }
 
-    // Clear all browser storage to ensure no session persists
+    // Clear everything in the background after redirect starts
+    // The page will be replaced anyway, so these operations won't block the UI
+    try {
+      // Clear Supabase session
+      await supabase.auth.signOut();
+      logger.log('🔐 AuthContext: Supabase session cleared');
+    } catch (error) {
+      logger.error('🔐 AuthContext: Error clearing session:', error);
+    }
+
+    // Clear browser storage (preserving theme)
     if (typeof window !== 'undefined') {
-      // Preserve theme preference before clearing
       const darkMode = localStorage.getItem('darkMode');
-
-      // Clear localStorage
-      localStorage.removeItem('supabase.auth.token');
       localStorage.clear();
-
-      // Restore theme preference
       if (darkMode !== null) {
         localStorage.setItem('darkMode', darkMode);
       }
-
-      // Clear sessionStorage
       sessionStorage.clear();
-
-      logger.log('🔐 AuthContext: Browser storage cleared (theme preserved)');
     }
 
-    // Clear all SWR caches
+    // Clear SWR caches
     await SignOutService.clearAllCaches();
-    logger.log('🔐 AuthContext: SWR caches cleared');
 
-    // Clear local state
+    // Clear local state (though page is already redirecting)
     setUser(null);
     setUserRole(null);
-    logger.log('🔐 AuthContext: Local state cleared');
-
-    // Now redirect - session is fully cleared
-    if (typeof window !== 'undefined') {
-      const redirectUrl = currentUserRole === 'student'
-        ? '/student/login'
-        : currentUserRole === 'professor'
-        ? '/professor/login'
-        : '/';
-
-      logger.log(`🔐 AuthContext: Redirecting to ${redirectUrl}`);
-
-      // Small delay to ensure all state updates are processed
-      setTimeout(() => {
-        window.location.replace(redirectUrl);
-      }, 100);
-    }
   };
 
   const resetPassword = async (email: string, role: 'student' | 'professor') => {
