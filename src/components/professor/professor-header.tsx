@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import ProfileDropdown from '@/components/profile/profile-dropdown';
 import RealTimeClock from '@/components/real-time-clock';
+import ProfessorNavigation from './professor-navigation';
 
 interface ProfessorHeaderProps {
   currentPage: 'dashboard' | 'classes' | 'sessions' | 'students' | 'analytics';
@@ -63,46 +64,27 @@ export default function ProfessorHeader({
 
   return (
     <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/professor/dashboard" className="flex items-center space-x-3 group">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
-            <div>
+            <div className="hidden sm:block">
               <h1 className="text-lg font-bold text-slate-900 dark:text-white">FSAS</h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">Professor Portal</p>
             </div>
           </Link>
 
           {/* Navigation */}
-          <nav className="hidden lg:flex items-center space-x-1">
-            <Link href="/professor/dashboard">
-              <Button variant="ghost" size="sm" className={getButtonClass('dashboard')}>
-                <Home className="w-4 h-4 mr-2" />
-                Dashboard
-              </Button>
-            </Link>
-            <Link href="/professor/classes">
-              <Button variant="ghost" size="sm" className={getButtonClass('classes')}>
-                <BookOpen className="w-4 h-4 mr-2" />
-                Classes
-              </Button>
-            </Link>
-            <Link href="/professor/sessions">
-              <Button variant="ghost" size="sm" className={getButtonClass('sessions')}>
-                <QrCode className="w-4 h-4 mr-2" />
-                Sessions
-              </Button>
-            </Link>
-          </nav>
+          <ProfessorNavigation />
 
           {/* Right Actions */}
-          <div className="flex items-center space-x-3">
-            {/* Real Time Clock */}
-            <div className="hidden sm:flex items-center px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg">
-              <RealTimeClock showSeconds={true} />
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Real Time Clock - Hidden on mobile */}
+            <div className="hidden md:flex items-center px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg">
+              <RealTimeClock />
             </div>
 
             {/* Notifications */}
