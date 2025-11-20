@@ -63,17 +63,17 @@ export default function ProfessorHeader({
   };
 
   return (
-    <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50">
+    <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50 safe-top">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 gap-2 sm:gap-4">
           {/* Logo */}
-          <Link href="/professor/dashboard" className="flex items-center space-x-3 group">
+          <Link href="/professor/dashboard" className="flex items-center space-x-2 sm:space-x-3 group flex-shrink-0">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
-            <div className="hidden sm:block">
-              <h1 className="text-lg font-bold text-slate-900 dark:text-white">FSAS</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Professor Portal</p>
+            <div>
+              <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">FSAS</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-none">Professor Portal</p>
             </div>
           </Link>
 
@@ -81,19 +81,22 @@ export default function ProfessorHeader({
           <ProfessorNavigation />
 
           {/* Right Actions */}
-          <div className="flex items-center space-x-2 sm:space-x-4">
+          <div className="flex items-center space-x-1 sm:space-x-2">
             {/* Real Time Clock - Hidden on mobile */}
             <div className="hidden md:flex items-center px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg">
               <RealTimeClock />
             </div>
 
             {/* Notifications */}
-            <NotificationPanel />
+            <div className="flex-shrink-0">
+              <NotificationPanel />
+            </div>
 
             {/* Theme Toggle */}
             <button
               onClick={toggleDarkMode}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex-shrink-0"
+              aria-label="Toggle dark mode"
             >
               {isDarkMode ? (
                 <Sun className="w-5 h-5 text-amber-500" />
@@ -103,15 +106,17 @@ export default function ProfessorHeader({
             </button>
 
             {/* Profile Dropdown */}
-            <ProfileDropdown
-              user={user}
-              userProfile={userProfile}
-              onSignOut={onSignOut}
-              onEditProfile={onEditProfile}
-              onChangePassword={onChangePassword}
-              onUploadAvatar={onUploadAvatar}
-              onDeleteAvatar={onDeleteAvatar}
-            />
+            <div className="flex-shrink-0">
+              <ProfileDropdown
+                user={user}
+                userProfile={userProfile}
+                onSignOut={onSignOut}
+                onEditProfile={onEditProfile}
+                onChangePassword={onChangePassword}
+                onUploadAvatar={onUploadAvatar}
+                onDeleteAvatar={onDeleteAvatar}
+              />
+            </div>
           </div>
         </div>
       </div>

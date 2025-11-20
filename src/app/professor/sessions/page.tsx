@@ -588,9 +588,9 @@ function SessionsPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-safe">
       {/* Header */}
-      <ProfessorHeader 
+      <ProfessorHeader
         currentPage="sessions"
         userProfile={userProfile}
         onSignOut={handleSignOut}
@@ -601,7 +601,7 @@ function SessionsPageContent() {
       />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-20 sm:pb-8">
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">

@@ -79,7 +79,7 @@ export default function ProfessorNavigation({ className = '' }: ProfessorNavigat
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+        className="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex-shrink-0"
         aria-label="Toggle navigation menu"
       >
         {isMobileMenuOpen ? (
@@ -95,9 +95,10 @@ export default function ProfessorNavigation({ className = '' }: ProfessorNavigat
           <div
             className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
             onClick={() => setIsMobileMenuOpen(false)}
+            aria-hidden="true"
           />
-          <div className="fixed top-16 right-4 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-50 lg:hidden">
-            <div className="p-4">
+          <div className="fixed top-16 left-4 right-4 sm:left-auto sm:right-4 sm:w-72 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 z-50 lg:hidden animate-fade-in">
+            <div className="p-4 max-h-[calc(100vh-5rem)] overflow-y-auto">
               <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3">
                 Navigation
               </h3>
