@@ -217,13 +217,13 @@ function ActiveSessionContent() {
         const remaining = Math.max(0, Math.floor((sessionEndTime.getTime() - now.getTime()) / 1000));
         
         // logger.debug('🕐 Timer calculation:', {
-          activated_at: activeSession.activated_at,
-          activationTime: activationTime.toISOString(),
-          sessionEndTime: sessionEndTime.toISOString(),
-          now: now.toISOString(),
-          remaining: remaining,
-          remainingMinutes: Math.floor(remaining / 60)
-        });
+        //   activated_at: activeSession.activated_at,
+        //   activationTime: activationTime.toISOString(),
+        //   sessionEndTime: sessionEndTime.toISOString(),
+        //   now: now.toISOString(),
+        //   remaining: remaining,
+        //   remainingMinutes: Math.floor(remaining / 60)
+        // });
         
         setTimeRemaining(remaining);
         
@@ -235,9 +235,9 @@ function ActiveSessionContent() {
       } else {
         // For non-active sessions or sessions without activation time, set to 0
         // logger.debug('⏹️ Session not active or no activation time:', {
-          status: activeSession.status,
-          activated_at: activeSession.activated_at
-        });
+        //   status: activeSession.status,
+        //   activated_at: activeSession.activated_at
+        // });
         setTimeRemaining(0);
       }
       
