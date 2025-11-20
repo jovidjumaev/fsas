@@ -11,6 +11,7 @@ import { NotificationPanel } from '@/components/notifications/notification-panel
 import ProfileDropdown from '@/components/profile/profile-dropdown';
 import ProfileEditModal from '@/components/profile/profile-edit-modal';
 import PasswordChangeModal from '@/components/profile/password-change-modal';
+import StudentNavigation from '@/components/student/student-navigation';
 import { supabase } from '@/lib/supabase';
 import { createLogger } from '../../../lib/logger';
 const logger = createLogger('page');
@@ -545,32 +546,7 @@ function StudentScanContent() {
             </Link>
 
             {/* Navigation */}
-            <nav className="hidden lg:flex items-center space-x-1">
-              <Link href="/student/dashboard">
-                <Button variant="ghost" size="sm" className="hover:bg-slate-100 dark:hover:bg-slate-700">
-                  <Home className="w-4 h-4 mr-2" />
-                  Dashboard
-                </Button>
-              </Link>
-              <Link href="/student/scan">
-                <Button variant="ghost" size="sm" className="text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900 hover:bg-emerald-100 dark:hover:bg-emerald-800">
-                  <QrCode className="w-4 h-4 mr-2" />
-                  Scan QR
-                </Button>
-              </Link>
-              <Link href="/student/attendance">
-                <Button variant="ghost" size="sm" className="hover:bg-slate-100 dark:hover:bg-slate-700">
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Attendance
-                </Button>
-              </Link>
-              <Link href="/student/classes">
-                <Button variant="ghost" size="sm" className="hover:bg-slate-100 dark:hover:bg-slate-700">
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  Classes
-                </Button>
-              </Link>
-            </nav>
+            <StudentNavigation />
 
             {/* Right Side Actions */}
             <div className="flex items-center space-x-4">
