@@ -1688,20 +1688,43 @@ app.get('/api/professors/:professorId/dashboard', async (req, res) => {
       };
     }));
     
-    // Format active sessions
-    const formattedActiveSessions = activeSessions.map(session => {
+    // Format active sessions with attendance counts
+    const formattedActiveSessions = await Promise.all(activeSessions.map(async (session) => {
       const classData = classInstances.find(c => c.id === session.class_instance_id);
       const sessionEnrollments = enrollments.filter(e => e.class_instance_id === session.class_instance_id);
-      
+
+      // Query attendance table for present count
+      const { data: attendanceData } = await supabase
+        .from('attendance_records')
+        .select('status')
+        .eq('session_id', session.id);
+
+      // Count students with present, late, or excused status
+      const presentCount = attendanceData?.filter(a =>
+        ['present', 'late', 'excused'].includes(a.status)
+      ).length || 0;
+
+      const totalStudents = sessionEnrollments.length;
+      const attendanceRate = totalStudents > 0
+        ? Math.round((presentCount / totalStudents) * 100)
+        : 0;
+
       return {
         id: session.id,
+        class_id: session.class_instance_id,
         class_code: classData?.courses?.code || 'Unknown',
         class_name: classData?.courses?.name || 'Unknown Class',
-        present_count: 0, // Would need to query attendance table
-        total_students: sessionEnrollments.length,
+        room_location: session.room_location || classData?.room_location || 'Unknown',
+        status: session.status,
+        start_time: session.start_time,
+        end_time: session.end_time,
+        qr_code: session.qr_code || '',
+        enrolled_students: totalStudents,
+        present_count: presentCount,
+        attendance_rate: attendanceRate,
         qr_code_expires_at: session.qr_expires_at
       };
-    });
+    }));
     
     const dashboardData = {
       stats: {
