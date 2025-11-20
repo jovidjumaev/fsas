@@ -511,8 +511,55 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
   return (
     <div className="space-y-6">
       {/* Material Selection Card */}
-      <Card className="p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
+      <Card className="p-4 sm:p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        {/* Mobile: Stack vertically */}
+        <div className="flex flex-col space-y-3 sm:hidden">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+              <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Study Material</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                {materials.length > 0 ? getSelectedMaterialName() : 'No materials available'}
+              </p>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              {materials.length}
+            </Badge>
+          </div>
+
+          {materials.length > 0 && (
+            <>
+              <select
+                value={selectedMaterial}
+                onChange={(e) => setSelectedMaterial(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {materials.map((material) => (
+                  <option key={material.id} value={material.id}>
+                    {material.file_name}
+                  </option>
+                ))}
+              </select>
+
+              {getSelectedMaterial()?.file_url && (
+                <Button
+                  onClick={handleDownloadMaterial}
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-900/30"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Material
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Desktop: Horizontal layout */}
+        <div className="hidden sm:flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
               <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -526,8 +573,8 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
           </div>
           <div className="flex items-center space-x-3">
             {materials.length > 0 && (
-              <select 
-                value={selectedMaterial} 
+              <select
+                value={selectedMaterial}
                 onChange={(e) => setSelectedMaterial(e.target.value)}
                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
@@ -557,11 +604,11 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
       </Card>
 
       {/* Sub-tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
-        <nav className="-mb-px flex space-x-8">
+      <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+        <nav className="-mb-px flex space-x-4 sm:space-x-8 min-w-min">
           <button
             onClick={() => setActiveSubTab('chat')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+            className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 whitespace-nowrap ${
               activeSubTab === 'chat'
                 ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
@@ -572,7 +619,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
           </button>
           <button
             onClick={() => setActiveSubTab('flashcards')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+            className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 whitespace-nowrap ${
               activeSubTab === 'flashcards'
                 ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
@@ -583,7 +630,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
           </button>
           <button
             onClick={() => setActiveSubTab('quiz')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+            className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 whitespace-nowrap ${
               activeSubTab === 'quiz'
                 ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
@@ -597,8 +644,26 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
 
       {/* Chat Tab */}
       {activeSubTab === 'chat' && (
-        <Card className="p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-6">
+        <Card className="p-4 sm:p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          {/* Mobile: Stack vertically */}
+          <div className="flex flex-col space-y-3 mb-4 sm:hidden">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                <Brain className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">AI Study Assistant</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Ask questions about materials</p>
+              </div>
+            </div>
+            <Button onClick={loadMaterials} variant="outline" size="sm" disabled={isLoading} className="w-full">
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh Materials
+            </Button>
+          </div>
+
+          {/* Desktop: Horizontal layout */}
+          <div className="hidden sm:flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
                 <Brain className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -615,21 +680,21 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
           </div>
 
           {/* Chat Messages */}
-          <div className="h-80 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4 bg-gray-50 dark:bg-gray-900">
+          <div className="h-64 sm:h-80 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 mb-4 bg-gray-50 dark:bg-gray-900">
             {messages.length === 0 ? (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-12">
-                <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <h4 className="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8 sm:py-12">
+                <MessageCircle className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 opacity-50" />
+                <h4 className="text-base sm:text-lg font-medium text-gray-600 dark:text-gray-400 mb-2 px-4">
                   Start a conversation with your AI study assistant!
                 </h4>
-                <p className="text-gray-500 dark:text-gray-500 mb-4">
+                <p className="text-sm text-gray-500 dark:text-gray-500 mb-4 px-4">
                   Ask about class materials, attendance, or study topics.
                 </p>
-                
+
                 {/* Example Questions */}
-                <div className="text-left max-w-md mx-auto">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Try asking:</p>
-                  <div className="space-y-2 text-sm">
+                <div className="text-left max-w-md mx-auto px-2 sm:px-0">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Try asking:</p>
+                  <div className="space-y-2 text-xs sm:text-sm">
                     <div className="bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600">
                       <p className="text-gray-700 dark:text-gray-300">"What's my attendance percentage?"</p>
                     </div>
@@ -646,21 +711,21 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {messages.map((message) => (
                   <div
                     key={message.id}
                     className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-lg p-3 ${
+                      className={`max-w-[85%] sm:max-w-[80%] rounded-lg p-2.5 sm:p-3 ${
                         message.role === 'user'
                           ? 'bg-blue-600 text-white'
                           : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600'
                       }`}
                     >
-                      <p className="text-sm">{message.content}</p>
-                      <div className="flex items-center justify-between mt-2 text-xs opacity-70">
+                      <p className="text-xs sm:text-sm">{message.content}</p>
+                      <div className="flex items-center justify-between mt-1.5 sm:mt-2 text-[10px] sm:text-xs opacity-70">
                         <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
                       </div>
                     </div>
@@ -675,7 +740,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
             <Input
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="Ask about your class materials, attendance, or study topics..."
+              placeholder="Ask about materials or attendance..."
               {...({
                 onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -686,12 +751,13 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
               } as any)}
               disabled={isSendingMessage || !chatSessionId}
               maxLength={200}
-              className="flex-1"
+              className="flex-1 text-sm"
             />
-            <Button 
-              onClick={handleSendMessage} 
+            <Button
+              onClick={handleSendMessage}
               disabled={!inputMessage.trim() || isSendingMessage || !chatSessionId}
-              className="px-6"
+              className="px-4 sm:px-6"
+              size="sm"
             >
               {isSendingMessage ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -708,8 +774,40 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
 
       {/* Flashcards Tab */}
       {activeSubTab === 'flashcards' && (
-        <Card className="p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-6">
+        <Card className="p-4 sm:p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          {/* Mobile: Stack vertically */}
+          <div className="flex flex-col space-y-3 mb-4 sm:hidden">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Study Flashcards</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Generate from materials</p>
+              </div>
+            </div>
+            <Button
+              onClick={generateFlashcards}
+              disabled={!selectedMaterial || isGeneratingFlashcards || materials.length === 0}
+              className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+              size="sm"
+            >
+              {isGeneratingFlashcards ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Generate Cards
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Desktop: Horizontal layout */}
+          <div className="hidden sm:flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
                 <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -719,7 +817,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                 <p className="text-sm text-gray-500 dark:text-gray-400">Generate flashcards from your class materials</p>
               </div>
             </div>
-            <Button 
+            <Button
               onClick={generateFlashcards}
               disabled={!selectedMaterial || isGeneratingFlashcards || materials.length === 0}
               className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
@@ -731,38 +829,38 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                 </>
               ) : (
                 <>
-              <Upload className="w-4 h-4 mr-2" />
-              Generate Flashcards
+                  <Upload className="w-4 h-4 mr-2" />
+                  Generate Flashcards
                 </>
               )}
             </Button>
           </div>
           
           {flashcards.length === 0 ? (
-          <div className="text-center py-12">
-            <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
-            <h4 className="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">
+          <div className="text-center py-8 sm:py-12 px-4">
+            <BookOpen className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-400 dark:text-gray-500" />
+            <h4 className="text-base sm:text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">
                 {materials.length === 0 ? 'No Flashcards Available' : 'Ready to Study?'}
             </h4>
-            <p className="text-gray-500 dark:text-gray-500 mb-4">
-                {materials.length === 0 
+            <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">
+                {materials.length === 0
                   ? 'No materials available. Ask your professor to upload study materials first.'
-                  : 'Select a material and click "Generate Flashcards" to create study cards!'}
+                  : 'Select a material and click "Generate Cards" to create study cards!'}
               </p>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Card Counter */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                <div className="flex items-center space-x-3 sm:space-x-4">
+                  <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                     Card {currentCardIndex + 1} of {flashcards.length}
                   </p>
                   {flashcards[currentCardIndex] && flashcardStudyStatus[flashcards[currentCardIndex].id] && (
-                    <Badge 
-                      variant="outline" 
+                    <Badge
+                      variant="outline"
                       className={`text-xs ${
-                        flashcardStudyStatus[flashcards[currentCardIndex].id] === 'known' 
+                        flashcardStudyStatus[flashcards[currentCardIndex].id] === 'known'
                           ? 'border-green-500 text-green-700 bg-green-50 dark:border-green-400 dark:text-green-300 dark:bg-green-900/30'
                           : 'border-orange-500 text-orange-700 bg-orange-50 dark:border-orange-400 dark:text-orange-300 dark:bg-orange-900/30'
                       }`}
@@ -771,51 +869,102 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Click card to flip</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Tap card to flip</p>
               </div>
 
               {/* Flashcard Display */}
-              <div 
+              <div
                 onClick={handleFlipCard}
-                className="relative min-h-[320px] bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-lg cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.01] transform"
+                className="relative min-h-[240px] sm:min-h-[320px] bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-lg cursor-pointer transition-all duration-300 hover:shadow-xl active:scale-[0.99] sm:hover:scale-[1.01] transform"
               >
-                <div className="flex flex-col items-center justify-center p-10 h-full">
+                <div className="flex flex-col items-center justify-center p-6 sm:p-10 h-full">
                   {isFlipped ? (
                     <div className="text-center max-w-2xl w-full">
-                      <div className="inline-flex items-center space-x-2 mb-6">
-                        <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                          <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <div className="inline-flex items-center space-x-2 mb-4 sm:mb-6">
+                        <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                          <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                         </div>
-                        <h4 className="text-xl font-bold text-gray-900 dark:text-white">Answer</h4>
+                        <h4 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Answer</h4>
                       </div>
-                      <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
+                      <p className="text-gray-700 dark:text-gray-300 text-sm sm:text-lg leading-relaxed">
                         {flashcards[currentCardIndex]?.back_text}
                       </p>
                     </div>
                   ) : (
                     <div className="text-center max-w-2xl w-full">
-                      <div className="inline-flex items-center space-x-2 mb-6">
-                        <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                          <HelpCircle className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      <div className="inline-flex items-center space-x-2 mb-4 sm:mb-6">
+                        <div className="p-1.5 sm:p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                          <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
                         </div>
-                        <h4 className="text-xl font-bold text-gray-900 dark:text-white">Question</h4>
+                        <h4 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Question</h4>
                       </div>
-                      <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
+                      <p className="text-gray-700 dark:text-gray-300 text-sm sm:text-lg leading-relaxed">
                         {flashcards[currentCardIndex]?.front_text}
                       </p>
                     </div>
             )}
           </div>
-                <div className="absolute bottom-6 right-6 flex items-center space-x-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors">
-                  <RotateCcw className="w-5 h-5" />
-                  <span className="text-xs font-medium">Click to flip</span>
+                <div className="absolute bottom-4 sm:bottom-6 right-4 sm:right-6 flex items-center space-x-1.5 sm:space-x-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors">
+                  <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="text-[10px] sm:text-xs font-medium hidden sm:inline">Click to flip</span>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col space-y-4">
-                {/* Navigation and Study Status */}
-                <div className="flex items-center justify-between space-x-3">
+              <div className="flex flex-col space-y-3 sm:space-y-4">
+                {/* Mobile: Stack all buttons */}
+                <div className="flex flex-col space-y-2 sm:hidden">
+                  {/* Navigation */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      onClick={handlePreviousCard}
+                      disabled={currentCardIndex === 0}
+                      variant="outline"
+                      size="sm"
+                      className="border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" />
+                      Previous
+                    </Button>
+                    <Button
+                      onClick={handleNextCard}
+                      disabled={currentCardIndex === flashcards.length - 1}
+                      variant="outline"
+                      size="sm"
+                      className="border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+
+                  {/* Study Status */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      onClick={handleMarkAsKnown}
+                      disabled={flashcards.length === 0}
+                      variant="outline"
+                      size="sm"
+                      className="border-green-300 text-green-700 bg-green-50 hover:bg-green-100 hover:border-green-400 dark:border-green-600 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/40"
+                    >
+                      <Check className="w-4 h-4 mr-1" />
+                      Known
+                    </Button>
+                    <Button
+                      onClick={handleMarkAsUnknown}
+                      disabled={flashcards.length === 0}
+                      variant="outline"
+                      size="sm"
+                      className="border-orange-300 text-orange-700 bg-orange-50 hover:bg-orange-100 hover:border-orange-400 dark:border-orange-600 dark:text-orange-400 dark:bg-orange-900/20 dark:hover:bg-orange-900/40"
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Review
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Desktop: Horizontal layout */}
+                <div className="hidden sm:flex items-center justify-between space-x-3">
                   <Button
                     onClick={handlePreviousCard}
                     disabled={currentCardIndex === 0}
@@ -914,8 +1063,42 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
 
       {/* Quiz Tab */}
       {activeSubTab === 'quiz' && (
-        <Card className="p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-6">
+        <Card className="p-4 sm:p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          {/* Mobile: Stack vertically */}
+          <div className="flex flex-col space-y-3 mb-4 sm:hidden">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                <HelpCircle className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Quiz Generator</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Test your knowledge</p>
+              </div>
+            </div>
+            {quizQuestions.length === 0 && (
+              <Button
+                onClick={generateQuiz}
+                disabled={!selectedMaterial || isGeneratingQuiz || materials.length === 0}
+                className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600"
+                size="sm"
+              >
+                {isGeneratingQuiz ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Generate Quiz
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+
+          {/* Desktop: Horizontal layout */}
+          <div className="hidden sm:flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
                 <HelpCircle className="w-5 h-5 text-purple-600 dark:text-purple-400" />
@@ -926,7 +1109,7 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
               </div>
             </div>
             {quizQuestions.length === 0 && (
-            <Button 
+              <Button
                 onClick={generateQuiz}
                 disabled={!selectedMaterial || isGeneratingQuiz || materials.length === 0}
                 className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600"
@@ -938,17 +1121,17 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                   </>
                 ) : (
                   <>
-              <Upload className="w-4 h-4 mr-2" />
-              Generate Quiz
+                    <Upload className="w-4 h-4 mr-2" />
+                    Generate Quiz
                   </>
                 )}
-            </Button>
+              </Button>
             )}
           </div>
 
           {/* Quiz History and Progress */}
           {quizQuestions.length === 0 && !quizResults && (
-            <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 mb-6">
+            <div className="grid grid-cols-1 gap-4 mb-6">
               {/* Quiz History Sidebar */}
               <Card className="p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-3">
@@ -1312,48 +1495,48 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
               </p>
             </div>
           ) : quizResults ? (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Results Display */}
-              <div className="text-center py-8 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 rounded-xl border-2 border-purple-200 dark:border-purple-700">
+              <div className="text-center py-6 sm:py-8 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 rounded-xl border-2 border-purple-200 dark:border-purple-700">
                 <div className="mb-4">
-                  <div className={`text-6xl font-bold ${
-                    quizResults.percentage >= 80 
-                      ? 'text-green-600 dark:text-green-400' 
+                  <div className={`text-4xl sm:text-6xl font-bold ${
+                    quizResults.percentage >= 80
+                      ? 'text-green-600 dark:text-green-400'
                       : quizResults.percentage >= 60
                       ? 'text-yellow-600 dark:text-yellow-400'
                       : 'text-red-600 dark:text-red-400'
                   }`}>
                     {quizResults.percentage}%
                   </div>
-                  <p className="text-gray-600 dark:text-gray-300 mt-2">
+                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-2">
                     {quizResults.score} out of {quizResults.total} correct
                   </p>
                 </div>
               </div>
 
               {/* Question Review */}
-              <div className="space-y-4">
-                <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Review Your Answers</h4>
+              <div className="space-y-3 sm:space-y-4">
+                <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Review Your Answers</h4>
                 {quizQuestions.map((question: any, index: number) => {
                   const result = getAnswerStatus(question.id);
                   const isCorrect = result?.is_correct;
                   const userAnswer = selectedAnswers[question.id];
-                  
+
                   return (
-                    <Card key={question.id} className={`p-5 ${isCorrect ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'} border-2`}>
-                      <div className="flex items-start space-x-3 mb-3">
-                        <div className={`p-2 rounded-lg ${isCorrect ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'}`}>
-                          {isCorrect ? <Check className="w-5 h-5 text-green-600 dark:text-green-400" /> : <X className="w-5 h-5 text-red-600 dark:text-red-400" />}
+                    <Card key={question.id} className={`p-3 sm:p-5 ${isCorrect ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'} border-2`}>
+                      <div className="flex items-start space-x-2 sm:space-x-3 mb-3">
+                        <div className={`p-1.5 sm:p-2 rounded-lg ${isCorrect ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'}`}>
+                          {isCorrect ? <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" /> : <X className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400" />}
                         </div>
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-900 dark:text-white mb-3">
+                          <p className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-2 sm:mb-3">
                             Question {index + 1}: {question.question}
                           </p>
-                          <div className="space-y-2">
+                          <div className="space-y-1.5 sm:space-y-2">
                             {question.options.map((option: string, optIndex: number) => (
                               <div
                                 key={optIndex}
-                                className={`p-3 rounded-lg border-2 ${
+                                className={`p-2 sm:p-3 rounded-lg border-2 text-xs sm:text-sm ${
                                   optIndex === result?.correct_answer
                                     ? 'bg-green-100 dark:bg-green-900 border-green-400 dark:border-green-600 text-green-900 dark:text-green-100'
                                     : optIndex === userAnswer && !isCorrect
@@ -1402,13 +1585,13 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
               </div>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Question Counter */}
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-1 sm:space-y-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                   Question {currentQuestionIndex + 1} of {quizQuestions.length}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
                   {Object.keys(selectedAnswers).length} of {quizQuestions.length} answered
                 </p>
               </div>
@@ -1419,33 +1602,33 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                 if (!currentQuestion) return null;
 
                 return (
-                  <Card className="p-6 border-2 border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20">
+                  <Card className="p-4 sm:p-6 border-2 border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20">
                     <div className="mb-4">
-                      <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                      <h4 className="text-base sm:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
                         {currentQuestion.question}
                       </h4>
-                      <div className="space-y-3">
+                      <div className="space-y-2 sm:space-y-3">
                         {currentQuestion.options.map((option: string, index: number) => (
                           <button
                             key={index}
                             onClick={() => handleAnswerSelect(currentQuestion.id, index)}
-                            className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                            className={`w-full text-left p-3 sm:p-4 rounded-lg border-2 transition-all ${
                               selectedAnswers[currentQuestion.id] === index
                                 ? 'border-purple-500 bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100'
-                                : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-purple-300 dark:hover:border-purple-600'
+                                : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-purple-300 dark:hover:border-purple-600 active:scale-[0.99]'
                             }`}
                           >
-                            <div className="flex items-center space-x-3">
-                              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                            <div className="flex items-center space-x-2 sm:space-x-3">
+                              <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                                 selectedAnswers[currentQuestion.id] === index
                                   ? 'border-purple-500 bg-purple-500'
                                   : 'border-gray-400 dark:border-gray-500'
                               }`}>
                                 {selectedAnswers[currentQuestion.id] === index && (
-                                  <div className="w-3 h-3 rounded-full bg-white"></div>
+                                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-white"></div>
             )}
           </div>
-                              <span className="font-medium text-gray-900 dark:text-white">
+                              <span className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
                                 {String.fromCharCode(65 + index)}. {option}
                               </span>
                             </div>
@@ -1457,8 +1640,55 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                 );
               })()}
 
-              {/* Navigation and Submit */}
-              <div className="flex items-center justify-between space-x-3">
+              {/* Navigation and Submit - Mobile */}
+              <div className="flex flex-col space-y-2 sm:hidden">
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    onClick={handlePreviousQuestion}
+                    disabled={currentQuestionIndex === 0}
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </Button>
+                  <Button
+                    onClick={handleNextQuestion}
+                    disabled={currentQuestionIndex === quizQuestions.length - 1}
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+
+                {isAllQuestionsAnswered() && (
+                  <Button
+                    onClick={submitQuiz}
+                    disabled={isSubmittingQuiz}
+                    className="w-full bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600"
+                    size="sm"
+                  >
+                    {isSubmittingQuiz ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        Submit Quiz
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+
+              {/* Navigation and Submit - Desktop */}
+              <div className="hidden sm:flex items-center justify-between space-x-3">
                 <Button
                   onClick={handlePreviousQuestion}
                   disabled={currentQuestionIndex === 0}
