@@ -1353,21 +1353,11 @@ function ClassManagementPageContent() {
           <div className="space-y-4 sm:space-y-6">
             {/* Sessions Header */}
             <Card className="p-4 sm:p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
-                <div className="flex-1">
-                  <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">Class Sessions</h3>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    Manage attendance sessions for {classData?.courses?.code} - Section {classData?.section_number}
-                  </p>
-                </div>
-                <Button
-                  onClick={createNewSession}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:from-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 border-0 w-full sm:w-auto text-xs sm:text-sm"
-                  size="sm"
-                >
-                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-                  New Session
-                </Button>
+              <div className="mb-4 sm:mb-6">
+                <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">Class Sessions</h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
+                  Manage attendance sessions for {classData?.courses?.code} - Section {classData?.section_number}
+                </p>
               </div>
 
               {/* Filters */}
