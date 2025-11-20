@@ -855,36 +855,37 @@ function ClassManagementPageContent() {
         </div>
       )}
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-20 sm:pb-8 pb-safe">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-4">
-          <Button 
-            variant="ghost" 
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+          <Button
+            variant="ghost"
                 size="sm"
             onClick={() => router.push('/professor/classes')}
-            className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs sm:text-sm"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Classes
+            <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+            <span className="hidden xs:inline">Back to Classes</span>
+            <span className="xs:hidden">Back</span>
           </Button>
         </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={togglePin}
-                className="flex items-center"
+                className="flex items-center flex-1 sm:flex-none justify-center text-xs sm:text-sm"
               >
                 {classData.is_pinned ? (
                   <>
-                    <PinOff className="w-4 h-4 mr-2" />
+                    <PinOff className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                     Unpin
                   </>
                 ) : (
                   <>
-                    <Pin className="w-4 h-4 mr-2" />
+                    <Pin className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                     Pin
                   </>
                 )}
@@ -893,30 +894,30 @@ function ClassManagementPageContent() {
           </div>
 
           {/* Class Info Card */}
-          <Card className="p-6 mb-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
+          <Card className="p-4 sm:p-6 mb-4 sm:mb-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
             <div className="flex items-start justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg">
-                  <BookOpen className="w-8 h-8 text-white" />
+              <div className="flex items-center space-x-3 sm:space-x-4">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-700 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+                  <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
-                <div>
-                  <div className="flex items-center space-x-2 mb-2">
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center space-x-2 mb-1 sm:mb-2">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white truncate">
                       {classData.courses?.code}
                     </h1>
                     {classData.is_pinned && (
-                      <Pin className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+                      <Pin className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 dark:text-amber-400 flex-shrink-0" />
                     )}
                   </div>
-                  <h2 className="text-xl text-slate-600 dark:text-slate-300 mb-2">
+                  <h2 className="text-base sm:text-lg lg:text-xl text-slate-600 dark:text-slate-300 mb-1 sm:mb-2 truncate">
                     {classData.courses?.name}
                   </h2>
-                  <div className="flex items-center space-x-4 text-sm text-slate-500 dark:text-slate-400">
-                    <span>Section {classData.section_number}</span>
-                    <span className="text-slate-300 dark:text-slate-500">•</span>
-                    <span>{classData.academic_periods?.name}</span>
-                    <span className="text-slate-300 dark:text-slate-500">•</span>
-                    <span>Class Code: {classData.class_code}</span>
+                  <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-4 gap-y-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                    <span className="whitespace-nowrap">Section {classData.section_number}</span>
+                    <span className="text-slate-300 dark:text-slate-500 hidden sm:inline">•</span>
+                    <span className="whitespace-nowrap">{classData.academic_periods?.name}</span>
+                    <span className="text-slate-300 dark:text-slate-500 hidden sm:inline">•</span>
+                    <span className="whitespace-nowrap">Code: {classData.class_code}</span>
                   </div>
                 </div>
               </div>
@@ -924,7 +925,8 @@ function ClassManagementPageContent() {
           </Card>
 
           {/* Tabs */}
-          <div className="flex space-x-1 mb-6">
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 mb-4 sm:mb-6">
+            <div className="flex space-x-1 min-w-max sm:min-w-0">
             {[
               { id: 'overview', label: 'Overview', icon: Settings },
               { id: 'students', label: 'Students', icon: Users },
@@ -935,30 +937,31 @@ function ClassManagementPageContent() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`flex items-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-200 shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
-                <tab.icon className="w-4 h-4 mr-2" />
+                <tab.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                 {tab.label}
               </button>
             ))}
+            </div>
             </div>
         </div>
 
         {/* Tab Content */}
         {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Class Details */}
-            <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Class Details</h3>
-              <div className="space-y-3">
-                <div className="flex items-center text-sm">
-                  <Clock className="w-4 h-4 mr-3 text-slate-500 dark:text-slate-400" />
-                  <span className="text-slate-600 dark:text-slate-300">Schedule:</span>
-                  <span className="ml-2 font-medium text-slate-900 dark:text-white">
+            <Card className="p-4 sm:p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
+              <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-3 sm:mb-4">Class Details</h3>
+              <div className="space-y-2 sm:space-y-3">
+                <div className="flex items-start text-xs sm:text-sm">
+                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 sm:mr-3 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-600 dark:text-slate-300 flex-shrink-0">Schedule:</span>
+                  <span className="ml-2 font-medium text-slate-900 dark:text-white break-words">
                     {classData.days_of_week?.map(day => {
                       switch(day) {
                         case 'Monday': return 'M';
@@ -973,93 +976,93 @@ function ClassManagementPageContent() {
                     }).join('')} {classData.start_time}-{classData.end_time}
                   </span>
                 </div>
-                <div className="flex items-center text-sm">
-                  <MapPin className="w-4 h-4 mr-3 text-slate-500 dark:text-slate-400" />
-                  <span className="text-slate-600 dark:text-slate-300">Room:</span>
-                  <span className="ml-2 font-medium text-slate-900 dark:text-white">{classData.room_location}</span>
+                <div className="flex items-start text-xs sm:text-sm">
+                  <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 sm:mr-3 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-600 dark:text-slate-300 flex-shrink-0">Room:</span>
+                  <span className="ml-2 font-medium text-slate-900 dark:text-white break-words">{classData.room_location}</span>
                 </div>
-                <div className="flex items-center text-sm">
-                  <Users className="w-4 h-4 mr-3 text-slate-500 dark:text-slate-400" />
-                  <span className="text-slate-600 dark:text-slate-300">Enrollment:</span>
+                <div className="flex items-start text-xs sm:text-sm">
+                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 sm:mr-3 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-600 dark:text-slate-300 flex-shrink-0">Enrollment:</span>
                   <span className="ml-2 font-medium text-slate-900 dark:text-white">{classData.current_enrollment}/{classData.max_students}</span>
                 </div>
-                <div className="flex items-center text-sm">
-                  <GraduationCap className="w-4 h-4 mr-3 text-slate-500 dark:text-slate-400" />
-                  <span className="text-slate-600 dark:text-slate-300">Credits:</span>
+                <div className="flex items-start text-xs sm:text-sm">
+                  <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 sm:mr-3 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-600 dark:text-slate-300 flex-shrink-0">Credits:</span>
                   <span className="ml-2 font-medium text-slate-900 dark:text-white">{classData.courses?.credits}</span>
                 </div>
               </div>
             </Card>
 
             {/* Quick Stats */}
-            <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Quick Stats</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <Card className="p-4 sm:p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
+              <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-3 sm:mb-4">Quick Stats</h3>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="text-center p-2 sm:p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                  <div className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
                     {classData.current_enrollment}
                   </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-300">Students</div>
+                  <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">Students</div>
                 </div>
-                <div className="text-center p-3 rounded-lg bg-green-50 dark:bg-green-900/20">
-                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                <div className="text-center p-2 sm:p-3 rounded-lg bg-green-50 dark:bg-green-900/20">
+                  <div className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
                     {classData.capacity_percentage}%
                   </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-300">Capacity</div>
+                  <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">Capacity</div>
                 </div>
-                <div className="text-center p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20">
-                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                <div className="text-center p-2 sm:p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20">
+                  <div className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
                     {sessions.filter(s => s.status === 'completed' && s.attendance_count > 0).length}
                   </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-300">Completed Sessions</div>
+                  <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">Completed</div>
                 </div>
-                <div className="text-center p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20">
-                  <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                <div className="text-center p-2 sm:p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20">
+                  <div className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
                     {(() => {
                       const professorInitiatedSessions = sessions.filter(s => s.status === 'completed' && s.attendance_count > 0);
-                      return professorInitiatedSessions.length > 0 
-                        ? Math.round(professorInitiatedSessions.reduce((acc, session) => 
+                      return professorInitiatedSessions.length > 0
+                        ? Math.round(professorInitiatedSessions.reduce((acc, session) =>
                             acc + (session.total_enrolled > 0 ? (session.attendance_count / session.total_enrolled) * 100 : 0), 0) / professorInitiatedSessions.length)
                         : 0;
                     })()}%
                   </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-300">Avg Attendance</div>
+                  <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">Avg Attend.</div>
                 </div>
               </div>
             </Card>
 
             {/* Class Status Management */}
-            <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Class Status</h3>
-              <div className="flex items-center justify-between">
+            <Card className="p-4 sm:p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl lg:col-span-2">
+              <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-3 sm:mb-4">Class Status</h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                 <div className="flex items-center space-x-3">
-                  <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  <div className={`px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
                     classData.status === 'active'
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' 
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
                       : classData.status === 'completed'
                       ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
                   }`}>
-                    {classData.status === 'active' ? 'Active' : 
+                    {classData.status === 'active' ? 'Active' :
                      classData.status === 'completed' ? 'Completed' : 'Inactive'}
                   </div>
-                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                  <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                     Current status
                   </span>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     onClick={() => handleStatusChange('active')}
                     disabled={classData.status === 'active'}
                     variant={classData.status === 'active' ? "primary" : "outline"}
                     size="sm"
-                    className={`${
+                    className={`text-xs sm:text-sm ${
                       classData.status === 'active'
-                        ? 'bg-green-600 hover:bg-green-700 text-white' 
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
                         : 'border-green-300 text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-900/20'
                     }`}
                   >
-                    <Check className="w-4 h-4 mr-1" />
+                    <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                     Active
                   </Button>
                   <Button
@@ -1067,13 +1070,13 @@ function ClassManagementPageContent() {
                     disabled={classData.status === 'inactive'}
                     variant={classData.status === 'inactive' ? "primary" : "outline"}
                     size="sm"
-                    className={`${
+                    className={`text-xs sm:text-sm ${
                       classData.status === 'inactive'
-                        ? 'bg-gray-600 hover:bg-gray-700 text-white' 
+                        ? 'bg-gray-600 hover:bg-gray-700 text-white'
                         : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-900/20'
                     }`}
                   >
-                    <X className="w-4 h-4 mr-1" />
+                    <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                     Inactive
                   </Button>
                   <Button
@@ -1081,18 +1084,18 @@ function ClassManagementPageContent() {
                     disabled={classData.status === 'completed'}
                     variant={classData.status === 'completed' ? "primary" : "outline"}
                     size="sm"
-                    className={`${
+                    className={`text-xs sm:text-sm ${
                       classData.status === 'completed'
                         ? 'bg-blue-600 hover:bg-blue-700 text-white'
                         : 'border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-900/20'
                     }`}
                   >
-                    <GraduationCap className="w-4 h-4 mr-1" />
+                    <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                     Complete
                   </Button>
                 </div>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2 sm:mt-3">
                 Change the class status to manage its availability and visibility.
               </p>
             </Card>
@@ -1100,25 +1103,26 @@ function ClassManagementPageContent() {
         )}
 
         {activeTab === 'students' && (
-          <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Students ({students.length})</h3>
-              <Button 
+          <Card className="p-4 sm:p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+              <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">Students ({students.length})</h3>
+              <Button
                 onClick={() => setShowAddStudent(true)}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:from-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 border-0"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:from-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 border-0 w-full sm:w-auto text-xs sm:text-sm"
+                size="sm"
               >
-                <UserPlus className="w-4 h-4 mr-2" />
+                <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                 Add Students
               </Button>
             </div>
 
             {showAddStudent && (
-              <div className="mb-6 p-6 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-600 shadow-lg dark:shadow-2xl">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-lg font-medium text-slate-900 dark:text-white">Add Students to Class</h4>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+              <div className="mb-4 sm:mb-6 p-4 sm:p-6 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-600 shadow-lg dark:shadow-2xl">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+                  <h4 className="text-base sm:text-lg font-medium text-slate-900 dark:text-white">Add Students to Class</h4>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => {
                       setShowAddStudent(false);
                       setSearchQuery('');
@@ -1126,9 +1130,9 @@ function ClassManagementPageContent() {
                       setSelectedStudents([]);
                       setShowSearchResults(false);
                     }}
-                    className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                    className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 w-full sm:w-auto text-xs sm:text-sm"
                   >
-                    <X className="w-4 h-4 mr-1" />
+                    <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                     Cancel
                   </Button>
                 </div>
@@ -1151,27 +1155,27 @@ function ClassManagementPageContent() {
 
                 {/* Students List */}
                 <div className="mb-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h5 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 mb-3">
+                    <h5 className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
                       {showSearchResults ? `Search Results (${searchResults.length})` : `All Students (${totalStudents})`}
                     </h5>
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={selectAllStudents}
-                        className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                        className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex-1 sm:flex-none text-xs sm:text-sm"
                       >
-                        <Check className="w-4 h-4 mr-1" />
+                        <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                         Select All
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={clearSelection}
-                        className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                        className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex-1 sm:flex-none text-xs sm:text-sm"
                       >
-                        <X className="w-4 h-4 mr-1" />
+                        <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                         Clear
                       </Button>
                     </div>
@@ -1193,7 +1197,7 @@ function ClassManagementPageContent() {
                           {(showSearchResults ? searchResults : allStudents).map((student) => (
                             <div
                               key={student.user_id}
-                              className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                              className={`flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 rounded-lg cursor-pointer transition-colors ${
                                 selectedStudents.includes(student.user_id)
                                   ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700'
                                   : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-transparent'
@@ -1201,21 +1205,21 @@ function ClassManagementPageContent() {
                               onClick={() => toggleStudentSelection(student.user_id)}
                             >
                               <div className="flex-shrink-0">
-                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded border-2 flex items-center justify-center ${
                                   selectedStudents.includes(student.user_id)
                                     ? 'bg-blue-600 border-blue-600'
                                     : 'border-slate-300 dark:border-slate-500'
                                 }`}>
                                   {selectedStudents.includes(student.user_id) && (
-                                    <Check className="w-3 h-3 text-white" />
+                                    <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                                   )}
                                 </div>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="font-medium text-slate-900 dark:text-white">
+                                <div className="font-medium text-slate-900 dark:text-white text-xs sm:text-sm truncate">
                                   {student.first_name} {student.last_name}
                                 </div>
-                                <div className="text-sm text-slate-500 dark:text-slate-400">
+                                <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 truncate">
                                   {student.email} • ID: {student.student_id}
                                 </div>
                               </div>
@@ -1226,29 +1230,29 @@ function ClassManagementPageContent() {
 
                       {/* Pagination for all students */}
                       {!showSearchResults && totalStudents > studentsPerPage && (
-                        <div className="flex items-center justify-between mt-4 px-2">
-                          <div className="text-sm text-slate-500 dark:text-slate-400">
-                            Showing {((currentPage - 1) * studentsPerPage) + 1} to {Math.min(currentPage * studentsPerPage, totalStudents)} of {totalStudents} students
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4 mt-4 px-2">
+                          <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                            Showing {((currentPage - 1) * studentsPerPage) + 1} to {Math.min(currentPage * studentsPerPage, totalStudents)} of {totalStudents}
                 </div>
-                          <div className="flex space-x-2">
+                          <div className="flex gap-2 w-full sm:w-auto">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => fetchAllStudents(currentPage - 1)}
                               disabled={currentPage === 1 || isLoadingStudents}
-                              className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex-1 sm:flex-none text-xs sm:text-sm"
                             >
                               Previous
                             </Button>
-                            <span className="px-3 py-1 text-sm text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-md">
-                              Page {currentPage} of {Math.ceil(totalStudents / studentsPerPage)}
+                            <span className="px-2 sm:px-3 py-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-md flex items-center justify-center whitespace-nowrap">
+                              {currentPage}/{Math.ceil(totalStudents / studentsPerPage)}
                             </span>
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => fetchAllStudents(currentPage + 1)}
                               disabled={currentPage >= Math.ceil(totalStudents / studentsPerPage) || isLoadingStudents}
-                              className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex-1 sm:flex-none text-xs sm:text-sm"
                             >
                               Next
                             </Button>
@@ -1261,18 +1265,18 @@ function ClassManagementPageContent() {
 
                 {/* Selected Students Summary */}
                 {selectedStudents.length > 0 && (
-                  <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                  <div className="mb-4 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700 shadow-sm">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                      <span className="text-xs sm:text-sm font-medium text-blue-900 dark:text-blue-200">
                         {selectedStudents.length} student{selectedStudents.length !== 1 ? 's' : ''} selected
                       </span>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={clearSelection}
-                        className="border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800"
+                        className="border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800 w-full sm:w-auto text-xs sm:text-sm"
                       >
-                        <X className="w-4 h-4 mr-1" />
+                        <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                         Clear Selection
                       </Button>
                     </div>
@@ -1280,7 +1284,7 @@ function ClassManagementPageContent() {
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex justify-end space-x-3">
+                <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -1290,16 +1294,16 @@ function ClassManagementPageContent() {
                       setSelectedStudents([]);
                       setShowSearchResults(false);
                     }}
-                    className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                    className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 w-full sm:w-auto text-xs sm:text-sm"
                   >
                     Cancel
                   </Button>
                   <Button
                     onClick={bulkEnrollStudents}
                     disabled={selectedStudents.length === 0}
-                    className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto text-xs sm:text-sm"
                   >
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                     Enroll {selectedStudents.length} Student{selectedStudents.length !== 1 ? 's' : ''}
                   </Button>
                 </div>
@@ -1308,23 +1312,23 @@ function ClassManagementPageContent() {
 
             <div className="space-y-2">
               {students.length === 0 ? (
-                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                <div className="text-center py-8 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                   No students enrolled yet
                 </div>
               ) : (
                 students.map((student) => (
-                  <div key={student.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-700 rounded-full flex items-center justify-center shadow-sm">
-                        <span className="text-sm font-medium text-white">
+                  <div key={student.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <div className="flex items-center space-x-3 min-w-0 flex-1">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-700 rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
+                        <span className="text-xs sm:text-sm font-medium text-white">
                           {student.first_name.charAt(0)}{student.last_name.charAt(0)}
                         </span>
                       </div>
-                      <div>
-                        <div className="font-medium text-slate-900 dark:text-white">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-slate-900 dark:text-white text-sm sm:text-base truncate">
                           {student.first_name} {student.last_name}
                         </div>
-                        <div className="text-sm text-slate-500 dark:text-slate-400">
+                        <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 truncate">
                           {student.email} • {student.student_id}
                         </div>
                       </div>
@@ -1333,9 +1337,9 @@ function ClassManagementPageContent() {
                       variant="outline"
                       size="sm"
                       onClick={() => removeStudent(student.user_id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 w-full sm:w-auto text-xs sm:text-sm"
                     >
-                      <UserMinus className="w-4 h-4 mr-1" />
+                      <UserMinus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                       Remove
                     </Button>
                   </div>
@@ -1346,36 +1350,37 @@ function ClassManagementPageContent() {
         )}
 
         {activeTab === 'sessions' && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Sessions Header */}
-            <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Class Sessions</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
+            <Card className="p-4 sm:p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+                <div className="flex-1">
+                  <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">Class Sessions</h3>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
                     Manage attendance sessions for {classData?.courses?.code} - Section {classData?.section_number}
                   </p>
                 </div>
-                <Button 
+                <Button
                   onClick={createNewSession}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:from-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 border-0"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:from-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 border-0 w-full sm:w-auto text-xs sm:text-sm"
+                  size="sm"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                   New Session
                 </Button>
               </div>
 
               {/* Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
                 {/* Status Filter */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 sm:mb-2">
                     Status
                   </label>
                   <select
                     value={sessionFilters.status}
                     onChange={(e) => setSessionFilters(prev => ({ ...prev, status: e.target.value as any }))}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="all">All Sessions</option>
                     <option value="scheduled">Scheduled</option>
@@ -1387,42 +1392,42 @@ function ClassManagementPageContent() {
 
                 {/* Date From Filter */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 sm:mb-2">
                     From Date
                   </label>
                   <Input
                     type="date"
                     value={sessionFilters.dateFrom}
                     onChange={(e) => setSessionFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
-                    className="w-full"
+                    className="w-full text-xs sm:text-sm"
                   />
                 </div>
 
                 {/* Date To Filter */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 sm:mb-2">
                     To Date
                   </label>
                   <Input
                     type="date"
                     value={sessionFilters.dateTo}
                     onChange={(e) => setSessionFilters(prev => ({ ...prev, dateTo: e.target.value }))}
-                    className="w-full"
+                    className="w-full text-xs sm:text-sm"
                   />
                 </div>
 
                 {/* Search Filter */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 sm:mb-2">
                     Search
                   </label>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 w-4 h-4" />
+                    <Search className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <Input
                       placeholder="Search sessions..."
                       value={sessionFilters.searchTerm}
                       onChange={(e) => setSessionFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
-                      className="pl-10"
+                      className="pl-8 sm:pl-10 text-xs sm:text-sm"
                     />
                   </div>
                 </div>
@@ -1440,9 +1445,9 @@ function ClassManagementPageContent() {
                       dateTo: '',
                       searchTerm: ''
                     })}
-                    className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs sm:text-sm"
                   >
-                    <X className="w-4 h-4 mr-1" />
+                    <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                     Clear Filters
                   </Button>
                 </div>
@@ -1450,30 +1455,30 @@ function ClassManagementPageContent() {
             </Card>
 
             {/* Sessions List */}
-            <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
+            <Card className="p-4 sm:p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
               {isLoadingSessions ? (
-                <div className="text-center py-12">
-                  <LoadingSpinner className="mx-auto mb-4" />
-                  <p className="text-slate-500 dark:text-slate-400">Loading sessions...</p>
+                <div className="text-center py-8 sm:py-12">
+                  <LoadingSpinner className="mx-auto mb-3 sm:mb-4" />
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Loading sessions...</p>
                 </div>
               ) : filteredSessions.length === 0 ? (
-                <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-                  <Calendar className="w-12 h-12 mx-auto mb-4 text-slate-400 dark:text-slate-500" />
-                  <p className="text-lg font-medium mb-2">
+                <div className="text-center py-8 sm:py-12 text-slate-500 dark:text-slate-400">
+                  <Calendar className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-slate-400 dark:text-slate-500" />
+                  <p className="text-base sm:text-lg font-medium mb-1 sm:mb-2">
                     {sessions.length === 0 ? 'No sessions found' : 'No sessions match your filters'}
                   </p>
-                  <p className="text-sm">
-                    {sessions.length === 0 
-                      ? 'Create your first session to start tracking attendance.' 
+                  <p className="text-xs sm:text-sm">
+                    {sessions.length === 0
+                      ? 'Create your first session to start tracking attendance.'
                       : 'Try adjusting your filters to see more sessions.'}
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {filteredSessions.map((session) => (
                     <div
                       key={session.id}
-                      className={`p-4 rounded-lg border transition-all duration-200 ${
+                      className={`p-3 sm:p-4 rounded-lg border transition-all duration-200 ${
                         session.status === 'active'
                           ? 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border-emerald-200 dark:border-emerald-700'
                           : session.status === 'completed'
@@ -1483,9 +1488,9 @@ function ClassManagementPageContent() {
                           : 'bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-700/50 border-slate-200 dark:border-slate-700'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                        <div className="flex items-start sm:items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
                             session.status === 'active'
                               ? 'bg-emerald-500 text-white'
                               : session.status === 'completed'
@@ -1495,22 +1500,22 @@ function ClassManagementPageContent() {
                               : 'bg-slate-500 text-white'
                           }`}>
                             <span className="text-xs font-bold text-center leading-tight">
-                              {new Date(session.date + 'T00:00:00').toLocaleDateString('en-US', { 
-                                month: 'numeric', 
-                                day: 'numeric' 
+                              {new Date(session.date + 'T00:00:00').toLocaleDateString('en-US', {
+                                month: 'numeric',
+                                day: 'numeric'
                               })}
                             </span>
                           </div>
-                            <div>
-                              <div className="flex items-center space-x-2 mb-1">
-                                <h4 className="text-lg font-semibold text-slate-900 dark:text-white">
-                                  {new Date(session.date + 'T00:00:00').toLocaleDateString('en-US', { 
-                                    month: 'short', 
-                                    day: 'numeric', 
-                                    year: 'numeric' 
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
+                                <h4 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+                                  {new Date(session.date + 'T00:00:00').toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
                                   })}
                                 </h4>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium ${
                                 session.status === 'active'
                                   ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300'
                                   : session.status === 'completed'
@@ -1525,32 +1530,33 @@ function ClassManagementPageContent() {
                                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                               )}
                             </div>
-                            <div className="flex items-center space-x-4 text-sm text-slate-600 dark:text-slate-400">
+                            <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                               <div className="flex items-center">
-                                <Calendar className="w-4 h-4 mr-1" />
-                                {new Date(session.date + 'T00:00:00').toLocaleDateString()}
+                                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
+                                <span className="hidden sm:inline">{new Date(session.date + 'T00:00:00').toLocaleDateString()}</span>
+                                <span className="sm:hidden">{new Date(session.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                               </div>
                               <div className="flex items-center">
-                                <Clock className="w-4 h-4 mr-1" />
+                                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                                 {session.start_time} - {session.end_time}
                               </div>
                               <div className="flex items-center">
-                                <MapPin className="w-4 h-4 mr-1" />
+                                <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                                 {session.room_location}
                               </div>
                             </div>
                             {session.notes && (
-                              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
                                 {session.notes}
                               </p>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-4">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
                           {/* Attendance Stats */}
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+                          <div className="text-center sm:text-right bg-white dark:bg-slate-900/20 p-2 sm:p-0 rounded-lg sm:bg-transparent">
+                            <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
                               {session.attendance_count}/{session.total_enrolled}
                             </div>
                             <div className="text-xs text-slate-500 dark:text-slate-400">
@@ -1559,14 +1565,14 @@ function ClassManagementPageContent() {
                           </div>
 
                           {/* Action Buttons */}
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center gap-2 justify-end flex-wrap sm:flex-nowrap">
                             {session.status === 'scheduled' && (
                               <Button
                                 onClick={() => startSession(session.id)}
                                 size="sm"
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white flex-1 sm:flex-none text-xs sm:text-sm"
                               >
-                                <Play className="w-4 h-4 mr-1" />
+                                <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                                 Start
                               </Button>
                             )}
@@ -1574,9 +1580,9 @@ function ClassManagementPageContent() {
                               <Button
                                 onClick={() => stopSession(session.id)}
                                 size="sm"
-                                className="bg-red-600 hover:bg-red-700 text-white"
+                                className="bg-red-600 hover:bg-red-700 text-white flex-1 sm:flex-none text-xs sm:text-sm"
                               >
-                                <Square className="w-4 h-4 mr-1" />
+                                <Square className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                                 Stop
                               </Button>
                             )}
@@ -1584,9 +1590,9 @@ function ClassManagementPageContent() {
                               <Button
                                 onClick={() => router.push(`/professor/sessions/${session.id}?manage=true`)}
                                 size="sm"
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                                className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-none text-xs sm:text-sm"
                               >
-                                <Edit className="w-4 h-4 mr-1" />
+                                <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                                 Manage
                               </Button>
                             )}
@@ -1594,8 +1600,9 @@ function ClassManagementPageContent() {
                               onClick={() => router.push(`/professor/sessions/${session.id}`)}
                               variant="outline"
                               size="sm"
+                              className="flex-1 sm:flex-none text-xs sm:text-sm"
                             >
-                              <Eye className="w-4 h-4 mr-1" />
+                              <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                               View
                             </Button>
                           </div>
@@ -1610,103 +1617,104 @@ function ClassManagementPageContent() {
         )}
 
         {activeTab === 'analytics' && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Analytics Header */}
-            <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Class Analytics</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Attendance trends and student performance</p>
+            <Card className="p-4 sm:p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+                <div className="flex-1">
+                  <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">Class Analytics</h3>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">Attendance trends and student performance</p>
                 </div>
                 <Button
                   onClick={fetchAnalytics}
                   disabled={isLoadingAnalytics}
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto text-xs sm:text-sm"
                 >
                   {isLoadingAnalytics ? (
-                    <LoadingSpinner className="w-4 h-4 mr-2" />
+                    <LoadingSpinner className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                   ) : (
-                    <BarChart3 className="w-4 h-4 mr-2" />
+                    <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                   )}
                   Refresh
                 </Button>
               </div>
 
               {isLoadingAnalytics ? (
-                <div className="text-center py-12">
-                  <LoadingSpinner className="mx-auto mb-4" />
-                  <p className="text-slate-500 dark:text-slate-400">Loading analytics...</p>
+                <div className="text-center py-8 sm:py-12">
+                  <LoadingSpinner className="mx-auto mb-3 sm:mb-4" />
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Loading analytics...</p>
                 </div>
               ) : analyticsData ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                  <div className="text-center p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
                       {analyticsData.total_sessions}
                     </p>
                     <p className="text-xs text-blue-700 dark:text-blue-300">Completed Sessions</p>
                   </div>
-                  <div className="text-center p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                    <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                  <div className="text-center p-3 sm:p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                    <p className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                       {analyticsData.total_students}
                     </p>
                     <p className="text-xs text-emerald-700 dark:text-emerald-300">Total Students</p>
                   </div>
-                  <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                  <div className="text-center p-3 sm:p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                    <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
                       {analyticsData.average_attendance_rate.toFixed(1)}%
                     </p>
                     <p className="text-xs text-purple-700 dark:text-purple-300">Avg Attendance</p>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-                  <BarChart3 className="w-12 h-12 mx-auto mb-4 text-slate-400 dark:text-slate-500" />
-                  <p className="text-lg font-medium mb-2">No Analytics Data</p>
-                  <p className="text-sm">Complete some sessions to see analytics</p>
+                <div className="text-center py-8 sm:py-12 text-slate-500 dark:text-slate-400">
+                  <BarChart3 className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-slate-400 dark:text-slate-500" />
+                  <p className="text-base sm:text-lg font-medium mb-1 sm:mb-2">No Analytics Data</p>
+                  <p className="text-xs sm:text-sm">Complete some sessions to see analytics</p>
                 </div>
               )}
             </Card>
 
             {analyticsData && (
-              <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-4 sm:gap-6">
                 {/* Student List - Left Side */}
-                <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
+                <Card className="p-4 sm:p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
                   <div className="mb-4">
-                    <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">Student Attendance</h4>
+                    <h4 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-3">Student Attendance</h4>
                     <div className="relative">
-                      <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                      <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
                       <Input
                         placeholder="Search students..."
                         value={analyticsSearchQuery}
                         onChange={(e) => setAnalyticsSearchQuery(e.target.value)}
-                        className="pl-10 w-full"
+                        className="pl-8 sm:pl-10 w-full text-xs sm:text-sm"
                       />
                     </div>
                   </div>
                   
                   <div className="max-h-96 overflow-y-auto space-y-2">
                     {analyticsData.student_analytics
-                      .filter((student: any) => 
+                      .filter((student: any) =>
                         `${student.first_name} ${student.last_name}`.toLowerCase().includes(analyticsSearchQuery.toLowerCase()) ||
                         student.student_id.toLowerCase().includes(analyticsSearchQuery.toLowerCase())
                       )
                       .map((student: any) => (
                         <div
                           key={student.student_id}
-                          className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
                         >
-                          <div className="flex-1">
-                            <p className="font-medium text-slate-900 dark:text-white">
+                          <div className="flex-1 min-w-0 w-full sm:w-auto">
+                            <p className="font-medium text-slate-900 dark:text-white text-sm sm:text-base truncate">
                               {student.first_name} {student.last_name}
                             </p>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                               ID: {student.student_id}
                             </p>
                           </div>
-                          <div className="text-right">
+                          <div className="text-left sm:text-right w-full sm:w-auto">
                             <div className="flex items-center space-x-2">
-                              <div className="w-16 bg-slate-200 dark:bg-slate-600 rounded-full h-2">
+                              <div className="w-full sm:w-16 bg-slate-200 dark:bg-slate-600 rounded-full h-2">
                                 <div
                                   className={`h-2 rounded-full transition-all duration-300 ${
                                     student.attendance_percentage >= 80
@@ -1718,11 +1726,11 @@ function ClassManagementPageContent() {
                                   style={{ width: `${Math.min(student.attendance_percentage, 100)}%` }}
                                 ></div>
                               </div>
-                              <span className="text-sm font-medium text-slate-900 dark:text-white min-w-[3rem]">
+                              <span className="text-xs sm:text-sm font-medium text-slate-900 dark:text-white whitespace-nowrap">
                                 {student.attendance_percentage.toFixed(1)}%
                               </span>
                             </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                               {student.attended_sessions}/{student.total_sessions} sessions
                             </p>
                           </div>
@@ -1732,10 +1740,10 @@ function ClassManagementPageContent() {
                 </Card>
 
                 {/* Charts - Right Side */}
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   {/* Attendance Trend Timeline Chart */}
-                  <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
-                    <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Attendance Trend Over Time</h4>
+                  <Card className="p-4 sm:p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
+                    <h4 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-3 sm:mb-4">Attendance Trend Over Time</h4>
                     <div className="h-64 relative">
                       {/* Chart Container */}
                       <div className="absolute inset-0 px-4 pb-10 pt-2">
