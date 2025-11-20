@@ -19,8 +19,7 @@ import {
   Moon,
   Sun,
   Brain,
-  MapPin,
-  Fingerprint
+  MapPin
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -187,9 +186,9 @@ export default function LandingPage() {
               <div className="text-center group cursor-pointer">
                 <div className="flex items-center justify-center mb-2">
                   <Shield className="w-6 h-6 text-blue-600 dark:text-blue-400 mr-2 group-hover:scale-110 transition-transform" />
-                  <div className="text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">30s</div>
+                  <div className="text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">10s</div>
                 </div>
-                <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Tamper-Proof QR Refresh</div>
+                <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Auto QR Refresh</div>
               </div>
               <div className="text-center group cursor-pointer">
                 <div className="flex items-center justify-center mb-2">
@@ -317,8 +316,8 @@ export default function LandingPage() {
               {[
                 {
                   icon: Shield,
-                  title: "Tamper-Proof QR Codes",
-                  desc: "HMAC-SHA256 signatures refresh every 30 seconds to prevent fraud",
+                  title: "Secure QR Technology",
+                  desc: "HMAC-SHA256 signatures refresh every 10 seconds to prevent fraud",
                   gradient: "from-blue-500 to-cyan-500"
                 },
                 {
@@ -340,9 +339,9 @@ export default function LandingPage() {
                   gradient: "from-cyan-600 to-cyan-500"
                 },
                 {
-                  icon: Fingerprint,
-                  title: "Device Fingerprinting",
-                  desc: "10+ factors validate device identity to prevent spoofing",
+                  icon: Zap,
+                  title: "Instant Session Management",
+                  desc: "Auto-generate semester schedules and manage sessions with one click",
                   gradient: "from-blue-500 to-cyan-600"
                 },
                 {
