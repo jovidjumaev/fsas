@@ -603,24 +603,26 @@ function SessionsPageContent() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-20 sm:pb-8">
         {/* Page Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-2">
                 Class Sessions
               </h1>
-              <p className="text-xl text-slate-600 dark:text-slate-400">
+              <p className="text-base sm:text-lg lg:text-xl text-slate-600 dark:text-slate-400">
                 Manage your attendance sessions
               </p>
             </div>
-            <div className="flex items-center space-x-4">
-              <Button 
+            <div className="flex items-center gap-2 sm:gap-4">
+              <Button
                 onClick={() => refreshData()}
-                variant="outline" 
+                variant="outline"
+                size="sm"
                 className="hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 <Zap className="w-4 h-4 mr-2" />
-                Refresh
+                <span className="hidden sm:inline">Refresh</span>
+                <span className="sm:hidden">Refresh</span>
               </Button>
             </div>
           </div>
@@ -630,21 +632,21 @@ function SessionsPageContent() {
         {sessions.filter(s => s.status === 'active').length > 0 && (
           <Card className="mb-6 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-slate-800/60 dark:to-slate-700/60 border-emerald-200 dark:border-slate-600">
             <div className="p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse flex-shrink-0"></div>
                   <div>
-                    <h3 className="font-semibold text-emerald-900 dark:text-white">
+                    <h3 className="font-semibold text-emerald-900 dark:text-white text-sm sm:text-base">
                       {sessions.filter(s => s.status === 'active').length} Active Session{sessions.filter(s => s.status === 'active').length > 1 ? 's' : ''}
                     </h3>
-                    <p className="text-sm text-emerald-700 dark:text-slate-300">
+                    <p className="text-xs sm:text-sm text-emerald-700 dark:text-slate-300">
                       Students can scan QR codes to mark attendance
                     </p>
                   </div>
                 </div>
-                <Button 
-                  size="sm" 
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto"
                   onClick={() => setActiveTab('active')}
                 >
                   View Active
@@ -669,47 +671,49 @@ function SessionsPageContent() {
 
         {/* Tabs */}
         <div className="mb-6">
-          <div className="flex space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-md transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="font-medium">{tab.label}</span>
-                  {tab.count > 0 && (
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="flex space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg min-w-max sm:min-w-0">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center justify-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-md transition-all whitespace-nowrap ${
                       activeTab === tab.id
-                        ? 'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300'
-                        : 'bg-slate-300 dark:bg-slate-600 text-slate-600 dark:text-slate-400'
-                    }`}>
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="font-medium text-sm sm:text-base">{tab.label}</span>
+                    {tab.count > 0 && (
+                      <span className={`px-1.5 sm:px-2 py-0.5 text-xs rounded-full flex-shrink-0 ${
+                        activeTab === tab.id
+                          ? 'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300'
+                          : 'bg-slate-300 dark:bg-slate-600 text-slate-600 dark:text-slate-400'
+                      }`}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
         {/* Sessions List */}
         {filteredSessions.length === 0 ? (
-          <Card className="p-12 text-center bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Calendar className="w-8 h-8 text-slate-400" />
+          <Card className="p-8 sm:p-12 text-center bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-slate-400" />
             </div>
-            <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+            <h3 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white mb-2">
               {sessions.length === 0 ? 'No Sessions Yet' : 'No Sessions Found'}
             </h3>
-            <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-md mx-auto">
-              {sessions.length === 0 
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mb-6 max-w-md mx-auto">
+              {sessions.length === 0
                 ? 'Create your first class to start generating session templates.'
                 : 'Try adjusting your search or selecting a different tab.'
               }
@@ -724,7 +728,7 @@ function SessionsPageContent() {
             )}
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredSessions.map((session) => {
               const status = getSessionStatus(session);
               const StatusIcon = status.icon;
@@ -750,27 +754,27 @@ function SessionsPageContent() {
                       : 'from-slate-400 to-slate-500'
                   } rounded-t-xl`}></div>
 
-                  <div className="p-5">
+                  <div className="p-4 sm:p-5">
                     {/* Header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-10 h-10 bg-gradient-to-br ${
-                          session.status === 'active' 
-                            ? 'from-emerald-500 to-emerald-600' 
+                    <div className="flex items-start justify-between mb-3 sm:mb-4">
+                      <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                        <div className={`w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br ${
+                          session.status === 'active'
+                            ? 'from-emerald-500 to-emerald-600'
                             : session.status === 'completed'
                             ? 'from-indigo-500 to-indigo-600'
                             : session.status === 'scheduled'
                             ? 'from-amber-500 to-amber-600'
                             : 'from-slate-400 to-slate-500'
-                        } rounded-xl flex items-center justify-center shadow-sm`}>
-                          <StatusIcon className="w-5 h-5 text-white" />
+                        } rounded-xl flex items-center justify-center shadow-sm flex-shrink-0`}>
+                          <StatusIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                         </div>
-                        <div>
-                          <h3 className="font-bold text-slate-900 dark:text-white text-lg">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg truncate">
                             {session.class_code}
                           </h3>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.color}`}>
-                            {session.status === 'active' && <div className="w-1.5 h-1.5 bg-current rounded-full mr-1 animate-pulse inline-block"></div>}
+                          <span className={`inline-flex items-center px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium ${status.color}`}>
+                            {session.status === 'active' && <div className="w-1.5 h-1.5 bg-current rounded-full mr-1 animate-pulse"></div>}
                             {status.text}
                           </span>
                         </div>
@@ -778,46 +782,48 @@ function SessionsPageContent() {
                     </div>
 
                     {/* Course Name */}
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-3 sm:mb-4 line-clamp-2">
                       {session.class_name}
                     </p>
 
                     {/* Session Details */}
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        {new Date(session.date + 'T00:00:00').toLocaleDateString('en-US', { 
-                          weekday: 'short', 
-                          month: 'short', 
-                          day: 'numeric' 
-                        })}
+                    <div className="space-y-1.5 sm:space-y-2 mb-3 sm:mb-4">
+                      <div className="flex items-center text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                        <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 flex-shrink-0" />
+                        <span className="truncate">
+                          {new Date(session.date + 'T00:00:00').toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </span>
                       </div>
-                      <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
-                        <Clock className="w-4 h-4 mr-2" />
-                        {session.start_time} - {session.end_time}
+                      <div className="flex items-center text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                        <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 flex-shrink-0" />
+                        <span className="truncate">{session.start_time} - {session.end_time}</span>
                       </div>
-                      <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
-                        <MapPin className="w-4 h-4 mr-2" />
-                        {session.room_location}
+                      <div className="flex items-center text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                        <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 flex-shrink-0" />
+                        <span className="truncate">{session.room_location}</span>
                       </div>
-                      <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
-                        <Users className="w-4 h-4 mr-2" />
-                        {session.attendance_count}/{session.enrolled_students} students
+                      <div className="flex items-center text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                        <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 flex-shrink-0" />
+                        <span>{session.attendance_count}/{session.enrolled_students} students</span>
                       </div>
                     </div>
 
                     {/* Attendance Progress */}
                     {session.enrolled_students > 0 && (
-                      <div className="mb-4">
+                      <div className="mb-3 sm:mb-4">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs text-slate-500 dark:text-slate-400">Attendance</span>
                           <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
                             {Math.round((session.attendance_count / session.enrolled_students) * 100)}%
                           </span>
                         </div>
-                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 sm:h-2">
                           <div
-                            className="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-500"
+                            className="h-1.5 sm:h-2 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-500"
                             style={{ width: `${(session.attendance_count / session.enrolled_students) * 100}%` }}
                           ></div>
                         </div>
@@ -825,34 +831,35 @@ function SessionsPageContent() {
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex space-x-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       {session.status === 'active' ? (
                         <>
                           <Link href={`/professor/sessions/active/${session.id}`} className="flex-1">
-                            <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm">
-                              <Eye className="w-4 h-4 mr-1" />
+                            <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm">
+                              <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" />
                               View Live
                             </Button>
                           </Link>
                           <Button
                             onClick={() => completeSession(session.id)}
-                            className="bg-red-500 hover:bg-red-600 text-white text-sm px-3"
+                            className="bg-red-500 hover:bg-red-600 text-white text-xs sm:text-sm px-3 sm:px-4"
                           >
-                            <Square className="w-4 h-4" />
+                            <Square className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            <span className="sm:hidden ml-1.5">End</span>
                           </Button>
                         </>
                       ) : canStart ? (
                         <Button
                           onClick={() => activateSession(session.id)}
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm"
                         >
-                          <Play className="w-4 h-4 mr-1" />
+                          <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" />
                           Start Session
                         </Button>
                       ) : (
                         <Link href={`/professor/sessions/${session.id}`} className="flex-1">
-                          <Button variant="outline" className="w-full text-sm">
-                            <Eye className="w-4 h-4 mr-1" />
+                          <Button variant="outline" className="w-full text-xs sm:text-sm">
+                            <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" />
                             View Details
                           </Button>
                         </Link>
