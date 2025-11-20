@@ -48,35 +48,12 @@ function createEasternDate(date, time) {
 
 /**
  * Get current time in Eastern Time
- * @returns {Date} - Current time in Eastern Time
+ * @returns {Date} - Current time in Eastern Time (as a Date object representing that moment in time)
  */
 function getCurrentEasternTime() {
-  const now = new Date();
-
-  // Use toLocaleString to get Eastern Time, then parse it back to a Date
-  // This is more reliable than manual offset calculation
-  const easternTimeString = now.toLocaleString("en-US", {timeZone: "America/New_York"});
-
-  // Parse the Eastern Time string back to a Date object
-  // Format: "10/18/2025, 11:46:07 PM"
-  const [datePart, timePart] = easternTimeString.split(', ');
-  const [month, day, year] = datePart.split('/');
-  const [time, period] = timePart.split(' ');
-  const [hour, minute, second] = time.split(':');
-
-  // Convert 12-hour to 24-hour format
-  let hour24 = parseInt(hour);
-  if (period === 'PM' && hour24 !== 12) {
-    hour24 += 12;
-  } else if (period === 'AM' && hour24 === 12) {
-    hour24 = 0;
-  }
-
-  // Create a Date object in UTC, then adjust to Eastern Time
-  // Use Date.UTC to create the date in UTC, then subtract the Eastern offset
-  const easternDate = new Date(Date.UTC(year, month - 1, day, hour24, minute, second));
-
-  return easternDate;
+  // Simply return the current UTC time - Date objects already represent a moment in time
+  // The createEasternDate function handles timezone conversion when creating session times
+  return new Date();
 }
 
 /**
