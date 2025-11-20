@@ -78,7 +78,7 @@ export class SignOutService {
       [`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${userId}/dashboard`],
       [`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${userId}/classes`],
       [`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${userId}/sessions`],
-      [`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/courses/available`],
+      [`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/courses`],
       [`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/academic-periods`],
     ];
 

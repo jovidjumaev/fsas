@@ -376,7 +376,7 @@ function ClassesPageContent() {
 
   // Function to refresh classes data (can be called from child components)
   const refreshClasses = async () => {
-    await fetchClasses();
+    await refreshData();
   };
 
   // Function to toggle pin status
@@ -1227,7 +1227,7 @@ function ClassesPageContent() {
                               {selectedCourse.description}
                             </p>
                             <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                              {selectedCourse.credits} credits • {selectedCourse.department_name}
+                              {selectedCourse.credits} credits
                             </p>
                           </div>
                         ) : null;

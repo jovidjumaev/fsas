@@ -34,10 +34,21 @@ interface ClassData {
   };
 }
 
+interface AcademicPeriod {
+  id: string;
+  name: string;
+  year: number;
+  semester: string;
+  start_date: string;
+  end_date: string;
+  is_current: boolean;
+  created_at: string;
+}
+
 interface UseProfessorClassesReturn {
   classes: ClassData[];
   availableCourses: any[];
-  academicPeriods: string[];
+  academicPeriods: AcademicPeriod[];
   isLoading: boolean;
   error: string | null;
   refreshData: () => Promise<void>;
@@ -89,7 +100,7 @@ export function useProfessorClasses(user: User | null): UseProfessorClassesRetur
 
   // Build API URLs
   const classesUrl = user ? `${apiBase}/api/professors/${user.id}/classes` : null;
-  const coursesUrl = user ? `${apiBase}/api/courses/available` : null;
+  const coursesUrl = user ? `${apiBase}/api/courses` : null;
   const periodsUrl = user ? `${apiBase}/api/academic-periods` : null;
 
   // Fetch classes data with SWR
