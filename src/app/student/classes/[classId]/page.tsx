@@ -117,18 +117,18 @@ function ClassDetailContent() {
   if (error || !classDetail) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Error Loading Class</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+        <div className="text-center max-w-md w-full">
+          <AlertCircle className="w-12 h-12 sm:w-16 sm:h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">Error Loading Class</h2>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6">
             {error || 'Class not found. Please check if you are enrolled in this class.'}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button onClick={fetchClassDetail} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={fetchClassDetail} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
               <RefreshCw className="w-4 h-4 mr-2" />
               Try Again
             </Button>
-            <Button variant="outline" onClick={() => router.back()}>
+            <Button variant="outline" onClick={() => router.back()} className="w-full sm:w-auto">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Go Back
             </Button>
@@ -174,8 +174,66 @@ function ClassDetailContent() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          {/* Mobile: Stack vertically */}
+          <div className="flex flex-col space-y-3 lg:hidden">
+            {/* Back button and actions */}
+            <div className="flex items-center justify-between">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.back()}
+                className="hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={toggleDarkMode}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                >
+                  {isDarkMode ? (
+                    <Sun className="w-5 h-5 text-amber-500" />
+                  ) : (
+                    <Moon className="w-5 h-5 text-slate-600" />
+                  )}
+                </button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchClassDetail}
+                  disabled={isLoading}
+                  className="hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </div>
+
+            {/* Class info */}
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                {classInfo.class_code}
+              </h1>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">
+                {classInfo.class_name}
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                {classInfo.professor} • {classInfo.academic_period}
+              </p>
+            </div>
+
+            {/* Scan QR button */}
+            <Link href="/student/scan" className="w-full">
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 w-full">
+                Scan QR
+              </Button>
+            </Link>
+          </div>
+
+          {/* Desktop: Horizontal layout */}
+          <div className="hidden lg:flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
@@ -197,13 +255,13 @@ function ClassDetailContent() {
             </div>
             <div className="flex items-center space-x-2">
               {/* Time */}
-              <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg">
+              <div className="flex items-center space-x-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg">
                 <Clock className="w-4 h-4 text-slate-500" />
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
-              
+
               {/* Theme Toggle */}
               <button
                 onClick={toggleDarkMode}
@@ -215,7 +273,7 @@ function ClassDetailContent() {
                   <Moon className="w-5 h-5 text-slate-600" />
                 )}
               </button>
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -236,10 +294,10 @@ function ClassDetailContent() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Class Info Card */}
-        <Card className="p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="p-4 sm:p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 mb-6 sm:mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
                 <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -289,8 +347,8 @@ function ClassDetailContent() {
         </Card>
 
         {/* Attendance Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <Card className="p-4 sm:p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Attendance Rate</p>
@@ -303,8 +361,8 @@ function ClassDetailContent() {
               </div>
             </div>
           </Card>
-          
-          <Card className="p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+
+          <Card className="p-4 sm:p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Sessions Attended</p>
@@ -317,8 +375,8 @@ function ClassDetailContent() {
               </div>
             </div>
           </Card>
-          
-          <Card className="p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+
+          <Card className="p-4 sm:p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Upcoming Sessions</p>
@@ -349,31 +407,33 @@ function ClassDetailContent() {
 
         {/* Tabs */}
         <div className="mb-6">
-          <div className="border-b border-gray-200 dark:border-gray-700">
-            <nav className="-mb-px flex space-x-8">
+          <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+            <nav className="-mb-px flex space-x-4 sm:space-x-8 min-w-min">
               <button
                 onClick={() => setActiveTab('history')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                   activeTab === 'history'
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
                 }`}
               >
-                Attendance History ({past_sessions.length})
+                <span className="hidden sm:inline">Attendance History</span>
+                <span className="sm:hidden">History</span> ({past_sessions.length})
               </button>
               <button
                 onClick={() => setActiveTab('upcoming')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                   activeTab === 'upcoming'
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
                 }`}
               >
-                Upcoming Sessions ({upcoming_sessions.length})
+                <span className="hidden sm:inline">Upcoming Sessions</span>
+                <span className="sm:hidden">Upcoming</span> ({upcoming_sessions.length})
               </button>
               <button
                 onClick={() => setActiveTab('ai-assistant')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 whitespace-nowrap ${
                   activeTab === 'ai-assistant'
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
@@ -394,28 +454,30 @@ function ClassDetailContent() {
             {/* Attendance Filter */}
             {activeTab === 'history' && (
               <div className="mb-6">
-                <div className="flex flex-wrap gap-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Filter by:</span>
-                  {[
-                    { key: 'all', label: 'All', count: past_sessions.length },
-                    { key: 'present', label: 'Present', count: past_sessions.filter(s => s.attendance?.status === 'present').length },
-                    { key: 'late', label: 'Late', count: past_sessions.filter(s => s.attendance?.status === 'late').length },
-                    { key: 'absent', label: 'Absent', count: past_sessions.filter(s => s.attendance?.status === 'absent').length },
-                    { key: 'excused', label: 'Excused', count: past_sessions.filter(s => s.attendance?.status === 'excused').length },
-                    { key: 'not_marked', label: 'Not Marked', count: past_sessions.filter(s => !s.attendance).length }
-                  ].map((filter) => (
-                    <button
-                      key={filter.key}
-                      onClick={() => setAttendanceFilter(filter.key as any)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                        attendanceFilter === filter.key
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-                      }`}
-                    >
-                      {filter.label} ({filter.count})
-                    </button>
-                  ))}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { key: 'all', label: 'All', count: past_sessions.length },
+                      { key: 'present', label: 'Present', count: past_sessions.filter(s => s.attendance?.status === 'present').length },
+                      { key: 'late', label: 'Late', count: past_sessions.filter(s => s.attendance?.status === 'late').length },
+                      { key: 'absent', label: 'Absent', count: past_sessions.filter(s => s.attendance?.status === 'absent').length },
+                      { key: 'excused', label: 'Excused', count: past_sessions.filter(s => s.attendance?.status === 'excused').length },
+                      { key: 'not_marked', label: 'Not Marked', count: past_sessions.filter(s => !s.attendance).length }
+                    ].map((filter) => (
+                      <button
+                        key={filter.key}
+                        onClick={() => setAttendanceFilter(filter.key as any)}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                          attendanceFilter === filter.key
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {filter.label} ({filter.count})
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -427,20 +489,20 @@ function ClassDetailContent() {
               ))}
               
               {((activeTab === 'history' ? filteredPastSessions : filteredUpcomingSessions).length === 0) && (
-                <Card className="p-12 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <Card className="p-8 sm:p-12 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                   <div className="text-center">
-                    <Calendar className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                      {activeTab === 'history' 
-                        ? (attendanceFilter === 'all' 
-                            ? 'No past sessions' 
+                    <Calendar className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      {activeTab === 'history'
+                        ? (attendanceFilter === 'all'
+                            ? 'No past sessions'
                             : `No ${attendanceFilter} sessions`)
                         : 'No upcoming sessions'
                       }
                     </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      {activeTab === 'history' 
-                        ? (attendanceFilter === 'all' 
+                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                      {activeTab === 'history'
+                        ? (attendanceFilter === 'all'
                             ? 'No class sessions have been completed yet.'
                             : `No sessions found with ${attendanceFilter} attendance status.`)
                         : 'No upcoming class sessions are scheduled.'
@@ -505,45 +567,90 @@ function SessionCard({ session }: { session: ClassSession }) {
   };
 
   return (
-    <Card className="p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+    <Card className="p-4 sm:p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+      {/* Mobile: Stack vertically */}
+      <div className="flex flex-col space-y-3 sm:hidden">
+        <div className="flex items-start justify-between">
           <div className="flex items-center space-x-2">
             {getStatusIcon()}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                 {StudentClassDetailService.formatDate(session.date)}
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Session {session.session_number} • {StudentClassDetailService.formatTime(session.start_time)} - {StudentClassDetailService.formatTime(session.end_time)}
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                Session {session.session_number}
               </p>
-              {session.room_location && (
-                <p className="text-sm text-gray-500 dark:text-gray-500 flex items-center mt-1">
-                  <MapPin className="w-3 h-3 mr-1" />
-                  {session.room_location}
-                </p>
-              )}
             </div>
           </div>
-        </div>
-        
-        <div className="text-right">
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor()}`}>
             {getStatusText()}
           </span>
-          {session.attendance?.scanned_at && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Scanned: {new Date(session.attendance.scanned_at).toLocaleString()}
+        </div>
+
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          <p>{StudentClassDetailService.formatTime(session.start_time)} - {StudentClassDetailService.formatTime(session.end_time)}</p>
+          {session.room_location && (
+            <p className="flex items-center mt-1">
+              <MapPin className="w-3 h-3 mr-1" />
+              {session.room_location}
             </p>
           )}
         </div>
+
+        {session.attendance?.scanned_at && (
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Scanned: {new Date(session.attendance.scanned_at).toLocaleString()}
+          </p>
+        )}
+
+        {session.notes && (
+          <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-sm text-gray-600 dark:text-gray-400">{session.notes}</p>
+          </div>
+        )}
       </div>
-      
-      {session.notes && (
-        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <p className="text-sm text-gray-600 dark:text-gray-400">{session.notes}</p>
+
+      {/* Desktop: Horizontal layout */}
+      <div className="hidden sm:block">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              {getStatusIcon()}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {StudentClassDetailService.formatDate(session.date)}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Session {session.session_number} • {StudentClassDetailService.formatTime(session.start_time)} - {StudentClassDetailService.formatTime(session.end_time)}
+                </p>
+                {session.room_location && (
+                  <p className="text-sm text-gray-500 dark:text-gray-500 flex items-center mt-1">
+                    <MapPin className="w-3 h-3 mr-1" />
+                    {session.room_location}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor()}`}>
+              {getStatusText()}
+            </span>
+            {session.attendance?.scanned_at && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Scanned: {new Date(session.attendance.scanned_at).toLocaleString()}
+              </p>
+            )}
+          </div>
         </div>
-      )}
+
+        {session.notes && (
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-sm text-gray-600 dark:text-gray-400">{session.notes}</p>
+          </div>
+        )}
+      </div>
     </Card>
   );
 }
