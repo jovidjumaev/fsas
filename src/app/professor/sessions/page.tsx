@@ -24,35 +24,6 @@ import { supabase } from '@/lib/supabase';
 import { createLogger } from '../../../lib/logger';
 const logger = createLogger('page');
 
-interface SessionData {
-  id: string;
-  class_instance_id: string;
-  session_number: number;
-  date: string;
-  start_time: string;
-  end_time: string;
-  room_location: string;
-  status: 'scheduled' | 'active' | 'completed' | 'cancelled';
-  is_active: boolean;
-  qr_secret?: string;
-  qr_expires_at?: string;
-  attendance_count: number;
-  total_enrolled: number;
-  notes?: string;
-  created_at: string;
-  updated_at?: string;
-  class_instances: {
-    id: string;
-    room_location: string;
-    courses: {
-      code: string;
-      name: string;
-    };
-    academic_periods: {
-      name: string;
-    };
-  };
-}
 
 interface ClassOption {
   id: string;
@@ -412,7 +383,7 @@ function SessionsPageContent() {
       // Show confirmation dialog if completing early
       if (minutesRemaining > 0) {
         const confirmMessage = `Are you sure you want to end this session?\n\n` +
-          `Session: ${session.class_instances?.courses?.name}\n` +
+          `Session: ${session.class_name}\n` +
           `Scheduled End Time: ${session.end_time}\n` +
           `Time Remaining: ${minutesRemaining} minutes\n\n` +
           `This will mark all students who haven't scanned as absent.`;
@@ -471,15 +442,9 @@ function SessionsPageContent() {
     // Listen for session status updates
     socketRef.current.on('session_status_update', (data: { sessionId: string; status: string }) => {
       // logger.debug('📡 Received session status update:', data);
-      
-      // Update the specific session in the state
-      setSessions(prevSessions => 
-        prevSessions.map(session => 
-          session.id === data.sessionId 
-            ? { ...session, status: data.status as any, is_active: data.status === 'active' }
-            : session
-        )
-      );
+
+      // Refresh data from server instead of updating local state
+      refreshData();
 
       // If session was completed and we're on active tab, switch to completed
       if (data.status === 'completed' && activeTab === 'active') {
@@ -516,8 +481,8 @@ function SessionsPageContent() {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(session =>
-        session.class_instances.courses.code.toLowerCase().includes(searchLower) ||
-        session.class_instances.courses.name.toLowerCase().includes(searchLower) ||
+        session.class_code.toLowerCase().includes(searchLower) ||
+        session.class_name.toLowerCase().includes(searchLower) ||
         session.room_location.toLowerCase().includes(searchLower)
       );
     }
@@ -567,7 +532,7 @@ function SessionsPageContent() {
   }, [sessions, activeTab, searchTerm]);
 
   // Get session status info
-  const getSessionStatus = useCallback((session: SessionData) => {
+  const getSessionStatus = useCallback((session: any) => {
     switch (session.status) {
       case 'active':
         return { 
@@ -802,7 +767,7 @@ function SessionsPageContent() {
                         </div>
                         <div>
                           <h3 className="font-bold text-slate-900 dark:text-white text-lg">
-                            {session.class_instances.courses.code}
+                            {session.class_code}
                           </h3>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.color}`}>
                             {session.status === 'active' && <div className="w-1.5 h-1.5 bg-current rounded-full mr-1 animate-pulse inline-block"></div>}
@@ -814,14 +779,14 @@ function SessionsPageContent() {
 
                     {/* Course Name */}
                     <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">
-                      {session.class_instances.courses.name}
+                      {session.class_name}
                     </p>
 
                     {/* Session Details */}
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
                         <Calendar className="w-4 h-4 mr-2" />
-                        Session {session.session_number} - {new Date(session.date + 'T00:00:00').toLocaleDateString('en-US', { 
+                        {new Date(session.date + 'T00:00:00').toLocaleDateString('en-US', { 
                           weekday: 'short', 
                           month: 'short', 
                           day: 'numeric' 
@@ -837,23 +802,23 @@ function SessionsPageContent() {
                       </div>
                       <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
                         <Users className="w-4 h-4 mr-2" />
-                        {session.attendance_count}/{session.total_enrolled} students
+                        {session.attendance_count}/{session.enrolled_students} students
                       </div>
                     </div>
 
                     {/* Attendance Progress */}
-                    {session.total_enrolled > 0 && (
+                    {session.enrolled_students > 0 && (
                       <div className="mb-4">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs text-slate-500 dark:text-slate-400">Attendance</span>
                           <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                            {Math.round((session.attendance_count / session.total_enrolled) * 100)}%
+                            {Math.round((session.attendance_count / session.enrolled_students) * 100)}%
                           </span>
                         </div>
                         <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
                           <div
                             className="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-500"
-                            style={{ width: `${(session.attendance_count / session.total_enrolled) * 100}%` }}
+                            style={{ width: `${(session.attendance_count / session.enrolled_students) * 100}%` }}
                           ></div>
                         </div>
                       </div>
