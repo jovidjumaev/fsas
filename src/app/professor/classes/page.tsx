@@ -90,11 +90,18 @@ interface CreateClassForm {
 function ClassesPageContent() {
   const { user, signOut } = useAuth();
   const searchParams = useSearchParams();
-  const [classes, setClasses] = useState<ClassData[]>([]);
-  const [availableCourses, setAvailableCourses] = useState<AvailableCourse[]>([]);
-  const [academicPeriods, setAcademicPeriods] = useState<AcademicPeriod[]>([]);
+
+  // Use the cached hook for classes data
+  const {
+    classes,
+    availableCourses,
+    academicPeriods,
+    isLoading,
+    error,
+    refreshData
+  } = useProfessorClasses(user);
+
   const [filteredClasses, setFilteredClasses] = useState<ClassData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'code' | 'enrollment' | 'attendance' | 'created'>('name');
   const [filterBy, setFilterBy] = useState<'all' | 'active' | 'inactive' | 'completed' | 'high_performance' | 'needs_attention'>('all');
@@ -169,27 +176,24 @@ function ClassesPageContent() {
 
   useEffect(() => {
     if (user) {
-      fetchClasses();
-      fetchAvailableCourses();
-      fetchAcademicPeriods();
       fetchUserProfile();
-      
+
       // Connect to WebSocket for real-time updates
       const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
-      
+
       // Listen for attendance status updates
       socket.on('attendance_status_updated', (data) => {
         // logger.debug('📊 Received attendance status update on classes page:', data);
-        
+
         // Refresh classes data to get updated attendance rates
-        fetchClasses();
+        refreshData();
       });
-      
+
       return () => {
         socket.disconnect();
       };
     }
-  }, [user]);
+  }, [user, refreshData]);
 
   useEffect(() => {
     filterAndSortClasses();
@@ -198,15 +202,15 @@ function ClassesPageContent() {
   // Listen for class status changes from manage page
   useEffect(() => {
     const handleClassStatusChange = () => {
-      fetchClasses();
+      refreshData();
     };
 
     window.addEventListener('classStatusChanged', handleClassStatusChange);
-    
+
     return () => {
       window.removeEventListener('classStatusChanged', handleClassStatusChange);
     };
-  }, []);
+  }, [refreshData]);
 
   // Close dropdown menu when clicking outside
   useEffect(() => {
@@ -225,74 +229,6 @@ function ClassesPageContent() {
 
   // SWR caching handles stale data automatically, no need for visibility/focus refetch
 
-  const fetchClasses = async () => {
-    setIsLoading(true);
-    try {
-      if (!user?.id) return;
-      
-      // logger.debug('🔍 Fetching classes for user:', user.id);
-      // logger.debug('🔍 API URL:', `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/classes`);
-      
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/classes`);
-      
-      // logger.debug('🔍 Classes response status:', response.status);
-      // logger.debug('🔍 Classes response ok:', response.ok);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch classes');
-      }
-      
-      const data = await response.json();
-      
-      // logger.debug('🔍 Classes API Response:', data);
-      // logger.debug('🔍 Classes data:', data.data);
-      // logger.debug('🔍 Classes count:', data.data?.length || 0);
-      
-      setClasses(data.data || []);
-    } catch (error) {
-      logger.error('Error fetching classes:', error);
-      // Fallback to empty array if API fails
-      setClasses([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchAvailableCourses = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/courses`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch available courses');
-      }
-      
-      const data = await response.json();
-      setAvailableCourses(data.data || []);
-    } catch (error) {
-      logger.error('Error fetching available courses:', error);
-      setAvailableCourses([]);
-    }
-  };
-
-  const fetchAcademicPeriods = async () => {
-    try {
-      // First update the current period based on real time
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/academic-periods/update-current`, {
-        method: 'POST'
-      });
-      
-      // Then fetch the updated periods
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/academic-periods`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch academic periods');
-      }
-      
-      const data = await response.json();
-      setAcademicPeriods(data.data || []);
-    } catch (error) {
-      logger.error('Error fetching academic periods:', error);
-      setAcademicPeriods([]);
-    }
-  };
 
   const filterAndSortClasses = () => {
     let filtered = [...classes];
@@ -430,7 +366,7 @@ function ClassesPageContent() {
         last_class_date: ''
       });
       setShowCreateForm(false);
-      await fetchClasses();
+      await refreshData();
     } catch (error) {
       logger.error('Error creating class:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -467,7 +403,7 @@ function ClassesPageContent() {
       // logger.debug('Pin toggled:', result);
       
       // Refresh classes to show updated pin status
-      await fetchClasses();
+      await refreshData();
     } catch (error) {
       logger.error('Error toggling pin:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -873,7 +809,7 @@ function ClassesPageContent() {
           }
 
           // Refresh the classes list
-          await fetchClasses();
+          await refreshData();
           
           // Show success notification
           showNotification('success', 'Class deleted successfully!', 'The class and all its data have been permanently removed.');

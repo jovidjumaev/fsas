@@ -67,9 +67,16 @@ type TabType = 'today' | 'active' | 'upcoming' | 'completed' | 'all';
 function SessionsPageContent() {
   const { user, signOut } = useAuth();
   const searchParams = useSearchParams();
-  const [sessions, setSessions] = useState<SessionData[]>([]);
-  const [classes, setClasses] = useState<ClassOption[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Use the cached hook for sessions data
+  const {
+    sessions,
+    classes,
+    isLoading,
+    error,
+    refreshData
+  } = useProfessorSessions(user);
+
   const [activeTab, setActiveTab] = useState<TabType>('today');
   const [searchTerm, setSearchTerm] = useState('');
   const socketRef = useRef<any>(null);
@@ -77,40 +84,6 @@ function SessionsPageContent() {
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
 
-  // Fetch sessions from API
-  const fetchSessions = useCallback(async () => {
-    if (!user) return;
-    
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/sessions`);
-      if (!response.ok) throw new Error('Failed to fetch sessions');
-      
-      const data = await response.json();
-      setSessions(data.sessions || []);
-    } catch (error) {
-      logger.error('Error fetching sessions:', error);
-      setSessions([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user]);
-
-  // Fetch classes for filter
-  const fetchClasses = useCallback(async () => {
-    if (!user) return;
-    
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/class-instances`);
-      if (!response.ok) throw new Error('Failed to fetch classes');
-      
-      const data = await response.json();
-      setClasses(data.class_instances || []);
-    } catch (error) {
-      logger.error('Error fetching classes:', error);
-      setClasses([]);
-    }
-  }, [user]);
 
   // Fetch user profile
   const fetchUserProfile = async () => {
@@ -416,12 +389,12 @@ function SessionsPageContent() {
       });
       
       if (!response.ok) throw new Error('Failed to activate session');
-      await fetchSessions();
+      await refreshData();
     } catch (error) {
       logger.error('Error activating session:', error);
       alert('Failed to activate session. Please try again.');
     }
-  }, [fetchSessions]);
+  }, [refreshData]);
 
   const completeSession = useCallback(async (sessionId: string) => {
     try {
@@ -456,7 +429,7 @@ function SessionsPageContent() {
         throw new Error(errorData.error || 'Failed to complete session');
       }
       
-      await fetchSessions();
+      await refreshData();
       
       // Automatically switch to completed tab to show the completed session
       setActiveTab('completed');
@@ -466,14 +439,12 @@ function SessionsPageContent() {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       alert(`Failed to complete session: ${errorMessage}`);
     }
-  }, [fetchSessions, sessions]);
+  }, [refreshData, sessions]);
 
   // Load data on mount
   useEffect(() => {
-    fetchSessions();
-    fetchClasses();
     fetchUserProfile();
-  }, [fetchSessions, fetchClasses]);
+  }, [refreshData]);
 
   // Handle URL parameters for tab switching
   useEffect(() => {
@@ -520,13 +491,13 @@ function SessionsPageContent() {
     // Listen for session activation updates
     socketRef.current.on('session_activated', (data: { sessionId: string }) => {
       // logger.debug('📡 Session activated:', data.sessionId);
-      fetchSessions(); // Refresh all sessions data
+      refreshData(); // Refresh all sessions data
     });
 
     // Listen for session completion updates
     socketRef.current.on('session_completed', (data: { sessionId: string }) => {
       // logger.debug('📡 Session completed:', data.sessionId);
-      fetchSessions(); // Refresh all sessions data
+      refreshData(); // Refresh all sessions data
     });
 
     return () => {
@@ -535,7 +506,7 @@ function SessionsPageContent() {
         // logger.debug('🔌 Disconnected from WebSocket');
       }
     };
-  }, [user, fetchSessions, activeTab]);
+  }, [user, refreshData, activeTab]);
 
   // Memoized filtered sessions by tab
   const filteredSessions = useMemo(() => {
@@ -679,7 +650,7 @@ function SessionsPageContent() {
             </div>
             <div className="flex items-center space-x-4">
               <Button 
-                onClick={() => fetchSessions()}
+                onClick={() => refreshData()}
                 variant="outline" 
                 className="hover:bg-slate-100 dark:hover:bg-slate-700"
               >

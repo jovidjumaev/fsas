@@ -50,29 +50,22 @@ interface ClassData {
   active_session_id?: string | null;
 }
 
-interface ActiveSession {
-  id: string;
-  class_code: string;
-  class_name: string;
-  present_count: number;
-  total_students: number;
-  qr_code_expires_at: string;
-}
 
 function ProfessorDashboardContent() {
   const { user, signOut } = useAuth();
-  const [stats, setStats] = useState<ProfessorStats>({
-    totalClasses: 0,
-    totalStudents: 0,
-    activeSessions: 0,
-    averageAttendance: 0
-  });
-  const [myClasses, setMyClasses] = useState<ClassData[]>([]);
-  const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
-  const [todayClasses, setTodayClasses] = useState<ClassData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Use the cached hook for dashboard data
+  const {
+    stats,
+    activeSessions,
+    todayClasses,
+    userProfile,
+    isLoading,
+    refreshData,
+    setUserProfile
+  } = useProfessorDashboard(user);
+
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [userProfile, setUserProfile] = useState<any>(null);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -103,60 +96,27 @@ function ProfessorDashboardContent() {
     return () => clearInterval(timer);
   }, []);
 
+  // WebSocket connection for real-time updates
   useEffect(() => {
     if (user) {
-      fetchDashboardData();
-      
       // Connect to WebSocket for real-time updates
       const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
-      
+
       // Join professor dashboard room
       socket.emit('join-professor-dashboard', user.id);
-      
+
       // Listen for attendance updates
       socket.on('dashboard-attendance-update', (data) => {
         // logger.debug('📊 Received attendance update:', data);
-        
-        // Update the classes state with new attendance data
-        setMyClasses((prevClasses: ClassData[]) => 
-          prevClasses.map((cls: ClassData) => {
-            // Find if this class has an active session matching the updated session
-            const hasActiveSession = activeSessions.some(session => 
-              session.id === data.sessionId && 
-              session.class_code === cls.code
-            );
-            
-            if (hasActiveSession) {
-              // Update attendance rate for this class
-              return {
-                ...cls,
-                attendance_rate: data.attendanceRate
-              };
-            }
-            return cls;
-          })
-        );
-        
-        // Update active sessions if needed
-        setActiveSessions(prevSessions =>
-          prevSessions.map(session => {
-            if (session.id === data.sessionId) {
-              return {
-                ...session,
-                present_count: data.attendanceCount,
-                attendance_rate: data.attendanceRate
-              };
-            }
-            return session;
-          })
-        );
+        // The cached hook will handle data updates through SWR revalidation
+        refreshData();
       });
-      
+
       return () => {
         socket.disconnect();
       };
     }
-  }, [user]);
+  }, [user, refreshData]);
 
   // SWR caching handles stale data automatically, no need for visibility/focus refetch
 
@@ -489,7 +449,7 @@ function ProfessorDashboardContent() {
       if (!response.ok) throw new Error('Failed to start session');
       
       // Refresh dashboard data to update status
-      await fetchDashboardData();
+      await refreshData();
       
       // Navigate to active session page
       window.location.href = `/professor/sessions/active/${sessionId}`;
@@ -499,69 +459,6 @@ function ProfessorDashboardContent() {
     }
   };
 
-  const fetchDashboardData = async () => {
-    setIsLoading(true);
-    try {
-      // Fetch user profile
-      await fetchUserProfile();
-      
-      if (!user?.id) {
-        logger.error('No user ID available');
-        return;
-      }
-
-      // logger.debug('🔍 Fetching dashboard data for user:', user.id);
-      // logger.debug('🔍 API URL:', `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/dashboard`);
-      
-      // Fetch real dashboard data from API
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/professors/${user.id}/dashboard`);
-      
-      // logger.debug('🔍 Response status:', response.status);
-      // logger.debug('🔍 Response ok:', response.ok);
-      
-      const result = await response.json();
-      
-      // logger.debug('🔍 API Response:', result);
-      // logger.debug('🔍 Response success:', result.success);
-      // logger.debug('🔍 Response data:', result.data);
-      
-      if (result.success) {
-        const { stats, classes, activeSessions, todayClasses } = result.data;
-        
-        // logger.debug('🔍 Stats:', stats);
-        // logger.debug('🔍 Classes count:', classes.length);
-        // logger.debug('🔍 Active sessions count:', activeSessions.length);
-        // logger.debug('🔍 Today classes count:', todayClasses.length);
-        
-        setStats(stats);
-        setMyClasses(classes);
-        setActiveSessions(activeSessions);
-        setTodayClasses(todayClasses);
-      } else {
-        throw new Error(result.error || 'Failed to fetch dashboard data');
-      }
-      
-    } catch (error) {
-      logger.error('❌ Error fetching dashboard data:', error);
-      if (error instanceof Error) {
-        logger.error('❌ Error details:', error.message);
-        logger.error('❌ Error stack:', error.stack);
-      }
-      
-      // Fallback to empty data on error
-      setStats({
-        totalClasses: 0,
-        totalStudents: 0,
-        activeSessions: 0,
-        averageAttendance: 0
-      });
-      setMyClasses([]);
-      setActiveSessions([]);
-      setTodayClasses([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -908,14 +805,14 @@ function ProfessorDashboardContent() {
                       </div>
                         <div className="text-right">
                           <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                            {session.present_count}/{session.total_students}
+                            {session.present_count}/{session.enrolled_students}
                           </p>
                           <p className="text-xs text-slate-500 dark:text-slate-400">Present</p>
                     </div>
                   </div>
                       <div className="mt-3 flex items-center justify-between">
                         <span className="text-xs text-slate-600 dark:text-slate-400">
-                          QR expires: {new Date(session.qr_code_expires_at).toLocaleTimeString()}
+                          Status: {session.status}
                         </span>
                         <Link href={`/professor/sessions/active/${session.id}`}>
                           <Button className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2 rounded-lg">
