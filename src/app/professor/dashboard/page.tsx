@@ -543,8 +543,10 @@ function ProfessorDashboardContent() {
       
     } catch (error) {
       logger.error('❌ Error fetching dashboard data:', error);
-      logger.error('❌ Error details:', error.message);
-      logger.error('❌ Error stack:', error.stack);
+      if (error instanceof Error) {
+        logger.error('❌ Error details:', error.message);
+        logger.error('❌ Error stack:', error.stack);
+      }
       
       // Fallback to empty data on error
       setStats({
