@@ -434,16 +434,16 @@ function SessionsPageContent() {
       // Check if session is being completed early
       const now = new Date();
       const sessionEndTime = new Date(`${session.date}T${session.end_time}`);
-      const minutesRemaining = Math.round((sessionEndTime - now) / (1000 * 60));
+      const minutesRemaining = Math.round((sessionEndTime.getTime() - now.getTime()) / (1000 * 60));
 
       // Show confirmation dialog if completing early
       if (minutesRemaining > 0) {
         const confirmMessage = `Are you sure you want to end this session?\n\n` +
-          `Session: ${session.class_name}\n` +
+          `Session: ${session.class_instances?.courses?.name}\n` +
           `Scheduled End Time: ${session.end_time}\n` +
           `Time Remaining: ${minutesRemaining} minutes\n\n` +
           `This will mark all students who haven't scanned as absent.`;
-        
+
         if (!confirm(confirmMessage)) {
           return; // User cancelled
         }
@@ -463,7 +463,8 @@ function SessionsPageContent() {
       // logger.debug('✅ Session completed, switched to completed tab');
     } catch (error) {
       logger.error('Error completing session:', error);
-      alert(`Failed to complete session: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to complete session: ${errorMessage}`);
     }
   }, [fetchSessions, sessions]);
 
@@ -483,28 +484,7 @@ function SessionsPageContent() {
     }
   }, [searchParams]);
 
-  // Refresh data when page becomes visible (user navigates back)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        // logger.debug('🔄 Page became visible, refreshing sessions data');
-        fetchSessions();
-      }
-    };
-
-    const handleFocus = () => {
-      // logger.debug('🔄 Window focused, refreshing sessions data');
-      fetchSessions();
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [fetchSessions]);
+  // SWR caching handles stale data automatically, no need for visibility/focus refetch
 
   // WebSocket connection for real-time updates
   useEffect(() => {

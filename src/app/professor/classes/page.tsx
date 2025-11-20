@@ -223,28 +223,7 @@ function ClassesPageContent() {
   }, [openMenuId]);
 
 
-  // Refresh data when page becomes visible (e.g., when returning from class management)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && user) {
-        fetchClasses();
-      }
-    };
-
-    const handleFocus = () => {
-      if (user) {
-        fetchClasses();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [user]);
+  // SWR caching handles stale data automatically, no need for visibility/focus refetch
 
   const fetchClasses = async () => {
     setIsLoading(true);

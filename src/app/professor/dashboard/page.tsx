@@ -158,28 +158,7 @@ function ProfessorDashboardContent() {
     }
   }, [user]);
 
-  // Refresh data when page becomes visible (e.g., when returning from other pages)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && user) {
-        fetchDashboardData();
-      }
-    };
-
-    const handleFocus = () => {
-      if (user) {
-        fetchDashboardData();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [user]);
+  // SWR caching handles stale data automatically, no need for visibility/focus refetch
 
   const fetchUserProfile = async () => {
     if (!user) return;
