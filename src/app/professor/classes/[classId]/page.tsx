@@ -1636,23 +1636,23 @@ function ClassManagementPageContent() {
                   <LoadingSpinner className="mx-auto mb-3 sm:mb-4" />
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Loading analytics...</p>
                 </div>
-              ) : analyticsData ? (
+              ) : analyticsData && analyticsData.total_sessions > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
                   <div className="text-center p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      {analyticsData.total_sessions}
+                      {analyticsData.total_sessions || 0}
                     </p>
                     <p className="text-xs text-blue-700 dark:text-blue-300">Completed Sessions</p>
                   </div>
                   <div className="text-center p-3 sm:p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
                     <p className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                      {analyticsData.total_students}
+                      {analyticsData.total_students || 0}
                     </p>
                     <p className="text-xs text-emerald-700 dark:text-emerald-300">Total Students</p>
                   </div>
                   <div className="text-center p-3 sm:p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                     <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
-                      {analyticsData.average_attendance_rate.toFixed(1)}%
+                      {(analyticsData.average_attendance_rate || 0).toFixed(1)}%
                     </p>
                     <p className="text-xs text-purple-700 dark:text-purple-300">Avg Attendance</p>
                   </div>
@@ -1660,13 +1660,15 @@ function ClassManagementPageContent() {
               ) : (
                 <div className="text-center py-8 sm:py-12 text-slate-500 dark:text-slate-400">
                   <BarChart3 className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-slate-400 dark:text-slate-500" />
-                  <p className="text-base sm:text-lg font-medium mb-1 sm:mb-2">No Analytics Data</p>
-                  <p className="text-xs sm:text-sm">Complete some sessions to see analytics</p>
+                  <p className="text-base sm:text-lg font-medium mb-1 sm:mb-2 text-slate-900 dark:text-white">No Completed Sessions Yet</p>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                    Create and complete a session to view analytics and attendance trends
+                  </p>
                 </div>
               )}
             </Card>
 
-            {analyticsData && (
+            {analyticsData && analyticsData.total_sessions > 0 && (
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-4 sm:gap-6">
                 {/* Student List - Left Side */}
                 <Card className="p-4 sm:p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-2xl">
