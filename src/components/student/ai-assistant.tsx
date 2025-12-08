@@ -1562,12 +1562,26 @@ export function StudentAIAssistant({ classId, studentId }: StudentAIAssistantPro
                 })}
               </div>
 
-              {/* Generate New Quiz Button */}
-              <div className="text-center">
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+                <Button
+                  onClick={() => {
+                    // Reset quiz state and go back to initial page
+                    setQuizResults(null);
+                    setQuizQuestions([]);
+                    setQuizAnswers({});
+                  }}
+                  variant="outline"
+                  className="w-full sm:w-auto border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700"
+                  size="lg"
+                >
+                  <ChevronLeft className="w-5 h-5 mr-2" />
+                  Back to Quiz Generator
+                </Button>
                 <Button
                   onClick={generateQuiz}
                   disabled={isGeneratingQuiz || materials.length === 0}
-                  className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600"
+                  className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600"
                   size="lg"
                 >
                   {isGeneratingQuiz ? (
