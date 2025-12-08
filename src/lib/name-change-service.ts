@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { createLogger } from './logger';
+import { now, addTime, formatDate, startOfDay } from './timezone-utils';
 const logger = createLogger('name-change-service');
 
 export interface NameChangeInfo {
@@ -28,7 +29,7 @@ export class NameChangeService {
           remainingChanges: 2,
           lastChangeDate: undefined,
           canChange: true,
-          nextResetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          nextResetDate: formatDate(addTime(now(), 30, 'day'), 'YYYY-MM-DD')
         };
       }
       
@@ -37,16 +38,16 @@ export class NameChangeService {
       
       if (storedData) {
         const data = JSON.parse(storedData);
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-        
+        const currentTime = now();
+        const currentMonth = currentTime.month();
+        const currentYear = currentTime.year();
+
         // Check if we're in the same month
         if (data.month === currentMonth && data.year === currentYear) {
           const remainingChanges = Math.max(0, 2 - data.count);
-          const nextMonth = new Date(currentYear, currentMonth + 1, 1);
-          const nextResetDate = nextMonth.toISOString().split('T')[0];
-          
+          const nextMonth = startOfDay(addTime(currentTime.startOf('month'), 1, 'month'));
+          const nextResetDate = formatDate(nextMonth, 'YYYY-MM-DD');
+
           return {
             canChange: remainingChanges > 0,
             remainingChanges,
@@ -55,11 +56,11 @@ export class NameChangeService {
           };
         }
       }
-      
+
       // If no stored data or different month, assume fresh start
-      const now = new Date();
-      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      const nextResetDate = nextMonth.toISOString().split('T')[0];
+      const currentTime = now();
+      const nextMonth = startOfDay(addTime(currentTime.startOf('month'), 1, 'month'));
+      const nextResetDate = formatDate(nextMonth, 'YYYY-MM-DD');
       
       return {
         canChange: true,
@@ -70,10 +71,10 @@ export class NameChangeService {
     } catch (error) {
       logger.error('Error in getNameChangeInfo:', error);
       // Return fallback values if there's any error
-      const now = new Date();
-      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      const nextResetDate = nextMonth.toISOString().split('T')[0];
-      
+      const currentTime = now();
+      const nextMonth = startOfDay(addTime(currentTime.startOf('month'), 1, 'month'));
+      const nextResetDate = formatDate(nextMonth, 'YYYY-MM-DD');
+
       return {
         canChange: true, // Allow changes if we can't check limits
         remainingChanges: 2, // Assume 2 changes available
@@ -123,9 +124,9 @@ export class NameChangeService {
       // Record the name change in localStorage
       try {
         const storageKey = `name_changes_${userId}`;
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
+        const currentTime = now();
+        const currentMonth = currentTime.month();
+        const currentYear = currentTime.year();
         
         // Get existing data
         const existingData = localStorage.getItem(storageKey);

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { createLogger } from './logger';
+import { now, toUTC } from './timezone-utils';
 const logger = createLogger('supabase');
 
 // Get environment variables with fallbacks
@@ -9,7 +10,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJ
 
 // Debug environment variables
 logger.log('🔧 Supabase Config Debug (Updated):', {
-  timestamp: new Date().toISOString(),
+  timestamp: toUTC(now()),
   supabaseUrl,
   supabaseAnonKeyLength: supabaseAnonKey?.length,
   supabaseAnonKeyFirst20: supabaseAnonKey?.substring(0, 20),
@@ -176,11 +177,11 @@ export class DatabaseService {
       .select('*')
       .eq('course_id', courseId)
       .eq('is_active', true)
-      .gte('qr_code_expires_at', new Date().toISOString())
+      .gte('qr_code_expires_at', toUTC(now()))
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
-    
+
     if (error && error.code !== 'PGRST116') throw error;
     return data;
   }

@@ -18,6 +18,18 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import io from 'socket.io-client';
 import { createLogger } from '../../../../../lib/logger';
+import {
+  now,
+  parseDate,
+  formatDateTime,
+  formatTime12Hour,
+  diff,
+  calculateSessionEndTime,
+  getSessionTimeRemaining,
+  toUTC,
+  getUserTimezone,
+  combineDateAndTime
+} from '../../../../../lib/timezone-utils';
 const logger = createLogger('page');
 
 interface ActiveSessionData {
@@ -211,24 +223,19 @@ function ActiveSessionContent() {
       // Calculate time remaining (1 hour from session activation)
       // Only calculate if session is active and has an activation time
       if (activeSession.status === 'active' && activeSession.activated_at) {
-        const activationTime = new Date(activeSession.activated_at);
-        const sessionEndTime = new Date(activationTime.getTime() + (60 * 60 * 1000)); // 1 hour later
-        const now = new Date();
-        const remaining = Math.max(0, Math.floor((sessionEndTime.getTime() - now.getTime()) / 1000));
-        
+        const { seconds, isExpired } = getSessionTimeRemaining(activeSession.activated_at, 1);
+
         // logger.debug('🕐 Timer calculation:', {
         //   activated_at: activeSession.activated_at,
-        //   activationTime: activationTime.toISOString(),
-        //   sessionEndTime: sessionEndTime.toISOString(),
-        //   now: now.toISOString(),
-        //   remaining: remaining,
-        //   remainingMinutes: Math.floor(remaining / 60)
+        //   timezone: getUserTimezone(),
+        //   seconds: seconds,
+        //   isExpired: isExpired
         // });
-        
-        setTimeRemaining(remaining);
-        
+
+        setTimeRemaining(seconds);
+
         // If session has expired, automatically complete it
-        if (remaining === 0) {
+        if (isExpired) {
           // logger.debug('⏰ Session has expired, completing automatically');
           handleStopSession();
         }
@@ -274,7 +281,7 @@ function ActiveSessionContent() {
         
         // Refresh attendance records to get the full list with correct counts
         fetchAttendanceRecords();
-        setLastScanTime(new Date());
+        setLastScanTime(now().toDate());
         
         // Play sound notification
         if (soundEnabled && audioRef.current) {
@@ -388,11 +395,11 @@ function ActiveSessionContent() {
 
   const handleStopSession = async () => {
     if (!sessionId || !session) return;
-    
+
     // Check if session is being completed early
-    const now = new Date();
-    const sessionEndTime = new Date(`${session.date}T${session.end_time}`);
-    const minutesRemaining = Math.round((sessionEndTime - now) / (1000 * 60));
+    const currentTime = now();
+    const sessionEndTime = combineDateAndTime(session.date, session.end_time);
+    const minutesRemaining = Math.round(diff(sessionEndTime, currentTime, 'minute'));
 
     // Show confirmation dialog if completing early
     if (minutesRemaining > 0) {
@@ -422,7 +429,8 @@ function ActiveSessionContent() {
       router.push('/professor/sessions?tab=completed'); // Redirect to sessions page with completed tab
     } catch (error) {
       logger.error('Error completing session:', error);
-      alert(`Failed to complete session: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to complete session: ${errorMessage}`);
     } finally {
       setIsCompleting(false);
     }
@@ -430,7 +438,7 @@ function ActiveSessionContent() {
 
   const exportToCSV = () => {
     if (!attendanceRecords.length) return;
-    
+
     const headers = ['Student Name', 'Student ID', 'Email', 'Status', 'Scanned At'];
     const csvContent = [
       headers.join(','),
@@ -439,15 +447,15 @@ function ActiveSessionContent() {
         `"${record.student_id}"`,
         `"${record.students?.users?.email || ''}"`,
         `"${record.status}"`,
-        `"${new Date(record.scanned_at).toLocaleString()}"`
+        `"${formatDateTime(record.scanned_at, 'YYYY-MM-DD HH:mm:ss')}"`
       ].join(','))
     ].join('\n');
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `attendance_${session?.class_code}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `attendance_${session?.class_code}_${formatDateTime(now(), 'YYYY-MM-DD')}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -457,24 +465,24 @@ function ActiveSessionContent() {
 
   const exportToXLSX = async () => {
     if (!attendanceRecords.length) return;
-    
+
     try {
       // Dynamic import for XLSX library
       const XLSX = await import('xlsx');
-      
+
       const data = attendanceRecords.map(record => ({
         'Student Name': record.student_name,
         'Student ID': record.student_id,
         'Email': record.students?.users?.email || '',
         'Status': record.status,
-        'Scanned At': new Date(record.scanned_at).toLocaleString()
+        'Scanned At': formatDateTime(record.scanned_at, 'YYYY-MM-DD HH:mm:ss')
       }));
-      
+
       const worksheet = XLSX.utils.json_to_sheet(data);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance');
-      
-      XLSX.writeFile(workbook, `attendance_${session?.class_code}_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      XLSX.writeFile(workbook, `attendance_${session?.class_code}_${formatDateTime(now(), 'YYYY-MM-DD')}.xlsx`);
       setIsExportDialogOpen(false);
     } catch (error) {
       logger.error('Error exporting to XLSX:', error);
@@ -651,7 +659,7 @@ function ActiveSessionContent() {
           <h2 className="text-3xl font-bold mb-2">{session.class_code}</h2>
           <p className="text-xl mb-4">{session.class_name}</p>
           <p className="text-lg mb-2">
-            {new Date(session.date).toLocaleDateString()} • {session.start_time} - {session.end_time}
+            {formatDateTime(session.date, 'MMM D, YYYY')} • {session.start_time} - {session.end_time}
           </p>
           <p className="text-lg mb-8">{session.room_location}</p>
           
@@ -796,11 +804,7 @@ function ActiveSessionContent() {
                 <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                 <div>
                   <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                    {session.class_code} - {new Date(session.date).toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric', 
-                      year: 'numeric' 
-                    })} - {sessionExpired ? 'Session Ended' : 'Active Session'}
+                    {session.class_code} - {formatDateTime(session.date, 'MMM D, YYYY')} - {sessionExpired ? 'Session Ended' : 'Active Session'}
                   </h1>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {session.class_name}
@@ -975,7 +979,7 @@ function ActiveSessionContent() {
                   <span>•</span>
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 mr-1" />
-                    {new Date(session.date).toLocaleDateString()}
+                    {formatDateTime(session.date, 'MMM D, YYYY')}
                   </div>
                   <span>•</span>
                   <div className="flex items-center">
@@ -1043,7 +1047,7 @@ function ActiveSessionContent() {
                 <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                   <p className="text-sm text-green-800 dark:text-green-200">
                     <Activity className="w-4 h-4 inline mr-1" />
-                    Last scan: {lastScanTime.toLocaleTimeString()}
+                    Last scan: {formatTime12Hour(lastScanTime)}
                   </p>
                 </div>
               )}
@@ -1074,7 +1078,7 @@ function ActiveSessionContent() {
                               {record.student_name}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {new Date(record.scanned_at).toLocaleTimeString()}
+                              {formatTime12Hour(record.scanned_at)}
                             </p>
                           </div>
                         </div>

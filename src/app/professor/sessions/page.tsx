@@ -22,6 +22,7 @@ import ProfileEditModal from '@/components/profile/profile-edit-modal';
 import PasswordChangeModal from '@/components/profile/password-change-modal';
 import { supabase } from '@/lib/supabase';
 import { createLogger } from '../../../lib/logger';
+import { now, parseDate, combineDateAndTime, diff, formatDate, getTodayString } from '@/lib/timezone-utils';
 const logger = createLogger('page');
 
 
@@ -376,9 +377,9 @@ function SessionsPageContent() {
       }
 
       // Check if session is being completed early
-      const now = new Date();
-      const sessionEndTime = new Date(`${session.date}T${session.end_time}`);
-      const minutesRemaining = Math.round((sessionEndTime.getTime() - now.getTime()) / (1000 * 60));
+      const currentTime = now();
+      const sessionEndTime = combineDateAndTime(session.date, session.end_time);
+      const minutesRemaining = Math.round(diff(sessionEndTime, currentTime, 'minute'));
 
       // Show confirmation dialog if completing early
       if (minutesRemaining > 0) {
@@ -488,9 +489,8 @@ function SessionsPageContent() {
     }
 
     // Apply tab filter
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    
+    const today = getTodayString();
+
     switch (activeTab) {
       case 'today':
         // Only sessions for today (regardless of status)
@@ -501,7 +501,7 @@ function SessionsPageContent() {
         break;
       case 'upcoming':
         // Future sessions only (excluding today)
-        filtered = filtered.filter(session => 
+        filtered = filtered.filter(session =>
           session.status === 'scheduled' && session.date > today
         );
         break;
@@ -519,14 +519,14 @@ function SessionsPageContent() {
       if (activeTab === 'completed') {
         // For completed sessions, sort by completion date (most recent first)
         // Use updated_at as completion time, fallback to date if not available
-        const aCompletedTime = new Date(a.updated_at || `${a.date}T${a.end_time}`);
-        const bCompletedTime = new Date(b.updated_at || `${b.date}T${b.end_time}`);
-        return bCompletedTime.getTime() - aCompletedTime.getTime(); // Descending order
+        const aCompletedTime = parseDate(a.updated_at || combineDateAndTime(a.date, a.end_time));
+        const bCompletedTime = parseDate(b.updated_at || combineDateAndTime(b.date, b.end_time));
+        return diff(aCompletedTime, bCompletedTime, 'millisecond'); // Descending order (b - a)
       } else {
         // For all other tabs, sort by session date and time (ascending order)
-        const aDateTime = new Date(`${a.date}T${a.start_time}`);
-        const bDateTime = new Date(`${b.date}T${b.start_time}`);
-        return aDateTime.getTime() - bDateTime.getTime();
+        const aDateTime = combineDateAndTime(a.date, a.start_time);
+        const bDateTime = combineDateAndTime(b.date, b.start_time);
+        return diff(bDateTime, aDateTime, 'millisecond'); // Ascending order (a - b)
       }
     });
   }, [sessions, activeTab, searchTerm]);
@@ -569,7 +569,7 @@ function SessionsPageContent() {
 
   // Tab configuration
   const tabs = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayString();
     return [
       { id: 'today' as TabType, label: 'Today', icon: Today, count: sessions.filter(s => s.date === today).length },
       { id: 'active' as TabType, label: 'Active', icon: Activity, count: sessions.filter(s => s.status === 'active').length },

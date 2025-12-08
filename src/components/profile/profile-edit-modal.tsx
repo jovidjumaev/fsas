@@ -8,6 +8,7 @@ import { Card } from '../ui/card';
 import { Input } from '../ui/input';
 import { NameChangeService, NameChangeInfo } from '@/lib/name-change-service';
 import { createLogger } from '../../lib/logger';
+import { now, startOfDay, addTime, formatDate } from '@/lib/timezone-utils';
 const logger = createLogger('profile-edit-modal');
 
 interface ProfileEditModalProps {
@@ -85,11 +86,13 @@ export default function ProfileEditModal({
     } catch (error) {
       logger.error('Error checking name change info:', error);
       // Fallback: assume user can change name if service fails
+      const currentTime = now();
+      const nextMonth = startOfDay(addTime(currentTime.startOf('month'), 1, 'month'));
       setNameChangeInfo({
         canChange: true,
         remainingChanges: 2,
         lastChangeDate: null,
-        nextResetDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString()
+        nextResetDate: formatDate(nextMonth, 'YYYY-MM-DD')
       });
     } finally {
       setIsCheckingNameChange(false);
@@ -299,7 +302,7 @@ export default function ProfileEditModal({
                             }
                           </p>
                           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                            Next reset: {new Date(nameChangeInfo.nextResetDate).toLocaleDateString()}
+                            Next reset: {formatDate(nameChangeInfo.nextResetDate, 'MMM D, YYYY')}
                           </p>
                         </div>
                       </div>

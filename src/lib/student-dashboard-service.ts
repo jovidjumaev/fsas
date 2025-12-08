@@ -1,5 +1,13 @@
 import { supabase } from './supabase';
 import { createLogger } from './logger';
+import {
+  now,
+  parseDate,
+  formatDate,
+  getTodayString,
+  getDayOfWeek,
+  toUTC
+} from './timezone-utils';
 const logger = createLogger('student-dashboard-service');
 
 export interface StudentData {
@@ -77,7 +85,7 @@ export class StudentDashboardService {
         student_number: data.student_id, // Use student_id as student_number
         enrollment_year: data.enrollment_year,
         major: data.major,
-        graduation_year: data.graduation_date ? new Date(data.graduation_date).getFullYear() : null,
+        graduation_year: data.graduation_date ? parseDate(data.graduation_date).year() : null,
         first_name: data.users.first_name,
         last_name: data.users.last_name,
         email: data.users.email,
@@ -94,16 +102,15 @@ export class StudentDashboardService {
   static async getTodayClasses(userId: string): Promise<ClassSession[]> {
     try {
       logger.log('🔍 getTodayClasses: Starting for user:', userId);
-      
-      // Get today's date and day of week
-      const today = new Date();
-      const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD
-      const dayOfWeek = today.getDay(); // 0=Sunday, 1=Monday, ...
+
+      // Get today's date and day of week (timezone-aware)
+      const todayString = getTodayString();
+      const dayOfWeek = getDayOfWeek(now());
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const todayName = dayNames[dayOfWeek];
-      
+
       logger.log('🔍 getTodayClasses: Today is', todayName, todayString);
-      logger.log('🔍 getTodayClasses: Current time:', today.toISOString());
+      logger.log('🔍 getTodayClasses: Current time:', toUTC(now()));
       logger.log('🔍 getTodayClasses: Day of week:', dayOfWeek);
 
       // Get enrollments for this student, filtering out null class_instance_id values
@@ -346,7 +353,7 @@ export class StudentDashboardService {
     const sortedDates = Array.from(recordsByDate.keys()).sort((a, b) => b.localeCompare(a));
 
     let streak = 0;
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayString();
 
     for (const date of sortedDates) {
       const dayRecords = recordsByDate.get(date)!;
@@ -400,28 +407,28 @@ export class StudentDashboardService {
   private static async checkAttendanceForToday(studentId: string): Promise<boolean> {
     try {
       logger.log('🔍 checkAttendanceForToday: Checking studentId:', studentId);
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      const today = getTodayString();
       logger.log('🔍 checkAttendanceForToday: Today is:', today);
-      
+
       // Check if there are any attendance records for this student today
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/attendance/student/${studentId}?limit=20`);
       logger.log('🔍 checkAttendanceForToday: API response status:', response.status);
-      
+
       const data = await response.json();
       logger.log('🔍 checkAttendanceForToday: API response data:', data);
-      
+
       if (data.success && data.attendance && data.attendance.length > 0) {
         logger.log('🔍 checkAttendanceForToday: Found', data.attendance.length, 'records');
         // Check if any record is from today
         const todayRecord = data.attendance.find((record: any) => {
-          const recordDate = new Date(record.scanned_at).toISOString().split('T')[0];
+          const recordDate = formatDate(record.scanned_at, 'YYYY-MM-DD');
           logger.log('🔍 checkAttendanceForToday: Checking record date:', recordDate, 'vs today:', today);
           return recordDate === today;
         });
         logger.log('🔍 checkAttendanceForToday: Found today record:', !!todayRecord);
         return !!todayRecord;
       }
-      
+
       logger.log('🔍 checkAttendanceForToday: No records found or API failed');
       return false;
     } catch (error) {

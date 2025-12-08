@@ -1,6 +1,7 @@
 import { supabase, supabaseAdmin } from './supabase';
 import { createHash } from 'crypto';
 import { createLogger } from './logger';
+import { toUTC, now } from './timezone-utils';
 const logger = createLogger('password-change-service');
 
 export interface PasswordChangeResult {
@@ -197,7 +198,7 @@ export class PasswordChangeService {
         .upsert({
           user_id: userId,
           password_hash: passwordHash,
-          updated_at: new Date().toISOString()
+          updated_at: toUTC(now())
         });
 
       if (error) {

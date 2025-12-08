@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabase';
 import { StudentDashboardService } from '@/lib/student-dashboard-service';
 import { useStudentDashboard } from '@/hooks/use-student-dashboard-cached';
 import { createLogger } from '../../../lib/logger';
+import { now, toUTC, formatTime12Hour, formatDate, getTimeOfDayGreeting } from '@/lib/timezone-utils';
 const logger = createLogger('page');
 import { 
   GraduationCap,
@@ -193,7 +194,7 @@ function StudentDashboardContent() {
       const usersTableData = {
         first_name: profileData.first_name,
         last_name: profileData.last_name,
-        updated_at: new Date().toISOString()
+        updated_at: toUTC(now())
       };
       
       // Additional data for auth metadata (fields not in users table)
@@ -333,9 +334,9 @@ function StudentDashboardContent() {
       // Update user profile with avatar URL
       const { data: updateData, error: updateError } = await supabase
         .from('users')
-        .update({ 
+        .update({
           avatar_url: publicUrl,
-          updated_at: new Date().toISOString()
+          updated_at: toUTC(now())
         })
         .eq('id', user.id)
         .select();
@@ -394,9 +395,9 @@ function StudentDashboardContent() {
       // Update user profile to remove avatar URL
       const { data: updateData, error: updateError } = await supabase
         .from('users')
-        .update({ 
+        .update({
           avatar_url: null,
-          updated_at: new Date().toISOString()
+          updated_at: toUTC(now())
         })
         .eq('id', user.id)
         .select();
@@ -462,7 +463,7 @@ function StudentDashboardContent() {
               <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg">
                 <Clock className="w-4 h-4 text-slate-500" />
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                  {formatTime12Hour(now())}
                 </span>
               </div>
 
@@ -503,15 +504,10 @@ function StudentDashboardContent() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">
-                Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}{userProfile?.first_name ? `, ${userProfile.first_name}` : ''}! 👋
+                Good {getTimeOfDayGreeting()}{userProfile?.first_name ? `, ${userProfile.first_name}` : ''}! 👋
               </h1>
               <p className="text-xl text-slate-600 dark:text-slate-400">
-                {new Date().toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  month: 'long', 
-                  day: 'numeric',
-                  year: 'numeric'
-                })}
+                {formatDate(now(), 'dddd, MMMM D, YYYY')}
               </p>
             </div>
             <Button
