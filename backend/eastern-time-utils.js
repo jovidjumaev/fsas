@@ -1,5 +1,15 @@
 const { createLogger } = require('./lib/logger');
 const logger = createLogger('Backend');
+const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
+
+// Extend dayjs with plugins
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+// Eastern Time zone
+const EASTERN_TZ = 'America/New_York';
 
 // =====================================================
 // EASTERN TIME UTILITY FUNCTIONS
@@ -11,39 +21,37 @@ const logger = createLogger('Backend');
  * @returns {Date} - The date in Eastern Time
  */
 function toEasternTime(utcDate) {
-  // Eastern Time is UTC-4 (EDT) or UTC-5 (EST)
-  // For simplicity, we'll use EDT (UTC-4) year-round
-  const easternOffset = -4 * 60; // EDT offset in minutes
-  return new Date(utcDate.getTime() + (easternOffset * 60 * 1000));
+  return dayjs(utcDate).tz(EASTERN_TZ).toDate();
 }
 
 /**
  * Create a date in Eastern Time from date and time strings
+ * Automatically handles DST transitions (EDT vs EST)
  * @param {string} date - Date string (YYYY-MM-DD)
- * @param {string} time - Time string (HH:MM:SS)
+ * @param {string} time - Time string (HH:MM:SS or HH:MM)
  * @returns {Date} - The date in Eastern Time
  */
 function createEasternDate(date, time) {
   // Ensure proper time format
   const timeString = time.includes(':') ? time : `${time}:00`;
-  
+
   // Parse the date and time components
   const [year, month, day] = date.split('-');
-  const [hour, minute, second] = timeString.split(':');
-  
-  // Create a date string in Eastern Time format
-  // Use the format: YYYY-MM-DDTHH:MM:SS-04:00 (EDT)
-  const easternDateString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour.padStart(2, '0')}:${minute.padStart(2, '0')}:${(second || '00').padStart(2, '0')}-04:00`;
-  
-  const easternDate = new Date(easternDateString);
-  
+  const [hour, minute, second = '00'] = timeString.split(':');
+
+  // Create the date/time string
+  const dateTimeString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}:${second.padStart(2, '0')}`;
+
+  // Parse in Eastern Time zone (automatically handles DST)
+  const easternDate = dayjs.tz(dateTimeString, EASTERN_TZ);
+
   // Check if the date is valid
-  if (isNaN(easternDate.getTime())) {
-    logger.error(`❌ Invalid date created: ${easternDateString}`);
+  if (!easternDate.isValid()) {
+    logger.error(`❌ Invalid date created: ${dateTimeString}`);
     return new Date(); // Return current time as fallback
   }
-  
-  return easternDate;
+
+  return easternDate.toDate();
 }
 
 /**
@@ -51,8 +59,7 @@ function createEasternDate(date, time) {
  * @returns {Date} - Current time in Eastern Time (as a Date object representing that moment in time)
  */
 function getCurrentEasternTime() {
-  // Simply return the current UTC time - Date objects already represent a moment in time
-  // The createEasternDate function handles timezone conversion when creating session times
+  // Return current time - Date objects represent a moment in time (UTC internally)
   return new Date();
 }
 
@@ -65,11 +72,12 @@ function getCurrentEasternTime() {
  */
 function isWithinEasternTimeRange(startTime, endTime, date = null) {
   const now = getCurrentEasternTime();
-  const targetDate = date || now.toISOString().split('T')[0];
-  
+  const nowEastern = dayjs(now).tz(EASTERN_TZ);
+  const targetDate = date || nowEastern.format('YYYY-MM-DD');
+
   const startDateTime = createEasternDate(targetDate, startTime);
   const endDateTime = createEasternDate(targetDate, endTime);
-  
+
   return now >= startDateTime && now <= endDateTime;
 }
 
@@ -81,35 +89,27 @@ function isWithinEasternTimeRange(startTime, endTime, date = null) {
  */
 function getMinutesToEasternTime(targetTime, date = null) {
   const now = getCurrentEasternTime();
-  const targetDate = date || now.toISOString().split('T')[0];
-  
+  const nowEastern = dayjs(now).tz(EASTERN_TZ);
+  const targetDate = date || nowEastern.format('YYYY-MM-DD');
+
   const targetDateTime = createEasternDate(targetDate, targetTime);
-  
+
   // Check if target date is valid
   if (isNaN(targetDateTime.getTime())) {
     logger.error(`❌ Invalid target date: ${targetDate}T${targetTime}:00`);
     return 0; // Return 0 as fallback
   }
-  
+
   return Math.round((targetDateTime - now) / (1000 * 60));
 }
 
 /**
  * Format Eastern Time for logging
- * @param {Date} easternDate - Date in Eastern Time
+ * @param {Date} easternDate - Date to format in Eastern Time
  * @returns {string} - Formatted string
  */
 function formatEasternTime(easternDate) {
-  return easternDate.toLocaleString('en-US', { 
-    timeZone: 'America/New_York',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  });
+  return dayjs(easternDate).tz(EASTERN_TZ).format('YYYY-MM-DD HH:mm:ss');
 }
 
 module.exports = {
