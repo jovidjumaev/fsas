@@ -517,9 +517,14 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
     logger.log(`🕐 Time debugging for session ${sessionId}:`);
     logger.log(`   Current time (UTC): ${new Date().toISOString()}`);
     logger.log(`   Current time (Eastern): ${formatEasternTime(now)}`);
+    logger.log(`   Session date: ${session.date}`);
+    logger.log(`   Session start time: ${session.start_time}`);
+    logger.log(`   Session end time: ${session.end_time}`);
     logger.log(`   Session start time (Eastern): ${formatEasternTime(sessionStartTime)}`);
     logger.log(`   Session end time (Eastern): ${formatEasternTime(sessionEndTime)}`);
-    
+    logger.log(`   Session status: ${session.status}`);
+    logger.log(`   Session activated_at: ${session.activated_at}`);
+
     // Check if session times are valid
     if (isNaN(sessionStartTime.getTime()) || isNaN(sessionEndTime.getTime())) {
       logger.error(`❌ Invalid session times for session ${sessionId}`);
@@ -528,22 +533,28 @@ router.post('/api/sessions/:sessionId/complete', async (req, res) => {
         error: 'Invalid session time configuration'
       });
     }
-    
-    // Allow completion if:
-    // 1. Session has started (current time >= session start time)
-    // 2. OR if it's within 30 minutes of session start time (for early completion)
-    const earlyCompletionWindow = 30 * 60 * 1000; // 30 minutes in milliseconds
-    const earliestCompletionTime = new Date(sessionStartTime.getTime() - earlyCompletionWindow);
-    
-    if (now < earliestCompletionTime) {
-      const minutesUntilStart = getMinutesToEasternTime(session.start_time, session.date);
-      logger.log(`❌ Cannot complete session ${sessionId}: ${minutesUntilStart} minutes until session starts`);
-      
-      return res.status(400).json({
-        success: false,
-        error: `Session cannot be completed yet. Session starts in ${minutesUntilStart} minutes.`,
-        minutesUntilStart: minutesUntilStart
-      });
+
+    // IMPORTANT: If session is already active (professor started it), skip the start time check
+    // This allows professors to end sessions they've already started, regardless of scheduled time
+    if (session.status === 'active') {
+      logger.log(`✅ Session is active - allowing completion regardless of scheduled start time`);
+    } else {
+      // Allow completion if:
+      // 1. Session has started (current time >= session start time)
+      // 2. OR if it's within 30 minutes of session start time (for early completion)
+      const earlyCompletionWindow = 30 * 60 * 1000; // 30 minutes in milliseconds
+      const earliestCompletionTime = new Date(sessionStartTime.getTime() - earlyCompletionWindow);
+
+      if (now < earliestCompletionTime) {
+        const minutesUntilStart = Math.round((sessionStartTime.getTime() - now.getTime()) / (1000 * 60));
+        logger.log(`❌ Cannot complete session ${sessionId}: ${minutesUntilStart} minutes until session starts`);
+
+        return res.status(400).json({
+          success: false,
+          error: `Session cannot be completed yet. Session starts in ${minutesUntilStart} minutes.`,
+          minutesUntilStart: minutesUntilStart
+        });
+      }
     }
     
     // Log completion timing for monitoring
